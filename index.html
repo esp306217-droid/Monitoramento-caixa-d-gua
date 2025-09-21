@@ -149,8 +149,9 @@ async function atualizar(){
             j = await rFirebase.json();
         }
 
-        const nivel = j.nivel_pct || 0;
-        const altura = j.altura_cm || 0;
+      const nivel = j.nivel_pct || 0;
+const altura = j.altura_cm || 0;
+
 
         // Atualiza texto e animação da água
         document.getElementById('nivel').innerText = nivel;
@@ -192,3 +193,4 @@ window.onload = function(){
 
 </body>
 </html>
+
