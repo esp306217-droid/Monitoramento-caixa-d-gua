@@ -112,10 +112,11 @@ canvas { margin-top:20px; max-width:90%; background: rgba(0,0,0,0.05); border-ra
 <script>
 async function atualizar() {
     try {
-        const r = await fetch('/data');
-        const j = await r.json();
-        const nivel = j.niveis[j.niveis.length-1];
-        const altura = j.alturas[j.alturas.length-1];
+        const nivelResp = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/nivel.json');
+        const alturaResp = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/altura.json');
+
+        const nivel = await nivelResp.json();
+        const altura = await alturaResp.json();
 
         document.getElementById('nivel').innerText = nivel;
         document.getElementById('altura').innerText = altura.toFixed(1);
@@ -128,19 +129,16 @@ async function atualizar() {
         else if(nivel>20) {aguaDiv.style.background='linear-gradient(to top, #ffff66, #ffcc00)'; aguaDiv.style.color='black';}
         else {aguaDiv.style.background='linear-gradient(to top, #ff3333, #990000)'; aguaDiv.style.color='white';}
 
-        const verde=document.getElementById('ledVerde');
-        const amarelo=document.getElementById('ledAmarelo');
-        const vermelho=document.getElementById('ledVermelho');
-        verde.classList.remove('acesso'); amarelo.classList.remove('acesso'); vermelho.classList.remove('acesso');
-        if(nivel>60) verde.classList.add('acesso'); 
-        else if(nivel>20) amarelo.classList.add('acesso');
-        else vermelho.classList.add('acesso');
-
-        chart.data.labels = j.labels;
-        chart.data.datasets[0].data = j.niveis;
+        chart.data.labels.push(new Date().toLocaleTimeString());
+        chart.data.datasets[0].data.push(nivel);
+        if(chart.data.labels.length > 10) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
         chart.update();
 
     } catch(e){ console.error(e); }
+
 }
 setInterval(atualizar,5000);
 atualizar();
@@ -177,4 +175,5 @@ const chart = new Chart(ctx, {
 </script>
 </body>
 </html>
+
 
