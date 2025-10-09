@@ -1,5 +1,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-adapter-date-fns/dist/chartjs-plugin-adapter-date-fns.bundle.min.js"></script> <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-adapter-date-fns/dist/chartjs-plugin-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
@@ -9,13 +10,11 @@ const firebaseURL = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.
 // Função principal que carrega os dados históricos
 async function carregarHistorico() {
     try {
-        // 1. Calcula o timestamp de 2 dias atrás para o filtro
-        const doisDiasAtras = new Date().getTime() - (2 * 24 * 60 * 60 * 1000);
+        // 1. Calcula o timestamp de 2 dias atrás
+        const doisDiasAtras = Date.now() - (2 * 24 * 60 * 60 * 1000);
 
-        // 2. Monta a URL para buscar apenas os dados dos últimos 2 dias
-        // Ordena por 'timestamp' e pega todos a partir de 'doisDiasAtras'
-        const queryURL = `${firebaseURL}?orderBy="timestamp"&startAt=${doisDiasAtras}`;
-        
+        // 2. Monta a URL com orderBy e startAt
+        const queryURL = `${firebaseURL}?orderBy=%22timestamp%22&startAt=${doisDiasAtras}`;
         const response = await fetch(queryURL);
 
         if (!response.ok) {
@@ -29,50 +28,58 @@ async function carregarHistorico() {
         chart.data.labels = [];
         chart.data.datasets[0].data = [];
 
-        if (leituras) {
+        if (leituras && Object.keys(leituras).length > 0) {
             let ultimaLeitura = null;
 
-            // 3. Adiciona cada leitura do histórico ao gráfico
-            for (const key in leituras) {
-                const leitura = leituras[key];
+            // 3. Adiciona cada leitura ao gráfico
+            Object.values(leituras).forEach(leitura => {
                 chart.data.labels.push(new Date(leitura.timestamp));
                 chart.data.datasets[0].data.push(leitura.nivel);
                 ultimaLeitura = leitura;
-            }
+            });
 
-            // 4. Atualiza a caixa d'água e os textos com a última leitura recebida
+            // 4. Atualiza a parte visual com a última leitura
             if (ultimaLeitura) {
                 atualizarVisualizacao(ultimaLeitura.nivel, ultimaLeitura.altura);
             }
+
+            chart.update('none');
+        } else {
+            console.warn("Nenhum dado encontrado no período consultado.");
         }
-        
-        chart.update('none'); // Atualiza o gráfico
 
-    } catch(e){ console.error("Erro ao processar dados: ", e); }
-}
-
-// Função para atualizar apenas a parte visual (caixa, textos, etc.)
-function atualizarVisualizacao(nivel, altura) {
-    document.getElementById('nivel').innerText = nivel;
-    document.getElementById('altura').innerText = altura.toFixed(1);
-
-    const aguaDiv = document.getElementById('agua');
-    aguaDiv.style.height = nivel + '%';
-    aguaDiv.innerText = nivel + '%';
-
-    if(nivel > 60) {
-        aguaDiv.style.background='linear-gradient(to top, #00ffcc, #1e90ff)';
-        aguaDiv.style.color='white';
-    } else if(nivel > 20) {
-        aguaDiv.style.background='linear-gradient(to top, #ffff66, #ffcc00)';
-        aguaDiv.style.color='black';
-    } else {
-        aguaDiv.style.background='linear-gradient(to top, #ff3333, #990000)';
-        aguaDiv.style.color='white';
+    } catch (e) {
+        console.error("Erro ao processar dados: ", e);
     }
 }
 
+// Função para atualizar a parte visual
+function atualizarVisualizacao(nivel, altura) {
+    const nivelElem = document.getElementById('nivel');
+    const alturaElem = document.getElementById('altura');
+    const aguaDiv = document.getElementById('agua');
 
+    if (!nivelElem || !alturaElem || !aguaDiv) return;
+
+    nivelElem.innerText = nivel ?? 0;
+    alturaElem.innerText = (altura ?? 0).toFixed(1);
+
+    aguaDiv.style.height = `${nivel}%`;
+    aguaDiv.innerText = `${nivel}%`;
+
+    if (nivel > 60) {
+        aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
+        aguaDiv.style.color = 'white';
+    } else if (nivel > 20) {
+        aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+        aguaDiv.style.color = 'black';
+    } else {
+        aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+        aguaDiv.style.color = 'white';
+    }
+}
+
+// Configuração do gráfico
 const ctx = document.getElementById('grafico').getContext('2d');
 const chart = new Chart(ctx, {
     type: 'line',
@@ -90,10 +97,14 @@ const chart = new Chart(ctx, {
         }]
     },
     options: {
-        // ... (o resto das opções do gráfico continua igual ao código anterior) ...
-        responsive:true,
+        responsive: true,
         scales: {  
-            y: { min:0, max:100, title: {display:true, text:'% Nível'}, ticks: {color:'#000'} },
+            y: { 
+                min: 0, 
+                max: 100, 
+                title: { display: true, text: '% Nível' }, 
+                ticks: { color: '#000' } 
+            },
             x: { 
                 type: 'time',
                 time: {
@@ -101,11 +112,11 @@ const chart = new Chart(ctx, {
                     displayFormats: { hour: 'HH:mm' },
                     tooltipFormat: 'dd/MM/yyyy HH:mm:ss'
                 },
-                ticks: {color:'#000'} 
+                ticks: { color: '#000' } 
             }
         },
         plugins: {
-            legend: { labels: {color:'#000'} },
+            legend: { labels: { color: '#000' } },
             zoom: {
                 pan: { enabled: true, mode: 'x' },
                 zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
@@ -114,8 +125,9 @@ const chart = new Chart(ctx, {
     }
 });
 
-// Atualiza o histórico a cada 30 segundos para pegar novos dados
+// Atualiza o histórico a cada 30 segundos
 setInterval(carregarHistorico, 30000); 
-// Carrega o histórico assim que a página abre
+// Carrega o histórico na abertura da página
 carregarHistorico();
 </script>
+
