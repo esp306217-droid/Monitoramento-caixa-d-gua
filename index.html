@@ -1,133 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reservatório PP7</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+<style>
+body { 
+  font-family: Arial, sans-serif; 
+  text-align:center; 
+  background: #fff;
+  margin:20px; 
+  color:#000; 
+  position: relative;
+  overflow-x: hidden;
+}
+body::before {
+  content: "";
+  background-image: url('https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.08; 
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+h2 { 
+  font-family: 'Orbitron', sans-serif; 
+  font-size: 2rem; 
+  color:#000; 
+  margin-bottom:10px; 
+  position: relative;
+  z-index: 10;
+}
+.caixa { 
+  width:140px; 
+  height:360px; 
+  border: 4px solid #333; 
+  border-radius: 25px; 
+  margin:auto; 
+  position: relative; 
+  background: #e0e0e0; 
+  overflow:hidden; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.agua { 
+  position:absolute; 
+  bottom:0; 
+  width:100%; 
+  background: linear-gradient(to top, #1e90ff, #00bfff); 
+  text-align:center; 
+  color:white; 
+  font-weight:bold; 
+  line-height:1.5; 
+  transition: height 0.5s, background 0.5s;
+  overflow:hidden;
+}
+.agua::before {
+  content:"";
+  position:absolute;
+  width:200%;
+  height:20px;
+  background: rgba(255,255,255,0.4);
+  top:-10px;
+  left:-50%;
+  border-radius: 50%;
+  animation: onda 2s infinite linear;
+}
+@keyframes onda { 0% {transform: translateX(0);} 100% {transform: translateX(50px);} }
+.info { margin-top:10px; font-size:16px; color:#000; }
+.leds { margin-top:15px; display:flex; justify-content:center; gap:15px; }
+.led { width:30px; height:30px; border-radius:50%; background:#555; box-shadow:0 0 5px rgba(0,0,0,0.5); transition:0.3s; }
+.led.acesso { box-shadow:0 0 20px currentColor; animation: pulse 1.2s infinite; }
+@keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.3);} 100% {transform: scale(1);} }
+canvas { margin-top:20px; max-width:90%; background: rgba(0,0,0,0.05); border-radius:10px; }
+button {
+  margin-top: 10px;
+  padding: 6px 14px;
+  background: #0078d7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+button:hover { background: #005fa3; }
+</style>
+</head>
+<body>
+
+<h2>🚰 Nível da Caixa d'Água PP7</h2>
+<div class="caixa">
+  <div class="agua" id="agua">0%</div>
+</div>
+<div class="info">
+  Altura: <span id="altura">0</span> cm | Nível: <span id="nivel">0</span>%
+</div>
+<div class="leds">
+  <div class="led" id="ledVerde" style="background:#0f0"></div>
+  <div class="led" id="ledAmarelo" style="background:#ff0"></div>
+  <div class="led" id="ledVermelho" style="background:#f00"></div>
+</div>
+
+<!-- Botão para resetar zoom -->
+<button onclick="chart.resetZoom()">🔄 Resetar Zoom</button>
+<canvas id="grafico" width="400" height="200"></canvas>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-adapter-date-fns/dist/chartjs-plugin-adapter-date-fns.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
-// URL base do seu Firebase
-const firebaseURL = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/leituras.json';
+let chart;
+const firebaseURL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json";
 
-// Função principal que carrega os dados históricos
-async function carregarHistorico() {
-    try {
-        // 1. Calcula o timestamp de 2 dias atrás
-        const doisDiasAtras = Date.now() - (2 * 24 * 60 * 60 * 1000);
-
-        // 2. Monta a URL com orderBy e startAt
-        const queryURL = `${firebaseURL}?orderBy=%22timestamp%22&startAt=${doisDiasAtras}`;
-        const response = await fetch(queryURL);
-
-        if (!response.ok) {
-            console.error("Erro ao buscar dados do Firebase.");
-            return;
-        }
-
-        const leituras = await response.json();
-
-        // Limpa os dados antigos do gráfico
-        chart.data.labels = [];
-        chart.data.datasets[0].data = [];
-
-        if (leituras && Object.keys(leituras).length > 0) {
-            let ultimaLeitura = null;
-
-            // 3. Adiciona cada leitura ao gráfico
-            Object.values(leituras).forEach(leitura => {
-                chart.data.labels.push(new Date(leitura.timestamp));
-                chart.data.datasets[0].data.push(leitura.nivel);
-                ultimaLeitura = leitura;
-            });
-
-            // 4. Atualiza a parte visual com a última leitura
-            if (ultimaLeitura) {
-                atualizarVisualizacao(ultimaLeitura.nivel, ultimaLeitura.altura);
-            }
-
-            chart.update('none');
-        } else {
-            console.warn("Nenhum dado encontrado no período consultado.");
-        }
-
-    } catch (e) {
-        console.error("Erro ao processar dados: ", e);
-    }
-}
-
-// Função para atualizar a parte visual
-function atualizarVisualizacao(nivel, altura) {
-    const nivelElem = document.getElementById('nivel');
-    const alturaElem = document.getElementById('altura');
-    const aguaDiv = document.getElementById('agua');
-
-    if (!nivelElem || !alturaElem || !aguaDiv) return;
-
-    nivelElem.innerText = nivel ?? 0;
-    alturaElem.innerText = (altura ?? 0).toFixed(1);
-
-    aguaDiv.style.height = `${nivel}%`;
-    aguaDiv.innerText = `${nivel}%`;
-
-    if (nivel > 60) {
-        aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
-        aguaDiv.style.color = 'white';
-    } else if (nivel > 20) {
-        aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
-        aguaDiv.style.color = 'black';
-    } else {
-        aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
-        aguaDiv.style.color = 'white';
-    }
-}
-
-// Configuração do gráfico
-const ctx = document.getElementById('grafico').getContext('2d');
-const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [{
-            label: 'Nível da água (%)',
-            data: [],
-            backgroundColor: 'rgba(0,255,255,0.2)',
-            borderColor: 'rgba(0,255,255,1)',
-            borderWidth: 1.5,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-        }]
+// Cria o gráfico com zoom e pan habilitados
+function criarGrafico(){
+  const ctx = document.getElementById('grafico').getContext('2d');
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels: [],
+      datasets:[{
+        label:'Nível da água (%)',
+        data: [],
+        backgroundColor:'rgba(0,255,255,0.2)',
+        borderColor:'rgba(0,255,255,1)',
+        borderWidth:2,
+        fill:true,
+        tension:0.4,
+        pointRadius:0
+      }]
     },
-    options: {
-        responsive: true,
-        scales: {  
-            y: { 
-                min: 0, 
-                max: 100, 
-                title: { display: true, text: '% Nível' }, 
-                ticks: { color: '#000' } 
-            },
-            x: { 
-                type: 'time',
-                time: {
-                    unit: 'hour',
-                    displayFormats: { hour: 'HH:mm' },
-                    tooltipFormat: 'dd/MM/yyyy HH:mm:ss'
-                },
-                ticks: { color: '#000' } 
-            }
-        },
-        plugins: {
-            legend: { labels: { color: '#000' } },
-            zoom: {
-                pan: { enabled: true, mode: 'x' },
-                zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
-            }
+    options:{
+      responsive:true,
+      scales:{
+        y:{ min:0, max:100, title:{display:true,text:'% Nível', color:'#000'}, ticks:{color:'#000'}},
+        x:{
+          type:'time',
+          time:{ unit:'hour', displayFormats:{hour:'HH:mm'}, tooltipFormat:'dd/MM/yyyy HH:mm:ss' },
+          ticks:{ color:'#000' }
         }
+      },
+      plugins:{
+        legend:{ labels:{ color:'#000' } },
+        zoom:{
+          pan:{ enabled:true, mode:'x', modifierKey:null },
+          zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
+        }
+      }
     }
-});
+  });
+}
 
-// Atualiza o histórico a cada 30 segundos
-setInterval(carregarHistorico, 30000); 
-// Carrega o histórico na abertura da página
-carregarHistorico();
+// Atualiza a leitura atual
+async function atualizar(){
+  try{
+    let dados;
+    try{
+      const local = await fetch('/data');
+      dados = await local.json();
+    } catch{
+      const remoto = await fetch(firebaseURL);
+      dados = await remoto.json();
+    }
+
+    const nivel = dados.nivel_pct || 0;
+    const altura = dados.altura_cm || 0;
+
+    // Atualiza display
+    document.getElementById('nivel').innerText = nivel;
+    document.getElementById('altura').innerText = altura.toFixed(1);
+    const aguaDiv = document.getElementById('agua');
+    aguaDiv.style.height = nivel + '%';
+    aguaDiv.innerText = nivel + '%';
+
+    if(nivel>60) {aguaDiv.style.background='linear-gradient(to top, #00ffcc, #1e90ff)'; aguaDiv.style.color='white';}
+    else if(nivel>20) {aguaDiv.style.background='linear-gradient(to top, #ffff66, #ffcc00)'; aguaDiv.style.color='black';}
+    else {aguaDiv.style.background='linear-gradient(to top, #ff3333, #990000)'; aguaDiv.style.color='white';}
+
+    const verde=document.getElementById('ledVerde');
+    const amarelo=document.getElementById('ledAmarelo');
+    const vermelho=document.getElementById('ledVermelho');
+    verde.classList.remove('acesso'); amarelo.classList.remove('acesso'); vermelho.classList.remove('acesso');
+    if(nivel>60) verde.classList.add('acesso');
+    else if(nivel>20) amarelo.classList.add('acesso');
+    else vermelho.classList.add('acesso');
+
+  } catch(e){
+    console.error("Erro ao atualizar leitura:", e);
+  }
+}
+
+// Carrega histórico dos últimos 2 dias do Firebase
+async function carregarHistorico(){
+  try{
+    const doisDiasAtras = Date.now() - (2 * 24 * 60 * 60 * 1000);
+    const queryURL = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/leituras.json?orderBy=%22timestamp%22&startAt=${doisDiasAtras}`;
+    const r = await fetch(queryURL);
+    const historico = await r.json();
+
+    const labels = [];
+    const dados = [];
+
+    if(historico){
+      Object.values(historico).forEach(item=>{
+        labels.push(new Date(item.timestamp));
+        dados.push(item.nivel);
+      });
+    }
+
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = dados;
+    chart.update();
+  }catch(e){
+    console.error("Erro ao carregar histórico:", e);
+  }
+}
+
+window.onload = ()=>{
+  criarGrafico();
+  atualizar();
+  carregarHistorico();
+  setInterval(atualizar, 5000);       // Atualiza leitura atual
+  setInterval(carregarHistorico, 60000); // Atualiza histórico a cada 1 min
+};
 </script>
+
+</body>
+</html>
+
+
 
