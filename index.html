@@ -1,160 +1,77 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reservatório PP7</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
-<style>
-body {  
-  font-family: Arial, sans-serif;  
-  text-align:center;  
-  background: #fff;
-  margin:20px;  
-  color:#000;  
-  position: relative;
-  overflow-x: hidden;
-}
-
-/* Marca d'água de fundo */
-body::before {
-  content: "";
-  background-image: url('https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg');
-  background-size: cover;
-  background-position: center;
-  opacity: 0.08; /* esmaecida */
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-}
-
-h2 {  
-  font-family: 'Orbitron', sans-serif;  
-  font-size: 2rem;  
-  color:#000;  
-  margin-bottom:10px;  
-  position: relative;
-  z-index: 10;
-}
-
-.caixa {  
-  width:140px;  
-  height:360px;  
-  border: 4px solid #333;  
-  border-radius: 25px;  
-  margin:auto;  
-  position: relative;  
-  background: #e0e0e0;  
-  overflow:hidden;  
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
-
-.agua {  
-  position:absolute;  
-  bottom:0;  
-  width:100%;  
-  background: linear-gradient(to top, #1e90ff, #00bfff);  
-  text-align:center;  
-  color:white;  
-  font-weight:bold;  
-  line-height:1.5;  
-  transition: height 0.5s, background 0.5s;
-  overflow:hidden;
-}
-
-.agua::before {
-  content:"";
-  position:absolute;
-  width:200%;
-  height:20px;
-  background: rgba(255,255,255,0.4);
-  top:-10px;
-  left:-50%;
-  border-radius: 50%;
-  animation: onda 2s infinite linear;
-}
-
-@keyframes onda { 0% {transform: translateX(0);} 100% {transform: translateX(50px);} }
-
-.info { margin-top:10px; font-size:16px; color:#000; }
-
-.leds { margin-top:15px; display:flex; justify-content:center; gap:15px; }
-
-.led { width:30px; height:30px; border-radius:50%; background:#555; box-shadow:0 0 5px rgba(0,0,0,0.5); transition:0.3s; }
-
-.led.acesso { box-shadow:0 0 20px currentColor; animation: pulse 1.2s infinite; }
-
-@keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.3);} 100% {transform: scale(1);} }
-
-canvas { margin-top:20px; max-width:90%; background: rgba(0,0,0,0.05); border-radius:10px; }
-</style>
-</head>
-<body>
-
-<h2>🚰 Nível da Caixa d'Água PP7</h2>
-<div class="caixa">
-  <div class="agua" id="agua">0%</div>
-</div>
-<div class="info">
-  Altura: <span id="altura">0</span> cm | Nível: <span id="nivel">0</span>%
-</div>
-<div class="leds">
-  <div class="led" id="ledVerde" style="background:#0f0"></div>
-  <div class="led" id="ledAmarelo" style="background:#ff0"></div>
-  <div class="led" id="ledVermelho" style="background:#f00"></div>
-</div>
-<canvas id="grafico" width="400" height="200"></canvas>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-adapter-date-fns/dist/chartjs-plugin-adapter-date-fns.bundle.min.js"></script> <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
-// Calcula o máximo de pontos de dados para armazenar (2 dias a cada 5 segundos)
-const maxDataPoints = (2 * 24 * 60 * 60) / 5; // Total de segundos em 2 dias / intervalo de 5s
+// URL base do seu Firebase
+const firebaseURL = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/leituras.json';
 
-async function atualizar() {
+// Função principal que carrega os dados históricos
+async function carregarHistorico() {
     try {
-        const nivelResp = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/nivel.json');
-        const alturaResp = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/altura.json');
+        // 1. Calcula o timestamp de 2 dias atrás para o filtro
+        const doisDiasAtras = new Date().getTime() - (2 * 24 * 60 * 60 * 1000);
 
-        if (!nivelResp.ok || !alturaResp.ok) {
+        // 2. Monta a URL para buscar apenas os dados dos últimos 2 dias
+        // Ordena por 'timestamp' e pega todos a partir de 'doisDiasAtras'
+        const queryURL = `${firebaseURL}?orderBy="timestamp"&startAt=${doisDiasAtras}`;
+        
+        const response = await fetch(queryURL);
+
+        if (!response.ok) {
             console.error("Erro ao buscar dados do Firebase.");
             return;
         }
 
-        const nivel = await nivelResp.json();
-        const altura = await alturaResp.json();
+        const leituras = await response.json();
 
-        document.getElementById('nivel').innerText = nivel;
-        document.getElementById('altura').innerText = altura.toFixed(1);
+        // Limpa os dados antigos do gráfico
+        chart.data.labels = [];
+        chart.data.datasets[0].data = [];
 
-        const aguaDiv = document.getElementById('agua');
-        aguaDiv.style.height = nivel + '%';
-        aguaDiv.innerText = nivel + '%';
+        if (leituras) {
+            let ultimaLeitura = null;
 
-        if(nivel>60) {aguaDiv.style.background='linear-gradient(to top, #00ffcc, #1e90ff)'; aguaDiv.style.color='white';}
-        else if(nivel>20) {aguaDiv.style.background='linear-gradient(to top, #ffff66, #ffcc00)'; aguaDiv.style.color='black';}
-        else {aguaDiv.style.background='linear-gradient(to top, #ff3333, #990000)'; aguaDiv.style.color='white';}
+            // 3. Adiciona cada leitura do histórico ao gráfico
+            for (const key in leituras) {
+                const leitura = leituras[key];
+                chart.data.labels.push(new Date(leitura.timestamp));
+                chart.data.datasets[0].data.push(leitura.nivel);
+                ultimaLeitura = leitura;
+            }
 
-        // Adiciona novos dados ao gráfico
-        chart.data.labels.push(new Date()); // Usamos o objeto Date completo para o eixo de tempo
-        chart.data.datasets[0].data.push(nivel);
-        
-        // 3. ALTERAÇÃO DO LIMITE DE DADOS NO GRÁFICO
-        // Remove o ponto mais antigo se o limite for excedido
-        if(chart.data.labels.length > maxDataPoints) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
+            // 4. Atualiza a caixa d'água e os textos com a última leitura recebida
+            if (ultimaLeitura) {
+                atualizarVisualizacao(ultimaLeitura.nivel, ultimaLeitura.altura);
+            }
         }
         
-        chart.update('none'); // Atualiza sem animação para melhor performance com muitos dados
+        chart.update('none'); // Atualiza o gráfico
 
-    } catch(e){ console.error(e); }
+    } catch(e){ console.error("Erro ao processar dados: ", e); }
 }
+
+// Função para atualizar apenas a parte visual (caixa, textos, etc.)
+function atualizarVisualizacao(nivel, altura) {
+    document.getElementById('nivel').innerText = nivel;
+    document.getElementById('altura').innerText = altura.toFixed(1);
+
+    const aguaDiv = document.getElementById('agua');
+    aguaDiv.style.height = nivel + '%';
+    aguaDiv.innerText = nivel + '%';
+
+    if(nivel > 60) {
+        aguaDiv.style.background='linear-gradient(to top, #00ffcc, #1e90ff)';
+        aguaDiv.style.color='white';
+    } else if(nivel > 20) {
+        aguaDiv.style.background='linear-gradient(to top, #ffff66, #ffcc00)';
+        aguaDiv.style.color='black';
+    } else {
+        aguaDiv.style.background='linear-gradient(to top, #ff3333, #990000)';
+        aguaDiv.style.color='white';
+    }
+}
+
 
 const ctx = document.getElementById('grafico').getContext('2d');
 const chart = new Chart(ctx, {
@@ -166,30 +83,22 @@ const chart = new Chart(ctx, {
             data: [],
             backgroundColor: 'rgba(0,255,255,0.2)',
             borderColor: 'rgba(0,255,255,1)',
-            borderWidth: 2,
+            borderWidth: 1.5,
             fill: true,
-            tension:0.4,
-            pointRadius: 0, // Pontos podem ser removidos para um visual mais limpo com muitos dados
-            pointBackgroundColor: 'cyan'
+            tension: 0.4,
+            pointRadius: 0,
         }]
     },
     options: {
+        // ... (o resto das opções do gráfico continua igual ao código anterior) ...
         responsive:true,
-        animation: {duration:0}, // Desativa animação para performance
         scales: {  
-            y: { 
-                min:0, 
-                max:100, 
-                title: {display:true, text:'% Nível', color:'#000'}, 
-                ticks: {color:'#000'} 
-            },
+            y: { min:0, max:100, title: {display:true, text:'% Nível'}, ticks: {color:'#000'} },
             x: { 
-                type: 'time', // Eixo X agora é do tipo 'time'
+                type: 'time',
                 time: {
-                    unit: 'hour', // Unidade principal de exibição
-                    displayFormats: {
-                        hour: 'HH:mm'
-                    },
+                    unit: 'hour',
+                    displayFormats: { hour: 'HH:mm' },
                     tooltipFormat: 'dd/MM/yyyy HH:mm:ss'
                 },
                 ticks: {color:'#000'} 
@@ -197,28 +106,16 @@ const chart = new Chart(ctx, {
         },
         plugins: {
             legend: { labels: {color:'#000'} },
-            // 2. CONFIGURAÇÃO DO PLUGIN DE ZOOM E PAN
             zoom: {
-                pan: {
-                    enabled: true, // Habilita o 'arrastar'
-                    mode: 'x',     // Permite arrastar apenas no eixo X (tempo)
-                },
-                zoom: {
-                    wheel: {
-                        enabled: true, // Habilita o zoom com a roda do mouse
-                    },
-                    pinch: {
-                        enabled: true // Habilita o zoom com gesto de pinça (touch)
-                    },
-                    mode: 'x', // Permite zoom apenas no eixo X
-                }
+                pan: { enabled: true, mode: 'x' },
+                zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
             }
         }
     }
 });
 
-setInterval(atualizar, 5000);
-atualizar(); // Chama uma vez no início para carregar os dados
+// Atualiza o histórico a cada 30 segundos para pegar novos dados
+setInterval(carregarHistorico, 30000); 
+// Carrega o histórico assim que a página abre
+carregarHistorico();
 </script>
-</body>
-</html>
