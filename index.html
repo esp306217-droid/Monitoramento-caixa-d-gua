@@ -77,17 +77,6 @@ h2 {
 .led.acesso { box-shadow:0 0 20px currentColor; animation: pulse 1.2s infinite; }
 @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.3);} 100% {transform: scale(1);} }
 canvas { margin-top:20px; max-width:90%; background: rgba(0,0,0,0.05); border-radius:10px; }
-button {
-  margin-top: 10px;
-  padding: 6px 14px;
-  background: #0078d7;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-}
-button:hover { background: #005fa3; }
 </style>
 </head>
 <body>
@@ -104,134 +93,108 @@ button:hover { background: #005fa3; }
   <div class="led" id="ledAmarelo" style="background:#ff0"></div>
   <div class="led" id="ledVermelho" style="background:#f00"></div>
 </div>
-
-<!-- Botão para resetar zoom -->
-<button onclick="chart.resetZoom()">🔄 Resetar Zoom</button>
 <canvas id="grafico" width="400" height="200"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-
 <script>
 let chart;
+let historicoNiveis = [];
+let historicoLabels = [];
+
+// Cria o gráfico vazio
+function criarGrafico(){
+    const ctx = document.getElementById('grafico').getContext('2d');
+    chart = new Chart(ctx,{
+        type:'line',
+        data:{
+            labels: historicoLabels,
+            datasets:[{
+                label:'Nível da água (%)',
+                data: historicoNiveis,
+                backgroundColor:'rgba(0,255,255,0.2)',
+                borderColor:'rgba(0,255,255,1)',
+                borderWidth:2,
+                fill:true,
+                tension:0.4,
+                pointRadius:4,
+                pointBackgroundColor:'cyan'
+            }]
+        },
+        options:{
+            responsive:true,
+            animation:{duration:300},
+            scales:{
+                y:{ min:0, max:100, title:{display:true,text:'% Nível', color:'#000'}, ticks:{color:'#000'}},
+                x:{ ticks:{color:'#000'} }
+            },
+            plugins:{ legend:{ labels:{color:'#000'} } }
+        }
+    });
+}
+
+// URL do Firebase
 const firebaseURL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json";
 
-// Cria o gráfico com zoom e pan habilitados
-function criarGrafico(){
-  const ctx = document.getElementById('grafico').getContext('2d');
-  chart = new Chart(ctx,{
-    type:'line',
-    data:{
-      labels: [],
-      datasets:[{
-        label:'Nível da água (%)',
-        data: [],
-        backgroundColor:'rgba(0,255,255,0.2)',
-        borderColor:'rgba(0,255,255,1)',
-        borderWidth:2,
-        fill:true,
-        tension:0.4,
-        pointRadius:0
-      }]
-    },
-    options:{
-      responsive:true,
-      scales:{
-        y:{ min:0, max:100, title:{display:true,text:'% Nível', color:'#000'}, ticks:{color:'#000'}},
-        x:{
-          type:'time',
-          time:{ unit:'hour', displayFormats:{hour:'HH:mm'}, tooltipFormat:'dd/MM/yyyy HH:mm:ss' },
-          ticks:{ color:'#000' }
-        }
-      },
-      plugins:{
-        legend:{ labels:{ color:'#000' } },
-        zoom:{
-          pan:{ enabled:true, mode:'x', modifierKey:null },
-          zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
-        }
-      }
-    }
-  });
-}
-
-// Atualiza a leitura atual
+// Atualiza os valores da página e do gráfico
 async function atualizar(){
-  try{
-    let dados;
     try{
-      const local = await fetch('/data');
-      dados = await local.json();
-    } catch{
-      const remoto = await fetch(firebaseURL);
-      dados = await remoto.json();
-    }
+        let j;
+        // Primeiro tenta atualizar do ESP32 local (mesma rede)
+        try{
+            const rLocal = await fetch('/data');
+            j = await rLocal.json();
+        } catch(e){
+            // Se falhar, pega do Firebase remoto
+            const rFirebase = await fetch(firebaseURL);
+            j = await rFirebase.json();
+        }
 
-    const nivel = dados.nivel_pct || 0;
-    const altura = dados.altura_cm || 0;
+      const nivel = j.nivel_pct || 0;
+const altura = j.altura_cm || 0;
 
-    // Atualiza display
-    document.getElementById('nivel').innerText = nivel;
-    document.getElementById('altura').innerText = altura.toFixed(1);
-    const aguaDiv = document.getElementById('agua');
-    aguaDiv.style.height = nivel + '%';
-    aguaDiv.innerText = nivel + '%';
 
-    if(nivel>60) {aguaDiv.style.background='linear-gradient(to top, #00ffcc, #1e90ff)'; aguaDiv.style.color='white';}
-    else if(nivel>20) {aguaDiv.style.background='linear-gradient(to top, #ffff66, #ffcc00)'; aguaDiv.style.color='black';}
-    else {aguaDiv.style.background='linear-gradient(to top, #ff3333, #990000)'; aguaDiv.style.color='white';}
+        // Atualiza texto e animação da água
+        document.getElementById('nivel').innerText = nivel;
+        document.getElementById('altura').innerText = altura.toFixed(1);
+        const aguaDiv = document.getElementById('agua');
+        aguaDiv.style.height = nivel + '%';
+        aguaDiv.innerText = nivel + '%';
 
-    const verde=document.getElementById('ledVerde');
-    const amarelo=document.getElementById('ledAmarelo');
-    const vermelho=document.getElementById('ledVermelho');
-    verde.classList.remove('acesso'); amarelo.classList.remove('acesso'); vermelho.classList.remove('acesso');
-    if(nivel>60) verde.classList.add('acesso');
-    else if(nivel>20) amarelo.classList.add('acesso');
-    else vermelho.classList.add('acesso');
+        if(nivel>60) {aguaDiv.style.background='linear-gradient(to top, #00ffcc, #1e90ff)'; aguaDiv.style.color='white';}
+        else if(nivel>20) {aguaDiv.style.background='linear-gradient(to top, #ffff66, #ffcc00)'; aguaDiv.style.color='black';}
+        else {aguaDiv.style.background='linear-gradient(to top, #ff3333, #990000)'; aguaDiv.style.color='white';}
 
-  } catch(e){
-    console.error("Erro ao atualizar leitura:", e);
-  }
+        const verde=document.getElementById('ledVerde');
+        const amarelo=document.getElementById('ledAmarelo');
+        const vermelho=document.getElementById('ledVermelho');
+        verde.classList.remove('acesso'); amarelo.classList.remove('acesso'); vermelho.classList.remove('acesso');
+        if(nivel>60) verde.classList.add('acesso');
+        else if(nivel>20) amarelo.classList.add('acesso');
+        else vermelho.classList.add('acesso');
+
+        // Atualiza gráfico
+        if(historicoNiveis.length>=50){ historicoNiveis.shift(); historicoLabels.shift();}
+        historicoNiveis.push(nivel);
+        historicoLabels.push(new Date().toLocaleTimeString());
+        chart.data.labels = historicoLabels;
+        chart.data.datasets[0].data = historicoNiveis;
+        chart.update();
+
+    } catch(e){ console.error("Erro ao atualizar:", e); }
 }
 
-// Carrega histórico dos últimos 2 dias do Firebase
-async function carregarHistorico(){
-  try{
-    const doisDiasAtras = Date.now() - (2 * 24 * 60 * 60 * 1000);
-    const queryURL = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/leituras.json?orderBy=%22timestamp%22&startAt=${doisDiasAtras}`;
-    const r = await fetch(queryURL);
-    const historico = await r.json();
-
-    const labels = [];
-    const dados = [];
-
-    if(historico){
-      Object.values(historico).forEach(item=>{
-        labels.push(new Date(item.timestamp));
-        dados.push(item.nivel);
-      });
-    }
-
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = dados;
-    chart.update();
-  }catch(e){
-    console.error("Erro ao carregar histórico:", e);
-  }
+// Inicializa
+window.onload = function(){
+    criarGrafico();
+    atualizar();
+    setInterval(atualizar,5000); // Atualiza a cada 5s
 }
-
-window.onload = ()=>{
-  criarGrafico();
-  atualizar();
-  carregarHistorico();
-  setInterval(atualizar, 5000);       // Atualiza leitura atual
-  setInterval(carregarHistorico, 60000); // Atualiza histórico a cada 1 min
-};
 </script>
 
 </body>
 </html>
+
+
 
 
 
