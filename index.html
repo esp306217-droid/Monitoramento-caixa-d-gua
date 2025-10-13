@@ -1,236 +1,168 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reservatório PP7</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center;
-            margin: 0;
-            color: #333;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #FFFFFF; /* Fundo branco */
-        }
-        .main-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 50px;
-            width: 100%;
-            padding: 20px;
-        }
-        .info-container {
-            background-color: #ced4da; /* Cinza um pouco mais escuro */
-            padding: 28px;
-            border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            border: 1px solid #adb5bd;
-            width: 340px;
-            z-index: 10;
-        }
-        h2 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2.1rem;
-            margin: 0 0 22px 0;
-            color: #000;
-            text-shadow: none;
-        }
-        .reservatorio-wrapper {
-            width: 400px;
-            height: 700px;
-        }
-        #reservatorio-svg {
-            width: 100%;
-            height: 100%;
-            filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.2));
-        }
-        /* ESTRUTURA COM LINHAS PRETAS */
-        #reservatorio-svg .estrutura-solida { fill: url(#gradiente-metal); stroke: #000; stroke-width: 2; }
-        #reservatorio-svg .estrutura-vidro { fill: rgba(232, 232, 232, 0.35); stroke: #000; stroke-width: 2.5; }
-        #reservatorio-svg .faixa-metalica { fill: none; stroke: #000; stroke-width: 2; }
-        #reservatorio-svg .guarda-corpo { fill: none; stroke: #000; stroke-width: 3; }
-        #reservatorio-svg .base-concreto { fill: #C0C0C0; stroke: #000; stroke-width: 2; }
-        #reservatorio-svg .suportes-base { fill: #A9A9A9; stroke: #000; stroke-width: 1.5; }
-
-        /* Estilos da ÁGUA com ONDA */
-        #agua-rect {
-            transition: y 0.9s cubic-bezier(0.4, 0, 0.2, 1), fill 0.5s;
-        }
-        #agua-rect::before {
-            content: "";
-            position: absolute;
-            width: 200%;
-            height: 20px;
-            background: rgba(255,255,255,0.4);
-            top: -10px;
-            left: -50%;
-            border-radius: 50%;
-            animation: onda 2s infinite linear;
-            z-index: 1; /* Para garantir que a onda esteja acima da água */
-            pointer-events: none; /* Não interfere com cliques */
-        }
-        @keyframes onda {
-            0% {transform:translateX(0);}
-            100% {transform:translateX(50px);}
-        }
-
-        #percentual-texto {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-            font-size: 55px;
-            fill: white;
-            text-anchor: middle;
-            dominant-baseline: middle;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.6s;
-        }
-        #percentual-texto.visible { opacity: 1; }
-        .info { margin-top: 25px; font-size: 1.3rem; font-weight: bold; color: #333; }
-        .leds { margin-top: 30px; display: flex; justify-content: center; gap: 28px; }
-        .led {
-            width: 45px; height: 45px;
-            border-radius: 50%;
-            background: #e0e0e0;
-            box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
-            transition: all 0.4s ease-in-out;
-            border: 2px solid #bbb;
-            opacity: 0.5;
-        }
-        .led.acesso {
-            opacity: 1;
-            box-shadow: 0 0 18px currentColor, 0 0 35px currentColor, inset 0 0 12px rgba(255,255,255,0.6);
-            animation: blink 1s infinite;
-        }
-        @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.2; } }
-        .logo { position: fixed; bottom: 20px; right: 20px; width: 130px; opacity: 0.8; transition: opacity 0.3s ease; }
-        .logo:hover { opacity: 1; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monitoramento PP7 - Histórico por Data</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#94a3b8;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto;
+  background:linear-gradient(180deg,#071024 0%,#07142a 60%);
+  color:#e6eef8; display:flex; flex-direction:column; align-items:center;
+  gap:20px; padding:20px; min-height:100vh;
+}
+header{
+  width:100%; max-width:1200px; display:flex; flex-wrap:wrap;
+  justify-content:space-between; align-items:center; gap:12px;
+}
+header h1{margin:0; font-size:1.2rem;}
+.controls{display:flex; gap:10px; align-items:center;}
+input[type="date"]{
+  background:#101b2e; color:#e6eef8; border:1px solid #1e2b40;
+  border-radius:6px; padding:6px 10px;
+}
+button{
+  background:var(--accent); border:none; color:#011017; font-weight:600;
+  padding:8px 12px; border-radius:8px; cursor:pointer;
+}
+button:hover{filter:brightness(.95)}
+.board{
+  width:100%; max-width:1200px;
+  background:rgba(255,255,255,0.02); border-radius:12px;
+  padding:18px; box-shadow:0 8px 30px rgba(2,6,23,0.6);
+  border:1px solid rgba(255,255,255,0.03);
+}
+.charts{display:grid; grid-template-columns:1fr; gap:22px;}
+.chart-card{
+  background:rgba(255,255,255,0.03); padding:14px; border-radius:10px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+canvas{width:100%!important; height:340px!important; display:block;}
+.small{font-size:.9rem; color:var(--muted); margin-top:4px;}
+@media(min-width:900px){.charts{grid-template-columns:1fr 1fr;}}
+</style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="reservatorio-wrapper">
-            <svg id="reservatorio-svg" viewBox="0 0 400 950" preserveAspectRatio="xMidYMin meet">
-                <defs>
-                    <linearGradient id="grad-agua-azul" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#00ffcc;"/><stop offset="100%" style="stop-color:#1e90ff;"/></linearGradient>
-                    <linearGradient id="grad-agua-amarela" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#ffff66;"/><stop offset="100%" style="stop-color:#ffcc00;"/></linearGradient>
-                    <linearGradient id="grad-agua-vermelha" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#ff3333;"/><stop offset="100%" style="stop-color:#990000;"/></linearGradient>
-                    <linearGradient id="gradiente-metal" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#DADADA"/><stop offset="50%" stop-color="#FAFAFA"/><stop offset="100%" stop-color="#CFCFCF"/></linearGradient>
-                    <clipPath id="mascara-agua"><path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/></clipPath>
-                </defs>
+<header>
+  <h1>Monitoramento Caixa d’Água PP7 - Histórico</h1>
+  <div class="controls">
+    <input type="date" id="dataEscolhida">
+    <button id="btnAtualizar">Carregar</button>
+  </div>
+</header>
 
-                <g clip-path="url(#mascara-agua)">
-                    <rect id="agua-rect" x="100" y="500" width="200" height="280" fill="url(#grad-agua-vermelha)"/>
-                    <rect id="onda-rect" x="100" y="500" width="200" height="20" fill="rgba(255,255,255,0.4)" style="transform-origin: 50% 50%; border-radius: 50%; animation: onda 2s infinite linear;"/>
-                </g>
-
-                <g id="estrutura-reservatorio">
-                    <g id="base">
-                        <path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/>
-                        <path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/>
-                    </g>
-                    <g id="coluna">
-                        <path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/>
-                        <path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/>
-                    </g>
-                    <g id="taca-transparente">
-                        <path class="estrutura-vidro" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/>
-                        <path class="faixa-metalica" d="M 100 290 L 300 290 M 100 360 L 300 360"/>
-                        <path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220 M 105 210 A 90 20 0 0 1 295 210 M 110 200 A 80 15 0 0 1 290 200"/>
-                    </g>
-                </g>
-                
-                <text id="percentual-texto" x="200" y="360">0%</text>
-            </svg>
-        </div>
-
-        <div class="info-container">
-            <h2>NÍVEL DO RESERVATÓRIO</h2>
-            <div class="info">Altura: <span id="altura">0</span> cm</div>
-            <div class="info">Nível: <span id="nivel">0</span>%</div>
-            <div class="leds">
-                <div class="led" id="ledVerde" style="background-color: #28a745;"></div>
-                <div class="led" id="ledAmarelo" style="background-color: #ffc107;"></div>
-                <div class="led" id="ledVermelho" style="background-color: #dc3545;"></div>
-            </div>
-        </div>
+<div class="board">
+  <div class="charts">
+    <div class="chart-card">
+      <strong>Gráfico de Linha — Nível (%)</strong>
+      <canvas id="chartLinha"></canvas>
+      <div class="small">Exibe o histórico de nível ao longo do dia selecionado.</div>
     </div>
+    <div class="chart-card">
+      <strong>Gráfico em Blocos — Subida / Queda</strong>
+      <canvas id="chartBlocos"></canvas>
+      <div class="small">Barras verdes indicam aumento, vermelhas indicam queda.</div>
+    </div>
+  </div>
+</div>
 
-    <img src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo ViaCristais" class="logo">
+<script>
+const MAX_PONTOS = 50;
+let chartLinha, chartBlocos;
+let historicoNiveis = [], historicoLabels = [];
 
-    <script>
-        const ALTURA_AGUA_SVG = 280;
-        const POS_Y_TOPO_AGUA = 220;
+function criarGraficos(){
+  const ctxL = document.getElementById('chartLinha').getContext('2d');
+  const grad = ctxL.createLinearGradient(0,0,0,300);
+  grad.addColorStop(0,'rgba(6,182,212,0.28)');
+  grad.addColorStop(1,'rgba(6,182,212,0.03)');
+  chartLinha = new Chart(ctxL,{
+    type:'line',
+    data:{labels:[],datasets:[{
+      label:'Nível (%)',data:[],fill:true,backgroundColor:grad,
+      borderColor:'rgba(6,182,212,0.95)',tension:0.25,
+      pointRadius:3,borderWidth:2
+    }]},
+    options:{animation:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#9fb6c8'}},y:{ticks:{color:'#9fb6c8'},min:0,max:100}}}
+  });
 
-        async function atualizar() {
-            try {
-                let j;
-                // Para testes locais, descomente a linha abaixo
-                // j = { nivel_pct: Math.floor(Math.random() * 101), altura_cm: (Math.random() * 820).toFixed(1) };
-                
-                if (window.location.hostname.includes("192.168.") || window.location.hostname.includes("10.")) {
-                    const r = await fetch('/data');
-                    j = await r.json();
-                } else {
-                    const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json');
-                    j = await r.json();
-                }
+  const ctxB = document.getElementById('chartBlocos').getContext('2d');
+  chartBlocos = new Chart(ctxB,{
+    type:'bar',
+    data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:6}]},
+    options:{animation:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#9fb6c8'}},y:{ticks:{color:'#9fb6c8'},min:0,max:100}}}
+  });
+}
 
-                const nivel = j.nivel_pct || j.nivel || 0;
-                const altura = j.altura_cm || 0;
+function atualizarGraficos(){
+  chartLinha.data.labels = historicoLabels;
+  chartLinha.data.datasets[0].data = historicoNiveis;
+  chartLinha.update();
 
-                document.getElementById('nivel').innerText = nivel;
-                document.getElementById('altura').innerText = altura.toFixed(1);
+  const cores = historicoNiveis.map((v,i)=>
+    i===0 ? 'rgba(99,102,241,0.85)' :
+    v>=historicoNiveis[i-1] ? 'rgba(34,197,94,0.85)' : 'rgba(239,68,68,0.85)');
+  chartBlocos.data.labels = historicoLabels;
+  chartBlocos.data.datasets[0].data = historicoNiveis;
+  chartBlocos.data.datasets[0].backgroundColor = cores;
+  chartBlocos.update();
+}
 
-                const aguaRect = document.getElementById('agua-rect');
-                const ondaRect = document.getElementById('onda-rect'); // Pega o elemento da onda
-                const textoPct = document.getElementById('percentual-texto');
-                const posY = POS_Y_TOPO_AGUA + ALTURA_AGUA_SVG * (1 - nivel / 100);
+async function carregarHistorico(data){
+  try{
+    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_historico/${data}.json`;
+    const r = await fetch(url);
+    const dados = await r.json();
+    if(!dados){alert("Nenhum dado encontrado para esta data.");return;}
 
-                aguaRect.setAttribute('y', posY);
-                ondaRect.setAttribute('y', posY - 10); // Onda 10px acima da água
+    const labels = Object.keys(dados).sort();
+    const niveis = labels.map(h=>dados[h].nivel_pct ?? dados[h].nivel ?? 0);
 
-                textoPct.textContent = nivel + '%';
-                textoPct.classList.toggle('visible', nivel > 5);
+    historicoLabels = labels;
+    historicoNiveis = niveis;
+    atualizarGraficos();
+  }catch(e){console.error(e);}
+}
 
-                const verde = document.getElementById('ledVerde');
-                const amarelo = document.getElementById('ledAmarelo');
-                const vermelho = document.getElementById('ledVermelho');
-                
-                verde.classList.remove('acesso');
-                amarelo.classList.remove('acesso');
-                vermelho.classList.remove('acesso');
+async function atualizarAtual(){
+  try{
+    const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json');
+    const j = await r.json();
+    const nivel = j.nivel_pct ?? j.nivel ?? 0;
 
-                // Lógica de cor da água e LEDs
-                if (nivel >= 60) {
-                    aguaRect.setAttribute('fill', 'url(#grad-agua-azul)');
-                    verde.classList.add('acesso');
-                } else if (nivel >= 31) { // Mudei para 31, seu código de referência usava 20. Ajuste conforme preferir.
-                    aguaRect.setAttribute('fill', 'url(#grad-agua-amarela)');
-                    amarelo.classList.add('acesso');
-                } else {
-                    aguaRect.setAttribute('fill', 'url(#grad-agua-vermelha)');
-                    vermelho.classList.add('acesso');
-                }
-            } catch (e) {
-                console.error("Erro ao atualizar dados:", e);
-            }
-        }
-        window.onload = function() {
-            atualizar();
-            setInterval(atualizar, 3000);
-        }
-    </script>
+    if(historicoNiveis.length>=MAX_PONTOS){
+      historicoNiveis.shift(); historicoLabels.shift();
+    }
+    historicoNiveis.push(Number(nivel));
+    historicoLabels.push(new Date().toLocaleTimeString());
+    atualizarGraficos();
+  }catch(e){console.error(e);}
+}
+
+window.onload = ()=>{
+  criarGraficos();
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('dataEscolhida').value = hoje;
+  carregarHistorico(hoje);
+
+  document.getElementById('btnAtualizar').onclick = ()=>{
+    const d = document.getElementById('dataEscolhida').value;
+    carregarHistorico(d);
+  };
+
+  setInterval(()=>{
+    const dSel = document.getElementById('dataEscolhida').value;
+    const hoje = new Date().toISOString().split('T')[0];
+    if(dSel === hoje) atualizarAtual(); // só atualiza em tempo real no dia de hoje
+  },2000);
+};
+</script>
 </body>
 </html>
-
-}
