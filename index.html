@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 
 <style>
-/* --- ESTILOS GERAIS E DA CAIXA D'ÁGUA --- */
+/* --- ESTILOS GERAIS --- */
 :root {
     --accent: #06b6d4;
 }
@@ -24,22 +24,21 @@ html, body {
 body {
     font-family: 'ADLaM Display', cursive;
     text-align: center;
-    background: #2d3748; /* Fundo escuro para destacar o painel */
+    background: #2d3748;
     color: #000;
-    overflow-x: hidden; /* Previne barras de rolagem horizontais */
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-/* Container principal que força a proporção 16:9 */
+/* Container principal 16:9 */
 .widescreen-container {
     width: 98vw;
-    height: calc(98vw * 9 / 16); /* Proporção 16:9 baseada na largura */
+    height: calc(98vw * 9 / 16);
     max-height: 98vh;
-    max-width: calc(98vh * 16 / 9); /* Proporção 16:9 baseada na altura */
-    
+    max-width: calc(98vh * 16 / 9);
     background: #fff;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     border-radius: 8px;
@@ -48,31 +47,31 @@ body {
     display: flex;
 }
 
-/* Views de conteúdo (Caixa e Gráfico) */
-#caixa-view, #grafico-container {
+/* Views de conteúdo (Caixa, Gráfico, Config) */
+#caixa-view, #grafico-container, #config-view {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Alinhado ao topo para evitar cortes */
+    justify-content: flex-start;
     padding: 1rem;
-    overflow-y: auto; /* Permite rolagem se o conteúdo for muito grande */
+    overflow-y: auto;
 }
 
 .logo {
-    width: 12%; /* Tamanho relativo */
+    width: 12%;
     min-width: 120px;
-    margin-bottom: -5%; /* Espaçamento relativo para colar na caixa */
+    margin-bottom: -5%;
     opacity: 0.95;
     z-index: 10;
     position: relative;
-    padding-top: 1rem; /* Espaço para não colar no topo */
+    padding-top: 1rem;
 }
 
 .reservatorio-wrapper {
     width: auto;
-    height: 70%; /* Altura relativa ao container da view */
+    height: 70%;
     max-width: 100%;
     position: relative;
 }
@@ -82,7 +81,6 @@ body {
     height: 100%;
     filter: drop-shadow(3px 3px 8px rgba(0,0,0,0.25));
 }
-
 #reservatorio-svg .estrutura-solida { fill: url(#grad-metal); stroke: #555; stroke-width: 2.5; opacity: 0.7; }
 #reservatorio-svg .taca-solida { fill: url(#grad-metal); stroke: #000; stroke-width: 2.5; opacity: 0.25; }
 #reservatorio-svg .faixa-metalica { fill: none; stroke: #555; stroke-width: 2.5; opacity: 0.3; }
@@ -90,226 +88,91 @@ body {
 #reservatorio-svg .base-concreto { fill: #C0C0C0; stroke: #000; stroke-width: 2.5; opacity: 0.8; }
 #reservatorio-svg .suportes-base { fill: #A9A9A9; stroke: #000; stroke-width: 2; opacity: 0.8; }
 
-.agua-wrapper {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    overflow: hidden;
-}
-
+.agua-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
 .agua {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 0%;
+    position: absolute; bottom: 0; width: 100%; height: 0%;
     background: linear-gradient(to top, #00ffcc, #1e90ff);
-    transition: height 0.6s ease, background 0.6s ease;
-    overflow: hidden;
-    color: white;
-    font-weight: bold;
-    text-align: center;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    transition: height 0.6s ease;
+    overflow: hidden; color: white; font-weight: bold;
+    text-align: center; font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
 }
 .agua::before, .agua::after {
-    content: "";
-    position: absolute;
-    width: 200%;
-    height: 20px;
-    top: -10px;
-    left: -50%;
-    border-radius: 50%;
+    content: ""; position: absolute; width: 200%; height: 20px;
+    top: -10px; left: -50%; border-radius: 50%;
     background: rgba(255, 255, 255, 0.4);
 }
 .agua::before { animation: onda1 3s infinite linear; }
 .agua::after { background: rgba(255,255,255,0.2); top: -8px; animation: onda2 5s infinite linear; }
-
 @keyframes onda1 { 0% { transform: translateX(0); } 100% { transform: translateX(50px); } }
 @keyframes onda2 { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
 
-/* --- BOTÃO DE NAVEGAÇÃO UNIFICADO --- */
-.navigation-footer {
-    margin-top: 15px; /* Espaço entre o painel e o botão */
-}
+/* --- BOTÕES DE NAVEGAÇÃO --- */
+.navigation-footer { margin-top: 15px; display: flex; gap: 10px; }
 .nav-button {
-    background: var(--accent);
-    border: none;
-    color: #fff;
-    font-weight: 600;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: 'ADLaM Display', cursive;
-    font-size: 1rem;
+    background: var(--accent); border: none; color: #fff; font-weight: 600;
+    padding: 10px 20px; border-radius: 8px; cursor: pointer;
+    font-family: 'ADLaM Display', cursive; font-size: 1rem;
     box-shadow: 0 4px 15px rgba(6,182,212,0.3);
     transition: all 0.2s ease;
 }
-.nav-button:hover {
-    filter: brightness(.95);
-    box-shadow: 0 2px 10px rgba(6,182,212,0.4);
-}
+.nav-button:hover { filter: brightness(.95); box-shadow: 0 2px 10px rgba(6,182,212,0.4); }
 
-/* --- ESTILOS DA PÁGINA DE GRÁFICOS --- */
-.logo-grafico-wrapper {
-    width: 100%;
-    text-align: center;
-    padding-top: 1rem;
-}
-.logo-grafico {
-    width: 160px;
-    opacity: 0.95;
-    margin-bottom: 1rem;
-}
+/* --- ESTILOS GRÁFICOS --- */
+.logo-grafico-wrapper { width: 100%; text-align: center; padding-top: 1rem; }
+.logo-grafico { width: 160px; opacity: 0.95; margin-bottom: 1rem; }
 #grafico-container header {
-    width: 100%;
-    max-width: 1200px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin: 0 auto 20px auto;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 1rem;
+    width: 100%; max-width: 1200px; display: flex; flex-wrap: wrap;
+    justify-content: space-between; align-items: center; gap: 12px;
+    margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
 }
 #grafico-container header h1 { margin: 0; font-size: 1.2rem; }
-
-.header-right {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 20px;
-    justify-content: flex-end;
-    flex-grow: 1;
-}
+.header-right { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; justify-content: flex-end; flex-grow: 1; }
 .controls { display: flex; gap: 10px; align-items: center; }
-input[type="date"], input[type="month"] {
-    background: #f0f0f0;
-    color: #333;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 6px 10px;
-}
+input[type="date"], input[type="month"] { background: #f0f0f0; color: #333; border: 1px solid #ccc; border-radius: 6px; padding: 6px 10px; }
 #intervalo-picker span { color: #666; }
-#grafico-container button {
-    background: var(--accent);
-    border: none;
-    color: #011017;
-    font-weight: 600;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.2s;
+#grafico-container button, #config-view button {
+    background: var(--accent); border: none; color: #011017; font-weight: 600;
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
 }
-#grafico-container button:disabled {
-    background-color: #94a3b8;
-    cursor: not-allowed;
-}
-#grafico-container button:hover { filter: brightness(.95); }
-.board {
-    width: 100%;
-    max-width: 1200px;
-    background: #f9f9f9;
-    border-radius: 12px;
-    padding: 18px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.05);
-    border: 1px solid #eee;
-    margin: 0 auto;
-}
+#grafico-container button:hover, #config-view button:hover { filter: brightness(.95); }
+.board { width: 100%; max-width: 1200px; background: #f9f9f9; border-radius: 12px; padding: 18px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); border: 1px solid #eee; margin: 0 auto; }
 .charts { display: grid; grid-template-columns: 1fr; gap: 22px; }
-.chart-card {
-    background: #fff;
-    padding: 14px;
-    border-radius: 10px;
-    border: 1px solid #ddd;
-}
+.chart-card { background: #fff; padding: 14px; border-radius: 10px; border: 1px solid #ddd; }
 canvas { width: 100%!important; height: 340px!important; display: block; }
 .small { font-size: .9rem; color: #666; margin-top: 4px; }
+.view-selector { display: flex; gap: 5px; background: #f0f0f0; padding: 4px; border-radius: 8px; }
+.view-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; background: transparent; color: #333; font-weight: 600; }
+.view-btn.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-.view-selector {
-    display: flex;
-    gap: 5px;
-    background: #f0f0f0;
-    padding: 4px;
-    border-radius: 8px;
-}
-.view-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    background: transparent;
-    color: #333;
-    font-weight: 600;
-}
-.view-btn.active {
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
+/* --- ESTILOS LEDS --- */
+@keyframes pisca { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.led-base { stroke: #111; stroke-width: 1; transition: all 0.3s ease; filter: drop-shadow(0 0 2px rgba(255,255,255,0.7)); }
+.led-base.vermelho { fill: #8b0000; } .led-base.amarelo { fill: #b2b200; } .led-base.verde { fill: #006400; }
+.led-base.aceso.vermelho { fill: #ff1a1a; filter: drop-shadow(0 0 5px #ff1a1a) drop-shadow(0 0 10px #ff1a1a); animation: pisca 1.2s infinite; }
+.led-base.aceso.amarelo { fill: #ffff33; filter: drop-shadow(0 0 5px #ffff33) drop-shadow(0 0 10px #ffff33); animation: pisca 1.2s infinite; }
+.led-base.aceso.verde { fill: #33ff33; filter: drop-shadow(0 0 5px #33ff33) drop-shadow(0 0 10px #33ff33); animation: pisca 1.2s infinite; }
 
-/* --- ESTILOS PARA OS LEDS NA BASE --- */
-@keyframes pisca {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
-.led-base {
-    stroke: #111;
-    stroke-width: 1;
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 0 2px rgba(255,255,255,0.7)); /* Auto brilho */
-}
-/* Cores base (desligado) */
-.led-base.vermelho { fill: #8b0000; }
-.led-base.amarelo { fill: #b2b200; }
-.led-base.verde { fill: #006400; }
+/* --- ESTILOS CONFIGURAÇÕES --- */
+#config-view h1 { color: #333; }
+.config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
+.config-card { background: #f9f9f9; padding: 20px; border-radius: 12px; border: 1px solid #eee; text-align: left;}
+.config-card h2 { margin-top: 0; }
+.form-group { display: flex; gap: 10px; margin-bottom: 15px; }
+.form-group input, .form-group select { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+#lista-contatos { list-style: none; padding: 0; margin: 0; }
+.contato-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+.contato-item span { font-weight: bold; }
+.contato-item button { background: #ef4444; color: white; font-size: 0.8rem; }
 
-/* Cores e animação (ligado) */
-.led-base.aceso.vermelho {
-    fill: #ff1a1a;
-    filter: drop-shadow(0 0 5px #ff1a1a) drop-shadow(0 0 10px #ff1a1a);
-    animation: pisca 1.2s infinite;
-}
-.led-base.aceso.amarelo {
-    fill: #ffff33;
-    filter: drop-shadow(0 0 5px #ffff33) drop-shadow(0 0 10px #ffff33);
-    animation: pisca 1.2s infinite;
-}
-.led-base.aceso.verde {
-    fill: #33ff33;
-    filter: drop-shadow(0 0 5px #33ff33) drop-shadow(0 0 10px #33ff33);
-    animation: pisca 1.2s infinite;
-}
-
-/* --- MEDIA QUERIES PARA RESPONSIVIDADE --- */
+/* --- RESPONSIVIDADE --- */
 @media (max-width: 800px) {
-    .widescreen-container {
-        width: 100%;
-        height: 100%;
-        max-height: none;
-        max-width: none;
-        border-radius: 0;
-    }
-
-    #caixa-view, #grafico-container {
-        padding: 0.5rem;
-        justify-content: flex-start;
-    }
-
-    .reservatorio-wrapper {
-        height: 60vh; /* Altura ajustada para telas verticais */
-    }
-
-    .logo {
-        margin-bottom: -8%;
-    }
-    
-    #grafico-container header, .header-right {
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-    }
+    .widescreen-container { width: 100%; height: 100%; max-height: none; max-width: none; border-radius: 0; }
+    #caixa-view, #grafico-container, #config-view { padding: 0.5rem; justify-content: flex-start; }
+    .reservatorio-wrapper { height: 60vh; }
+    .logo { margin-bottom: -8%; }
+    #grafico-container header, .header-right { flex-direction: column; align-items: center; gap: 15px; }
+    .config-board { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -318,14 +181,11 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 <main class="widescreen-container">
     <div id="caixa-view">
         <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-
         <div class="reservatorio-wrapper" id="caixa-container">
             <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
                 <defs>
                     <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#DADADA"/>
-                        <stop offset="50%" stop-color="#FAFAFA"/>
-                        <stop offset="100%" stop-color="#CFCFCF"/>
+                        <stop offset="0%" stop-color="#DADADA"/><stop offset="50%" stop-color="#FAFAFA"/><stop offset="100%" stop-color="#CFCFCF"/>
                     </linearGradient>
                     <clipPath id="mascara-agua">
                         <path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
@@ -337,77 +197,68 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
                     </div>
                 </foreignObject>
                 <g id="estrutura-reservatorio">
-                    <g id="base">
-                        <path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/>
-                        <path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/>
-                    </g>
-                    <g id="coluna">
-                        <path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/>
-                        <path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/>
-                    </g>
-                    <g id="taca-solida">
-                        <path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/>
-                        <path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/>
-                    </g>
-                    <g id="leds-base">
-                        <circle id="led-verde"   class="led-base verde"   cx="160" cy="975" r="12" />
-                        <circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" />
-                        <circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" />
-                    </g>
+                    <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
+                    <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
+                    <g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
+                    <g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
                 </g>
             </svg>
         </div>
     </div>
 
     <div id="grafico-container" style="display:none;">
-        <div class="logo-grafico-wrapper">
-            <img class="logo-grafico" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-        </div>
+        <div class="logo-grafico-wrapper"><img class="logo-grafico" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais"></div>
         <header>
             <div class="header-right">
                 <h1>Histórico de Monitoramento</h1>
                 <div class="view-selector">
-                    <button class="view-btn active" data-view="diario">Diário</button>
-                    <button class="view-btn" data-view="mensal">Mensal</button>
-                    <button class="view-btn" data-view="intervalo">Intervalo</button>
+                    <button class="view-btn active" data-view="diario">Diário</button><button class="view-btn" data-view="mensal">Mensal</button><button class="view-btn" data-view="intervalo">Intervalo</button>
                 </div>
                 <div class="controls">
-                    <div id="diario-picker">
-                        <input type="date" id="dataEscolhida">
-                    </div>
-                    <div id="mensal-picker" style="display:none;">
-                        <input type="month" id="mesEscolhido">
-                    </div>
-                    <div id="intervalo-picker" style="display:none;">
-                        <input type="date" id="dataInicio">
-                        <span>até</span>
-                        <input type="date" id="dataFim">
-                    </div>
+                    <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
+                    <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
+                    <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
                     <button id="btnAtualizar">Carregar</button>
                 </div>
             </div>
         </header>
         <div class="board">
             <div class="charts">
-                <div class="chart-card">
-                    <strong>Gráfico de Linha — Nível (%)</strong>
-                    <canvas id="chartLinha"></canvas>
-                    <div class="small">Exibe o histórico de nível ao longo do dia selecionado.</div>
+                <div class="chart-card"><strong>Gráfico de Linha — Nível (%)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível ao longo do dia selecionado.</div></div>
+                <div class="chart-card"><strong>Gráfico em Blocos — Subida / Queda</strong><canvas id="chartBlocos"></canvas><div class="small">Barras verdes indicam aumento, vermelhas indicam queda.</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="config-view" style="display:none;">
+        <h1>Configurações de Notificação</h1>
+        <div class="config-board">
+            <div class="config-card">
+                <h2>Adicionar Novo Contato</h2>
+                <div class="form-group">
+                    <input type="text" id="contato-valor" placeholder="Email ou ID do Telegram">
+                    <select id="contato-tipo">
+                        <option value="email">Email</option>
+                        <option value="telegram">Telegram</option>
+                    </select>
                 </div>
-                <div class="chart-card">
-                    <strong>Gráfico em Blocos — Subida / Queda</strong>
-                    <canvas id="chartBlocos"></canvas>
-                    <div class="small">As cores das barras indicam o nível: Verde (> 60%), Amarelo (31-60%) e Vermelho (≤ 30%).</div>
-                </div>
+                <button id="btn-add-contato">Adicionar</button>
+            </div>
+            <div class="config-card">
+                <h2>Contatos Salvos</h2>
+                <ul id="lista-contatos">
+                    <!-- Contatos serão inseridos aqui pelo JavaScript -->
+                </ul>
             </div>
         </div>
     </div>
 </main>
 
 <div class="navigation-footer">
-     <button id="btnToggleView" class="nav-button">Ver Gráfico</button>
+     <button id="btn-view-caixa" class="nav-button">Caixa D'água</button>
+     <button id="btn-view-grafico" class="nav-button">Gráfico</button>
+     <button id="btn-view-config" class="nav-button">Configurações</button>
 </div>
-
 
 <script>
 // --- VARIÁVEIS GLOBAIS ---
@@ -418,19 +269,146 @@ let currentView = 'diario';
 let nivelAtual = 0;
 
 // --- FUNÇÕES DE ATUALIZAÇÃO DO DOM ---
+function atualizarCaixaDOM(nivel) { /* ...código existente... */ }
+function atualizarGraficosDOM() { /* ...código existente... */ }
+
+// --- FUNÇÕES DE LÓGICA E FETCH ---
+function criarGraficos() { /* ...código existente... */ }
+async function carregarHistorico() { /* ...código existente... */ }
+
+// --- FUNÇÕES DE CONFIGURAÇÃO ---
+async function carregarContatos() {
+    const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/notificacoes.json');
+    const contatos = await r.json();
+    const lista = document.getElementById('lista-contatos');
+    lista.innerHTML = '';
+    for (const id in contatos) {
+        const contato = contatos[id];
+        const item = document.createElement('li');
+        item.className = 'contato-item';
+        item.innerHTML = `
+            <div>
+                <span>${contato.valor}</span>
+                <small>(${contato.tipo})</small>
+            </div>
+            <button data-id="${id}">Remover</button>
+        `;
+        lista.appendChild(item);
+    }
+}
+async function adicionarContato(valor, tipo) {
+    if (!valor) {
+        alert('Por favor, insira um contato.');
+        return;
+    }
+    await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/notificacoes.json', {
+        method: 'POST',
+        body: JSON.stringify({ valor, tipo })
+    });
+    document.getElementById('contato-valor').value = '';
+    await carregarContatos();
+}
+async function removerContato(id) {
+    await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/notificacoes/${id}.json`, {
+        method: 'DELETE'
+    });
+    await carregarContatos();
+}
+
+// --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
+async function loopDeAtualizacao() { /* ...código existente... */ }
+
+// --- INICIALIZAÇÃO E CONTROLE GERAL ---
+window.onload = function() {
+    const views = {
+        caixa: document.getElementById('caixa-view'),
+        grafico: document.getElementById('grafico-container'),
+        config: document.getElementById('config-view')
+    };
+    const btns = {
+        caixa: document.getElementById('btn-view-caixa'),
+        grafico: document.getElementById('btn-view-grafico'),
+        config: document.getElementById('btn-view-config')
+    };
+
+    function switchView(viewName) {
+        for (const key in views) {
+            views[key].style.display = (key === viewName) ? 'flex' : 'none';
+        }
+        if (viewName === 'grafico') {
+            atualizarGraficosDOM();
+        } else if (viewName === 'config') {
+            carregarContatos();
+        }
+    }
+
+    btns.caixa.addEventListener('click', () => switchView('caixa'));
+    btns.grafico.addEventListener('click', () => switchView('grafico'));
+    btns.config.addEventListener('click', () => switchView('config'));
+    
+    document.getElementById('btn-add-contato').addEventListener('click', () => {
+        const valor = document.getElementById('contato-valor').value;
+        const tipo = document.getElementById('contato-tipo').value;
+        adicionarContato(valor, tipo);
+    });
+
+    document.getElementById('lista-contatos').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const id = e.target.dataset.id;
+            if (confirm('Tem certeza que deseja remover este contato?')) {
+                removerContato(id);
+            }
+        }
+    });
+
+    // --- CÓDIGO DE INICIALIZAÇÃO EXISTENTE ---
+    criarGraficos();
+    const hoje = new Date();
+    const dataFimPadrao = hoje.toISOString().split('T')[0];
+    const mesFimPadrao = hoje.toISOString().substring(0, 7);
+    hoje.setDate(hoje.getDate() - 59);
+    const dataInicioPadrao = hoje.toISOString().split('T')[0];
+    document.getElementById('dataEscolhida').value = dataFimPadrao;
+    document.getElementById('mesEscolhido').value = mesFimPadrao;
+    document.getElementById('dataInicio').value = dataInicioPadrao;
+    document.getElementById('dataFim').value = dataFimPadrao;
+    carregarHistorico().then(() => {
+        loopDeAtualizacao();
+        setInterval(loopDeAtualizacao, 2000);
+    });
+    document.getElementById('btnAtualizar').onclick = carregarHistorico;
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelector('.view-btn.active').classList.remove('active');
+            e.target.classList.add('active');
+            currentView = e.target.dataset.view;
+            const pickers = {
+                diario: document.getElementById('diario-picker'),
+                mensal: document.getElementById('mensal-picker'),
+                intervalo: document.getElementById('intervalo-picker')
+            };
+            for(const key in pickers) {
+                pickers[key].style.display = 'none';
+            }
+            if (pickers[currentView]) pickers[currentView].style.display = 'flex';
+            carregarHistorico();
+        });
+    });
+};
+
+// --- Funções de atualização e lógicas omitidas para brevidade ---
 function atualizarCaixaDOM(nivel) {
     const aguaDiv = document.getElementById('agua');
     aguaDiv.style.height = nivel + '%';
     aguaDiv.innerText = nivel + '%';
 
     if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
-    else if (nivel > 30) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+    else if (nivel > 20) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
     else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
 
     const ledVermelho = document.getElementById('led-vermelho');
     const ledAmarelo = document.getElementById('led-amarelo');
     const ledVerde = document.getElementById('led-verde');
-
     ledVermelho.classList.remove('aceso');
     ledAmarelo.classList.remove('aceso');
     ledVerde.classList.remove('aceso');
@@ -442,34 +420,24 @@ function atualizarCaixaDOM(nivel) {
 
 function atualizarGraficosDOM() {
     if (!chartLinha || !chartBlocos) return;
-
     let displayLabels = [...historicoLabels];
     let displayNiveis = [...historicoNiveis];
-
     const datePicker = document.getElementById('dataEscolhida');
     const hoje = new Date().toISOString().split('T')[0];
-    
     if (currentView === 'diario' && datePicker.value === hoje) {
         displayLabels.push("Atual");
         displayNiveis.push(nivelAtual);
     }
-
     chartLinha.data.labels = displayLabels;
     chartLinha.data.datasets[0].data = displayNiveis;
     chartLinha.update('none');
-
-    const cores = displayNiveis.map(v => {
-        if (v > 60) return 'rgba(34, 197, 94, 0.85)';
-        if (v > 30) return 'rgba(234, 179, 8, 0.85)';
-        return 'rgba(239, 68, 68, 0.85)';
-    });
+    const cores = displayNiveis.map((v, i) => i === 0 ? 'rgba(99,102,241,0.85)' : v >= displayNiveis[i - 1] ? 'rgba(34,197,94,0.85)' : 'rgba(239,68,68,0.85)');
     chartBlocos.data.labels = displayLabels;
     chartBlocos.data.datasets[0].data = displayNiveis;
     chartBlocos.data.datasets[0].backgroundColor = cores;
     chartBlocos.update('none');
 }
 
-// --- FUNÇÕES DE LÓGICA E FETCH ---
 function criarGraficos() {
     const ctxL = document.getElementById('chartLinha').getContext('2d');
     const grad = ctxL.createLinearGradient(0, 0, 0, 300);
@@ -480,7 +448,6 @@ function criarGraficos() {
         data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: grad, borderColor: 'rgba(6,182,212,0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
         options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0, max: 100 } } }
     });
-
     const ctxB = document.getElementById('chartBlocos').getContext('2d');
     chartBlocos = new Chart(ctxB, {
         type: 'bar',
@@ -488,35 +455,14 @@ function criarGraficos() {
         options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0, max: 100 } } }
     });
 }
-
-// NOVO: Função para limpar o histórico salvo no navegador
-function limparHistoricoLocal() {
-    localStorage.removeItem('graficoLabels');
-    localStorage.removeItem('graficoNiveis');
-    localStorage.removeItem('ultimaAtualizacaoGrafico');
-    localStorage.removeItem('graficoDataSalva');
-    ultimaAtualizacaoGrafico = 0;
-}
-
-
 async function carregarHistorico() {
-    const btnAtualizar = document.getElementById('btnAtualizar');
-    const originalText = btnAtualizar.textContent;
-    btnAtualizar.textContent = 'Carregando...';
-    btnAtualizar.disabled = true;
-
-    // ALTERADO: Limpa o histórico local sempre que uma nova consulta é feita
-    limparHistoricoLocal();
-
     let url = '';
     let processData;
-
     if (currentView === 'diario') {
         const data = document.getElementById('dataEscolhida').value;
-        if (!data) { btnAtualizar.textContent = originalText; btnAtualizar.disabled = false; return; }
+        if (!data) return;
         url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_historico/${data}.json`;
         processData = (dados) => {
-            if (!dados) return { labels: [], niveis: [] };
             const labels = Object.keys(dados).sort();
             const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
             return { labels, niveis };
@@ -525,24 +471,22 @@ async function carregarHistorico() {
         let dataInicio, dataFim;
         if (currentView === 'mensal') {
             const mesAno = document.getElementById('mesEscolhido').value;
-            if (!mesAno) { btnAtualizar.textContent = originalText; btnAtualizar.disabled = false; return; }
+            if (!mesAno) return;
             dataInicio = `${mesAno}-01`;
             const [ano, mes] = mesAno.split('-');
             const ultimoDia = new Date(ano, mes, 0).getDate();
-            dataFim = `${mesAno}-${String(ultimoDia).padStart(2, '0')}`;
+            dataFim = `${mesAno}-${ultimoDia}`;
         } else {
             dataInicio = document.getElementById('dataInicio').value;
             dataFim = document.getElementById('dataFim').value;
-            if (!dataInicio || !dataFim) { btnAtualizar.textContent = originalText; btnAtualizar.disabled = false; return; }
+            if (!dataInicio || !dataFim) return;
         }
-        
         url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
-        
         processData = (dados) => {
             const dailyAverages = {};
             for (const dateKey in dados) {
                 const dailyReadings = dados[dateKey];
-                let sum = 0, count = 0;
+                let sum = 0; let count = 0;
                 for (const timeKey in dailyReadings) {
                     sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
                     count++;
@@ -555,26 +499,20 @@ async function carregarHistorico() {
             return { labels: displayLabels, niveis };
         };
     }
-
     try {
         const r = await fetch(url);
         const dados = await r.json();
-        const result = processData(dados);
-        
-        historicoLabels = result.labels;
-        historicoNiveis = result.niveis;
-        
+        if (!dados) {
+            alert("Nenhum dado encontrado para este período.");
+            historicoLabels = []; historicoNiveis = [];
+        } else {
+            const result = processData(dados);
+            historicoLabels = result.labels;
+            historicoNiveis = result.niveis;
+        }
         atualizarGraficosDOM();
-    } catch (e) {
-        console.error("Erro ao carregar histórico:", e);
-        alert("Falha ao carregar dados. Verifique a conexão e as regras do Firebase.");
-    } finally {
-        btnAtualizar.textContent = originalText;
-        btnAtualizar.disabled = false;
-    }
+    } catch (e) { console.error("Erro ao carregar histórico:", e); }
 }
-
-// --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
     try {
         let j;
@@ -587,127 +525,24 @@ async function loopDeAtualizacao() {
         }
         nivelAtual = j.nivel_pct || j.nivel || 0;
         atualizarCaixaDOM(nivelAtual);
-        
-        const agora = Date.now();
-        const CINCO_MINUTOS_EM_MS = 5 * 60 * 1000; 
-        const datePicker = document.getElementById('dataEscolhida');
-        const hoje = new Date().toISOString().split('T')[0];
-
-        if (agora - ultimaAtualizacaoGrafico > CINCO_MINUTOS_EM_MS) {
-            if (currentView === 'diario' && datePicker.value === hoje) {
-                const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                if(historicoLabels.length === 0 || historicoLabels[historicoLabels.length - 1] !== hora){
-                    historicoNiveis.push(Number(nivelAtual));
-                    historicoLabels.push(hora);
-                    ultimaAtualizacaoGrafico = agora; 
-
-                    // ALTERADO: Salva o histórico no localStorage
-                    localStorage.setItem('graficoLabels', JSON.stringify(historicoLabels));
-                    localStorage.setItem('graficoNiveis', JSON.stringify(historicoNiveis));
-                    localStorage.setItem('ultimaAtualizacaoGrafico', agora.toString());
-                    localStorage.setItem('graficoDataSalva', hoje); // Salva a data atual
-                }
-            }
-        }
-        
         if (document.getElementById('grafico-container').style.display !== 'none') {
             atualizarGraficosDOM();
         }
-
+        const agora = Date.now();
+        const cincoMinutos = 5 * 60 * 1000;
+        const datePicker = document.getElementById('dataEscolhida');
+        const hoje = new Date().toISOString().split('T')[0];
+        if (agora - ultimaAtualizacaoGrafico > cincoMinutos) {
+            if (datePicker.value === hoje) {
+                const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                historicoNiveis.push(Number(nivelAtual));
+                historicoLabels.push(hora);
+                ultimaAtualizacaoGrafico = agora;
+            }
+        }
     } catch(e) { console.error("Erro no loop de atualização:", e); }
 }
 
-// --- INICIALIZAÇÃO E CONTROLE GERAL ---
-window.onload = function() {
-    const btnToggleView = document.getElementById('btnToggleView');
-    const caixaView = document.getElementById('caixa-view');
-    const graficoView = document.getElementById('grafico-container');
-    
-    const dataEscolhidaInput = document.getElementById('dataEscolhida');
-    const mesEscolhidoInput = document.getElementById('mesEscolhido');
-    const dataInicioInput = document.getElementById('dataInicio');
-    const dataFimInput = document.getElementById('dataFim');
-
-    criarGraficos();
-
-    // ALTERADO: Lógica para recuperar o histórico do localStorage
-    const hoje = new Date().toISOString().split('T')[0];
-    const dataSalva = localStorage.getItem('graficoDataSalva');
-
-    if (dataSalva === hoje) { // Só carrega se os dados salvos forem de hoje
-        const savedLabels = localStorage.getItem('graficoLabels');
-        const savedNiveis = localStorage.getItem('graficoNiveis');
-        const savedTimestamp = localStorage.getItem('ultimaAtualizacaoGrafico');
-
-        if (savedLabels && savedNiveis) {
-            historicoLabels = JSON.parse(savedLabels);
-            historicoNiveis = JSON.parse(savedNiveis);
-            ultimaAtualizacaoGrafico = savedTimestamp ? parseInt(savedTimestamp, 10) : 0;
-        }
-    } else {
-        limparHistoricoLocal(); // Limpa dados de dias anteriores
-    }
-    
-    const dataAtual = new Date();
-    const dataFimPadrao = dataAtual.toISOString().split('T')[0];
-    const mesFimPadrao = dataAtual.toISOString().substring(0, 7);
-    dataAtual.setDate(dataAtual.getDate() - 59);
-    const dataInicioPadrao = dataAtual.toISOString().split('T')[0];
-    
-    dataEscolhidaInput.value = dataFimPadrao;
-    mesEscolhidoInput.value = mesFimPadrao;
-    dataInicioInput.value = dataInicioPadrao;
-    dataFimInput.value = dataFimPadrao;
-
-    const promiseToStart = (historicoLabels.length > 0) 
-        ? Promise.resolve() 
-        : carregarHistorico();
-
-    promiseToStart.then(() => {
-        loopDeAtualizacao();
-        setInterval(loopDeAtualizacao, 2000);
-    });
-
-    document.getElementById('btnAtualizar').onclick = carregarHistorico;
-    
-    dataEscolhidaInput.addEventListener('change', carregarHistorico);
-    mesEscolhidoInput.addEventListener('change', carregarHistorico);
-    dataInicioInput.addEventListener('change', carregarHistorico);
-    dataFimInput.addEventListener('change', carregarHistorico);
-
-    document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            document.querySelector('.view-btn.active').classList.remove('active');
-            e.target.classList.add('active');
-            currentView = e.target.dataset.view;
-
-            document.getElementById('diario-picker').style.display = 'none';
-            document.getElementById('mensal-picker').style.display = 'none';
-            document.getElementById('intervalo-picker').style.display = 'none';
-
-            if (currentView === 'diario') document.getElementById('diario-picker').style.display = 'block';
-            else if (currentView === 'mensal') document.getElementById('mensal-picker').style.display = 'block';
-            else if (currentView === 'intervalo') document.getElementById('intervalo-picker').style.display = 'flex';
-            
-            carregarHistorico();
-        });
-    });
-
-    btnToggleView.addEventListener('click', () => {
-        const isGraficoVisible = graficoView.style.display !== 'none';
-        if (isGraficoVisible) {
-            graficoView.style.display = 'none';
-            caixaView.style.display = 'flex';
-            btnToggleView.textContent = 'Ver Gráfico';
-        } else {
-            graficoView.style.display = 'flex';
-            caixaView.style.display = 'none';
-            btnToggleView.textContent = 'Ver Caixa D\'Água';
-            atualizarGraficosDOM(); 
-        }
-    });
-};
 </script>
-
 </body>
 </html>
