@@ -41,7 +41,7 @@ body {
 /* Views de conteúdo (Caixa, Gráfico, Config) */
 #caixa-view, #grafico-container, #config-view {
     width: 100%;
-    max-width: 1200px;
+    /* REMOVIDO: max-width: 1200px; */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -154,7 +154,9 @@ body {
 
 /* --- ESTILOS GRÁFICOS --- */
 #grafico-container header {
-    width: 100%; max-width: 1200px; display: flex; flex-wrap: wrap;
+    width: 100%; 
+    /* max-width: 1200px;  REMOVIDO */
+    display: flex; flex-wrap: wrap;
     justify-content: space-between; align-items: center; gap: 12px;
     margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
 }
@@ -170,7 +172,8 @@ input[type="date"], input[type="month"] {
 
 /* .board (container) volta para o fundo branco */
 .board { 
-    width: 100%; max-width: 1200px; 
+    width: 100%; 
+    /* max-width: 1200px; REMOVIDO */
     background: #ffffff; /* Fundo branco */
     border-radius: 12px; padding: 18px; 
     box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
@@ -343,7 +346,6 @@ canvas {
         transform: none;
     }
     
-    /* ALTERADO: Reduz altura do canvas em telas pequenas */
     canvas {
         height: 250px !important; 
     }
