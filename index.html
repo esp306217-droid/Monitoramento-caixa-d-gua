@@ -5,15 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Monitoramento Caixa D’Água PP7</title>
 
-<!-- Fonte -->
-<link href="https://fonts.googleapis.com/css2?family=ADLaM+Display&display=swap" rel="stylesheet">
-<!-- Biblioteca de Gráficos -->
+<!-- Fonte foi removida, usando 'Arial' do sistema -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 
 <style>
 /* --- ESTILOS GERAIS --- */
 :root {
-    --accent: #06b6d4;
+    --accent: #06b6d4; /* Ciano */
+    --accent-dark: #0e7490; /* Ciano mais escuro */
+    --bg-color-light: #f0f7ff; /* Azul bem claro para cards */
+    --sidebar-bg: #ffffff;
+    --sidebar-width: 220px;
 }
 * { box-sizing: border-box; }
 html, body {
@@ -22,24 +24,24 @@ html, body {
     padding: 0;
 }
 body {
-    font-family: 'ADLaM Display', cursive;
+    /* ALTERADO: Fonte principal para Arial */
+    font-family: Arial, Helvetica, sans-serif; 
     text-align: center;
-    background: #fff; /* Fundo branco padrão */
-    color: #000;
+    background: #fff; /* Fundo branco */
+    color: #334155; 
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; /* Alinha o conteúdo ao topo */
-    padding-bottom: 100px; /* Espaço para o rodapé de navegação */
+    justify-content: flex-start;
+    padding-left: var(--sidebar-width); 
+    padding-bottom: 20px;
 }
-
-/* Container principal 16:9 REMOVIDO */
 
 /* Views de conteúdo (Caixa, Gráfico, Config) */
 #caixa-view, #grafico-container, #config-view {
     width: 100%;
-    max-width: 1200px; /* Limita a largura máxima em telas grandes */
+    max-width: 1200px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -51,7 +53,7 @@ body {
 .logo {
     width: 160px;
     margin-top: 20px;
-    margin-bottom: -30px; /* AJUSTADO: Menos negativo para abaixar a caixa */
+    margin-bottom: -30px; 
     opacity: 0.95;
     z-index: 10;
     position: relative;
@@ -85,6 +87,8 @@ body {
     overflow: hidden; color: white; font-weight: bold;
     text-align: center; font-size: 1.2rem;
     display: flex; align-items: center; justify-content: center;
+    /* ALTERADO: Fonte da água */
+    font-family: Arial, Helvetica, sans-serif;
 }
 .agua::before, .agua::after {
     content: ""; position: absolute; width: 200%; height: 20px;
@@ -96,55 +100,148 @@ body {
 @keyframes onda1 { 0% { transform: translateX(0); } 100% { transform: translateX(50px); } }
 @keyframes onda2 { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
 
-/* --- BOTÕES DE NAVEGAÇÃO --- */
-.navigation-footer { 
+/* --- NAVEGAÇÃO LATERAL --- */
+.navigation-sidebar { 
     position: fixed;
-    bottom: 0;
+    top: 0;
     left: 0;
-    width: 100%;
-    padding: 15px;
-    background: #f8f9fa;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    width: var(--sidebar-width);
+    height: 100%;
+    padding: 20px 15px;
+    background: var(--sidebar-bg);
+    box-shadow: 4px 0 12px rgba(0,0,0,0.05);
     display: flex; 
+    flex-direction: column;
     gap: 10px; 
-    justify-content: center;
+    justify-content: flex-start;
+    align-items: center;
     z-index: 1000;
 }
-.nav-button {
-    background: var(--accent); border: none; color: #fff; font-weight: 600;
-    padding: 10px 20px; border-radius: 8px; cursor: pointer;
-    font-family: 'ADLaM Display', cursive; font-size: 1rem;
+
+.sidebar-logo {
+    width: 120px;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+/* Estilo de botão principal (Para Carregar, Adicionar, Salvar) */
+.modern-button {
+    width: 100%;
+    background: var(--accent); /* Ciano */
+    border: none;
+    color: #ffffff; /* Texto branco */
+    font-weight: 700; 
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    /* ALTERADO: Fonte do botão */
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1rem;
     box-shadow: 0 4px 15px rgba(6,182,212,0.3);
     transition: all 0.2s ease;
+    text-align: center;
+    text-transform: uppercase; /* CAIXA ALTA */
+    letter-spacing: 0.05em; 
 }
-.nav-button:hover { filter: brightness(.95); box-shadow: 0 2px 10px rgba(6,182,212,0.4); }
+.modern-button:hover {
+    background: var(--accent-dark); 
+    box-shadow: 0 2px 10px rgba(6,182,212,0.4);
+    transform: translateY(-1px);
+}
+.modern-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 5px rgba(6,182,212,0.4);
+}
 
 /* --- ESTILOS GRÁFICOS --- */
-.logo-grafico-wrapper { width: 100%; text-align: center; padding-top: 1rem; }
-.logo-grafico { width: 160px; opacity: 0.95; margin-bottom: 1rem; }
 #grafico-container header {
     width: 100%; max-width: 1200px; display: flex; flex-wrap: wrap;
     justify-content: space-between; align-items: center; gap: 12px;
     margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
 }
-#grafico-container header h1 { margin: 0; font-size: 1.2rem; }
+/* ALTERADO: Fonte do Título */
+#grafico-container header h1 { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 1.5rem; color: #1e3a8a; }
 .header-right { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; justify-content: flex-end; flex-grow: 1; }
 .controls { display: flex; gap: 10px; align-items: center; }
-input[type="date"], input[type="month"] { background: #f0f0f0; color: #333; border: 1px solid #ccc; border-radius: 6px; padding: 6px 10px; }
-#intervalo-picker span { color: #666; }
-#grafico-container button, #config-view button {
-    background: var(--accent); border: none; color: #011017; font-weight: 600;
-    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+/* ALTERADO: Fonte dos inputs de data */
+input[type="date"], input[type="month"] { 
+    background: #f0f0f0; color: #333; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
 }
-#grafico-container button:hover, #config-view button:hover { filter: brightness(.95); }
-.board { width: 100%; max-width: 1200px; background: #f9f9f9; border-radius: 12px; padding: 18px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); border: 1px solid #eee; margin: 0 auto; }
+#intervalo-picker span { color: #666; font-size: 0.9rem; }
+
+/* .board (container) volta para o fundo branco */
+.board { 
+    width: 100%; max-width: 1200px; 
+    background: #ffffff; /* Fundo branco */
+    border-radius: 12px; padding: 18px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    border: 1px solid #eee; /* Borda cinza clara */
+    margin: 0 auto; 
+}
 .charts { display: grid; grid-template-columns: 1fr; gap: 22px; }
-.chart-card { background: #fff; padding: 14px; border-radius: 10px; border: 1px solid #ddd; }
+
+/* .chart-card (quadros) ficam com fundo azul claro e contorno */
+.chart-card { 
+    background: var(--bg-color-light); /* Fundo azul claro */
+    padding: 14px; border-radius: 10px; 
+    border: 1px solid #b0cce3; /* Contorno azulado */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+/* ALTERADO: Fonte do título do card */
+.chart-card strong { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.1rem;}
+
 canvas { width: 100%!important; height: 340px!important; display: block; }
 .small { font-size: .9rem; color: #666; margin-top: 4px; }
-.view-selector { display: flex; gap: 5px; background: #f0f0f0; padding: 4px; border-radius: 8px; }
-.view-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; background: transparent; color: #333; font-weight: 600; }
-.view-btn.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+/* Botões de filtro (Diário, Mensal, etc) E Botões da barra lateral */
+.view-selector { display: flex; gap: 5px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
+.view-btn { 
+    padding: 8px 14px; 
+    border: none; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    background: transparent; 
+    color: #334155; 
+    font-weight: 700; 
+    /* ALTERADO: Fonte do view-btn */
+    font-family: Arial, Helvetica, sans-serif; 
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    letter-spacing: 0.03em;
+    width: auto;
+    text-align: center;
+}
+.view-btn.active { 
+    background: var(--accent); 
+    color: #ffffff; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+}
+.view-btn:hover:not(.active) {
+    background: #d0dae6;
+    color: #1e3a8a;
+}
+
+/* APLICA O ESTILO .view-btn AOS BOTÕES .nav-button */
+.nav-button {
+    width: 100%;
+    text-align: left; 
+    padding-left: 15px;
+    font-size: 0.95rem; 
+}
+/* Estilo ativo específico para a barra lateral */
+.nav-button.active {
+    box-shadow: 0 4px 15px rgba(6,182,212,0.3);
+    border-left: 5px solid #1c7285; /* Linha de destaque */
+    padding-left: 10px; 
+}
+.nav-button.active:hover {
+    background: var(--accent-dark);
+    transform: translateY(-1px);
+}
+
 
 /* --- ESTILOS LEDS --- */
 @keyframes pisca { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -155,24 +252,90 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 .led-base.aceso.verde { fill: #33ff33; filter: drop-shadow(0 0 5px #33ff33) drop-shadow(0 0 10px #33ff33); animation: pisca 1.2s infinite; }
 
 /* --- ESTILOS CONFIGURAÇÕES --- */
-#config-view h1 { color: #333; }
+/* ALTERADO: Fonte do título */
+#config-view h1 { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; }
 .config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
-.config-card { background: #f9f9f9; padding: 20px; border-radius: 12px; border: 1px solid #eee; text-align: left;}
-.config-card h2 { margin-top: 0; }
+.config-card { 
+    background: var(--sidebar-bg); /* Fundo branco */
+    padding: 20px; border-radius: 12px; 
+    border: 1px solid #eee; text-align: left;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+/* ALTERADO: Fonte do título do card */
+.config-card h2 { margin-top: 0; font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.25rem;}
 .form-group { display: flex; gap: 10px; margin-bottom: 15px; }
-.form-group input, .form-group select { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+/* ALTERADO: Fonte dos inputs */
+.form-group input, .form-group select { 
+    flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; 
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
+    color: #333;
+}
 #lista-contatos { list-style: none; padding: 0; margin: 0; }
 .contato-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-.contato-item span { font-weight: bold; }
-.contato-item button { background: #ef4444; color: white; font-size: 0.8rem; }
+.contato-item span { font-weight: bold; color: #333; }
+.contato-item button { 
+    background: #ef4444; color: white; font-size: 0.8rem;
+    padding: 6px 10px; border-radius: 6px; border: none; cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 700;
+    /* ALTERADO: Fonte do botão remover */
+    font-family: Arial, Helvetica, sans-serif;
+}
+.contato-item button:hover { background: #dc2626; }
 
 /* --- RESPONSIVIDADE --- */
 @media (max-width: 800px) {
+    body {
+        padding-left: 0;
+        padding-bottom: 90px;
+    }
+    
     #caixa-view, #grafico-container, #config-view { padding: 0.5rem; }
     .reservatorio-wrapper { height: 60vh; }
     .logo { margin-bottom: -8%; }
     #grafico-container header, .header-right { flex-direction: column; align-items: center; gap: 15px; }
     .config-board { grid-template-columns: 1fr; }
+
+    /* Barra lateral volta a ser um rodapé */
+    .navigation-sidebar {
+        width: 100%;
+        height: auto;
+        bottom: 0;
+        top: auto;
+        left: 0;
+        flex-direction: row;
+        justify-content: center;
+        padding: 10px;
+        background: var(--sidebar-bg);
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+    .sidebar-logo {
+        display: none;
+    }
+    /* Botões de navegação no rodapé */
+    .nav-button {
+        width: auto; 
+        flex-grow: 1;
+        text-align: center;
+        padding: 10px 10px;
+        font-size: 0.9rem;
+    }
+    .nav-button:hover {
+        transform: translateY(-1px);
+    }
+    .nav-button.active {
+        border-left: none;
+        border-top: 3px solid #1c7285;
+        padding-top: 7px;
+        padding-left: 10px; /* Reset */
+        background: var(--accent); /* Cor ciano normal, não escura */
+        box-shadow: 0 4px 15px rgba(6,182,212,0.3);
+    }
+    .nav-button.active:hover {
+        background: var(--accent-dark);
+        transform: translateY(-1px);
+    }
 }
 </style>
 </head>
@@ -181,6 +344,7 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 <div id="caixa-view">
     <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     <div class="reservatorio-wrapper" id="caixa-container">
+        <!-- SVG da caixa d'água -->
         <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
             <defs>
                 <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -206,18 +370,20 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 </div>
 
 <div id="grafico-container" style="display:none;">
-    <div class="logo-grafico-wrapper"><img class="logo-grafico" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais"></div>
     <header>
         <div class="header-right">
             <h1>Histórico de Monitoramento</h1>
             <div class="view-selector">
-                <button class="view-btn active" data-view="diario">Diário</button><button class="view-btn" data-view="mensal">Mensal</button><button class="view-btn" data-view="intervalo">Intervalo</button>
+                <button class="view-btn active" data-view="diario">Diário</button>
+                <button class="view-btn" data-view="mensal">Mensal</button>
+                <button class="view-btn" data-view="intervalo">Intervalo</button>
             </div>
             <div class="controls">
                 <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
                 <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
                 <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
-                <button id="btnAtualizar">Carregar</button>
+                <!-- Botão de Ação Principal -->
+                <button id="btnAtualizar" class="modern-button">Carregar</button>
             </div>
         </div>
     </header>
@@ -232,6 +398,7 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 <div id="config-view" style="display:none;">
     <h1>Configurações de Notificação</h1>
     <div class="config-board">
+        
         <div class="config-card">
             <h2>Adicionar Novo Contato</h2>
             <div class="form-group">
@@ -241,21 +408,39 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
                     <option value="telegram">Telegram</option>
                 </select>
             </div>
-            <button id="btn-add-contato">Adicionar</button>
+            <!-- Botão de Ação Principal -->
+            <button id="btn-add-contato" class="modern-button">Adicionar</button>
         </div>
+
         <div class="config-card">
+            <h2>Definir Nível de Alerta (%)</h2>
+            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
+                Define a porcentagem que dispara o alerta de nível baixo.
+            </p>
+            <div class="form-group">
+                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 40" min="1" max="99">
+                <!-- Botão de Ação Principal -->
+                <button id="btn-salvar-nivel-alerta" class="modern-button">Salvar</button>
+            </div>
+            <div id="status-alerta" class="small" style="font-weight:bold;"></div>
+        </div>
+        
+        <div class="config-card" style="grid-column: 1 / -1;">
             <h2>Contatos Salvos</h2>
             <ul id="lista-contatos">
-                <!-- Contatos serão inseridos aqui pelo JavaScript -->
-            </ul>
+                </ul>
         </div>
+
     </div>
 </div>
 
-<div class="navigation-footer">
-     <button id="btn-view-caixa" class="nav-button">Caixa D'água</button>
-     <button id="btn-view-grafico" class="nav-button">Gráfico</button>
-     <button id="btn-view-config" class="nav-button">Configurações</button>
+<div class="navigation-sidebar">
+    <img class="sidebar-logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+     
+    <!-- Botões de Navegação (estilo .view-btn) -->
+    <button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
+    <button id="btn-view-grafico" class="nav-button view-btn">Gráfico</button>
+    <button id="btn-view-config" class="nav-button view-btn">Configurações</button>
 </div>
 
 <script>
@@ -265,6 +450,7 @@ let historicoNiveis = [], historicoLabels = [];
 let ultimaAtualizacaoGrafico = 0;
 let currentView = 'diario';
 let nivelAtual = 0;
+let nivelAlertaConfigurado = 30; // Valor padrão
 
 // --- FUNÇÕES DE ATUALIZAÇÃO DO DOM ---
 function atualizarCaixaDOM(nivel) {
@@ -273,7 +459,7 @@ function atualizarCaixaDOM(nivel) {
     aguaDiv.innerText = nivel + '%';
 
     if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
-    else if (nivel > 20) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+    else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
     else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
 
     const ledVermelho = document.getElementById('led-vermelho');
@@ -284,7 +470,7 @@ function atualizarCaixaDOM(nivel) {
     ledVerde.classList.remove('aceso');
 
     if (nivel > 60) ledVerde.classList.add('aceso');
-    else if (nivel > 20) ledAmarelo.classList.add('aceso');
+    else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
     else ledVermelho.classList.add('aceso');
 }
 
@@ -383,7 +569,6 @@ async function carregarHistorico() {
 
         if (!dados) {
             if (!isTodayDiario) {
-                // AJUSTADO: Não mostra mais o alerta
                 console.log("Nenhum dado encontrado para o período selecionado.");
                 historicoLabels = [];
                 historicoNiveis = [];
@@ -408,24 +593,34 @@ async function carregarHistorico() {
     } catch (e) { console.error("Erro ao carregar histórico:", e); }
 }
 
-
-// --- FUNÇÕES DE CONFIGURAÇÃO ---
-async function carregarContatos() { /* ...código existente... */ }
-async function adicionarContato(valor, tipo) { /* ...código existente... */ }
-async function removerContato(id) { /* ...código existente... */ }
-
 // --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
     try {
         let j;
+        let config; 
+        
+        const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
+        const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
+        
         if (window.location.hostname.includes("192.168.") || window.location.hostname.includes("10.")) {
             const r = await fetch('/data');
             j = await r.json();
+            const rConfig = await fetch(configUrl);
+            config = await rConfig.json();
         } else {
-            const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json');
+            const [r, rConfig] = await Promise.all([
+                fetch(dataUrl),
+                fetch(configUrl)
+            ]);
             j = await r.json();
+            config = await rConfig.json();
         }
+        
         nivelAtual = j.nivel_pct || j.nivel || 0;
+        if (config) {
+            nivelAlertaConfigurado = parseInt(config) || 30;
+        }
+        
         atualizarCaixaDOM(nivelAtual);
         
         if (document.getElementById('grafico-container').style.display !== 'none') {
@@ -465,12 +660,23 @@ window.onload = function() {
 
     function switchView(viewName) {
         for (const key in views) {
-            views[key].style.display = (key === viewName) ? 'flex' : 'none';
+            views[key].style.display = 'none';
         }
+        if (views[viewName]) {
+            views[viewName].style.display = 'flex';
+        }
+
+        for (const key in btns) {
+            btns[key].classList.remove('active');
+        }
+        if (btns[viewName]) {
+            btns[viewName].classList.add('active');
+        }
+
         if (viewName === 'grafico') {
             atualizarGraficosDOM();
         } else if (viewName === 'config') {
-            carregarContatos();
+            carregarContatos(); 
         }
     }
 
@@ -482,6 +688,19 @@ window.onload = function() {
         const valor = document.getElementById('contato-valor').value;
         const tipo = document.getElementById('contato-tipo').value;
         adicionarContato(valor, tipo);
+    });
+
+    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => {
+        const nivel = document.getElementById('nivel-alerta-valor').value;
+        const statusDiv = document.getElementById('status-alerta');
+        
+        if (nivel && nivel >= 1 && nivel <= 99) {
+            salvarNivelAlerta(parseInt(nivel));
+        } else {
+            statusDiv.style.color = 'red';
+            statusDiv.innerText = 'Insira um valor válido (1-99).';
+            setTimeout(() => { statusDiv.innerText = ''; }, 3000);
+        }
     });
 
     document.getElementById('lista-contatos').addEventListener('click', (e) => {
@@ -504,6 +723,8 @@ window.onload = function() {
     document.getElementById('dataInicio').value = dataInicioPadrao;
     document.getElementById('dataFim').value = dataFimPadrao;
     
+    switchView('caixa'); 
+    
     carregarHistorico().then(() => {
         loopDeAtualizacao();
         setInterval(loopDeAtualizacao, 2000);
@@ -513,36 +734,81 @@ window.onload = function() {
     
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            document.querySelector('.view-btn.active').classList.remove('active');
-            e.target.classList.add('active');
-            currentView = e.target.dataset.view;
-            const pickers = {
-                diario: document.getElementById('diario-picker'),
-                mensal: document.getElementById('mensal-picker'),
-                intervalo: document.getElementById('intervalo-picker')
-            };
-            for(const key in pickers) {
-                pickers[key].style.display = 'none';
+            // Se o botão clicado não for um botão de navegação lateral
+            if (!e.target.classList.contains('nav-button')) {
+                // Remove o 'active' apenas dos botões irmãos (Diário, Mensal, Intervalo)
+                const parent = e.target.parentElement;
+                if (parent.classList.contains('view-selector')) {
+                    parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                }
             }
-            if (pickers[currentView]) pickers[currentView].style.display = 'flex';
+            e.target.classList.add('active');
             
-            carregarHistorico();
+            // Lógica de troca de view do gráfico
+            if (e.target.dataset.view) {
+                currentView = e.target.dataset.view;
+                const pickers = {
+                    diario: document.getElementById('diario-picker'),
+                    mensal: document.getElementById('mensal-picker'),
+                    intervalo: document.getElementById('intervalo-picker')
+                };
+                for(const key in pickers) {
+                    pickers[key].style.display = 'none';
+                }
+                if (pickers[currentView]) pickers[currentView].style.display = 'flex';
+                
+                carregarHistorico();
+            }
         });
     });
 };
 
-// --- Funções de configuração omitidas ---
+// --- Funções de configuração ---
+async function salvarNivelAlerta(nivel) {
+    const statusDiv = document.getElementById('status-alerta');
+    statusDiv.style.color = '#eab308'; // Amarelo
+    statusDiv.innerText = 'Salvando...';
+    try {
+        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json', {
+            method: 'PUT', // PUT substitui o valor no nó
+            body: JSON.stringify(nivel)
+        });
+        statusDiv.style.color = 'green';
+        statusDiv.innerText = 'Nível de alerta salvo com sucesso!';
+        nivelAlertaConfigurado = nivel; 
+    } catch (e) {
+        statusDiv.style.color = 'red';
+        statusDiv.innerText = 'Erro ao salvar.';
+        console.error("Erro ao salvar nível:", e);
+    }
+    setTimeout(() => { statusDiv.innerText = ''; }, 3000);
+}
+
 async function carregarContatos() {
-    const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/notificacoes.json');
-    const contatos = await r.json();
-    const lista = document.getElementById('lista-contatos');
-    lista.innerHTML = '';
-    for (const id in contatos) {
-        const contato = contatos[id];
-        const item = document.createElement('li');
-        item.className = 'contato-item';
-        item.innerHTML = `<div><span>${contato.valor}</span><small>(${contato.tipo})</small></div><button data-id="${id}">Remover</button>`;
-        lista.appendChild(item);
+    try {
+        const rNivel = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json');
+        // CORREÇÃO DO ERRO: Alterado de rNível (com acento) para rNivel (sem acento)
+        const nivelAlerta = await rNivel.json(); 
+        if (nivelAlerta) {
+            document.getElementById('nivel-alerta-valor').value = nivelAlerta;
+            nivelAlertaConfigurado = parseInt(nivelAlerta); 
+        }
+
+        const rContatos = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/notificacoes.json');
+        const contatos = await rContatos.json();
+        const lista = document.getElementById('lista-contatos');
+        lista.innerHTML = '';
+        if (contatos) {
+            for (const id in contatos) {
+                const contato = contatos[id];
+                const item = document.createElement('li');
+                item.className = 'contato-item';
+                item.innerHTML = `<div><span>${contato.valor}</span><small>(${contato.tipo})</small></div><button data-id="${id}">Remover</button>`;
+                lista.appendChild(item);
+            }
+        }
+    } catch (e) {
+        console.error("Erro ao carregar configurações:", e);
     }
 }
 async function adicionarContato(valor, tipo) {
