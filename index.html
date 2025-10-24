@@ -24,7 +24,6 @@ html, body {
     padding: 0;
 }
 body {
-    /* ALTERADO: Fonte principal para Arial */
     font-family: Arial, Helvetica, sans-serif; 
     text-align: center;
     background: #fff; /* Fundo branco */
@@ -36,6 +35,7 @@ body {
     justify-content: flex-start;
     padding-left: var(--sidebar-width); 
     padding-bottom: 20px;
+    transition: padding-left 0.3s ease; /* Adiciona transição suave */
 }
 
 /* Views de conteúdo (Caixa, Gráfico, Config) */
@@ -87,7 +87,6 @@ body {
     overflow: hidden; color: white; font-weight: bold;
     text-align: center; font-size: 1.2rem;
     display: flex; align-items: center; justify-content: center;
-    /* ALTERADO: Fonte da água */
     font-family: Arial, Helvetica, sans-serif;
 }
 .agua::before, .agua::after {
@@ -116,6 +115,7 @@ body {
     justify-content: flex-start;
     align-items: center;
     z-index: 1000;
+    transition: width 0.3s ease; /* Adiciona transição suave */
 }
 
 .sidebar-logo {
@@ -134,7 +134,6 @@ body {
     padding: 12px 20px;
     border-radius: 8px;
     cursor: pointer;
-    /* ALTERADO: Fonte do botão */
     font-family: Arial, Helvetica, sans-serif;
     font-size: 1rem;
     box-shadow: 0 4px 15px rgba(6,182,212,0.3);
@@ -159,11 +158,9 @@ body {
     justify-content: space-between; align-items: center; gap: 12px;
     margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
 }
-/* ALTERADO: Fonte do Título */
 #grafico-container header h1 { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 1.5rem; color: #1e3a8a; }
 .header-right { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; justify-content: flex-end; flex-grow: 1; }
 .controls { display: flex; gap: 10px; align-items: center; }
-/* ALTERADO: Fonte dos inputs de data */
 input[type="date"], input[type="month"] { 
     background: #f0f0f0; color: #333; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
     font-family: Arial, Helvetica, sans-serif;
@@ -189,7 +186,6 @@ input[type="date"], input[type="month"] {
     border: 1px solid #b0cce3; /* Contorno azulado */
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
-/* ALTERADO: Fonte do título do card */
 .chart-card strong { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.1rem;}
 
 canvas { width: 100%!important; height: 340px!important; display: block; }
@@ -205,7 +201,6 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
     background: transparent; 
     color: #334155; 
     font-weight: 700; 
-    /* ALTERADO: Fonte do view-btn */
     font-family: Arial, Helvetica, sans-serif; 
     font-size: 0.9rem;
     text-transform: uppercase;
@@ -252,7 +247,6 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 .led-base.aceso.verde { fill: #33ff33; filter: drop-shadow(0 0 5px #33ff33) drop-shadow(0 0 10px #33ff33); animation: pisca 1.2s infinite; }
 
 /* --- ESTILOS CONFIGURAÇÕES --- */
-/* ALTERADO: Fonte do título */
 #config-view h1 { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; }
 .config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
 .config-card { 
@@ -261,10 +255,8 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
     border: 1px solid #eee; text-align: left;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
-/* ALTERADO: Fonte do título do card */
 .config-card h2 { margin-top: 0; font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.25rem;}
 .form-group { display: flex; gap: 10px; margin-bottom: 15px; }
-/* ALTERADO: Fonte dos inputs */
 .form-group input, .form-group select { 
     flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; 
     font-family: Arial, Helvetica, sans-serif;
@@ -279,62 +271,77 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
     padding: 6px 10px; border-radius: 6px; border: none; cursor: pointer;
     text-transform: uppercase;
     font-weight: 700;
-    /* ALTERADO: Fonte do botão remover */
     font-family: Arial, Helvetica, sans-serif;
 }
 .contato-item button:hover { background: #dc2626; }
 
 /* --- RESPONSIVIDADE --- */
 @media (max-width: 800px) {
+    /* ALTERADO: Define largura menor para sidebar e ajusta padding do body */
+    :root {
+        --sidebar-width: 150px; 
+    }
     body {
-        padding-left: 0;
-        padding-bottom: 90px;
+        padding-left: var(--sidebar-width);
+        padding-bottom: 20px; /* Mantém padding inferior, remove o de rodapé */
     }
     
     #caixa-view, #grafico-container, #config-view { padding: 0.5rem; }
-    .reservatorio-wrapper { height: 60vh; }
-    .logo { margin-bottom: -8%; }
-    #grafico-container header, .header-right { flex-direction: column; align-items: center; gap: 15px; }
+    .reservatorio-wrapper { 
+        /* Ajuste opcional para caber melhor */
+        width: 90%; 
+        max-width: 300px;
+        height: 50vh; 
+    }
+    .logo { margin-bottom: -5%; } /* Ajuste fino */
+    #grafico-container header, .header-right { flex-direction: column; align-items: stretch; gap: 15px; } /* Alinha stretch */
+    .controls { flex-direction: column; align-items: stretch;} /* Botão Carregar ocupa largura */
+    .view-selector { justify-content: center;} /* Centraliza botões Diário/Mensal */
     .config-board { grid-template-columns: 1fr; }
 
-    /* Barra lateral volta a ser um rodapé */
+    /* ALTERADO: Mantém a barra lateral, mas mais estreita */
     .navigation-sidebar {
-        width: 100%;
-        height: auto;
-        bottom: 0;
-        top: auto;
+        /* As propriedades que moviam para baixo foram removidas */
+        width: var(--sidebar-width); /* Usa a largura definida na :root */
+        height: 100%;
+        bottom: auto; /* Garante que não vá para baixo */
+        top: 0;
         left: 0;
-        flex-direction: row;
-        justify-content: center;
-        padding: 10px;
-        background: var(--sidebar-bg);
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        flex-direction: column; /* Mantém vertical */
+        justify-content: flex-start; /* Mantém alinhado ao topo */
+        padding: 15px 10px; /* Ajusta padding lateral */
+        box-shadow: 2px 0 8px rgba(0,0,0,0.1); /* Sombra mais sutil */
     }
     .sidebar-logo {
-        display: none;
+         width: 80%; /* Logo menor */
+         max-width: 100px;
+         margin-bottom: 15px;
     }
-    /* Botões de navegação no rodapé */
+    
+    /* ALTERADO: Ajusta botões laterais para mobile */
     .nav-button {
-        width: auto; 
-        flex-grow: 1;
-        text-align: center;
-        padding: 10px 10px;
-        font-size: 0.9rem;
+        width: 100%; 
+        text-align: left;
+        padding: 10px 10px; /* Padding ajustado */
+        font-size: 0.85rem; /* Fonte menor */
+         /* Remove estilos de rodapé */
+        flex-grow: 0; 
+        border-top: none;
     }
-    .nav-button:hover {
-        transform: translateY(-1px);
-    }
+     .nav-button:hover {
+        transform: none; /* Remove hover de rodapé */
+     }
     .nav-button.active {
-        border-left: none;
-        border-top: 3px solid #1c7285;
-        padding-top: 7px;
-        padding-left: 10px; /* Reset */
-        background: var(--accent); /* Cor ciano normal, não escura */
-        box-shadow: 0 4px 15px rgba(6,182,212,0.3);
+         /* Mantém estilo ativo lateral */
+        border-left: 4px solid #1c7285; /* Borda um pouco menor */
+        padding-left: 6px; 
+        padding-top: 10px; /* Reset padding-top */
+        background: var(--accent); 
+        box-shadow: 0 2px 10px rgba(6,182,212,0.2); /* Sombra mais sutil */
     }
     .nav-button.active:hover {
         background: var(--accent-dark);
-        transform: translateY(-1px);
+        transform: none;
     }
 }
 </style>
@@ -787,7 +794,6 @@ async function salvarNivelAlerta(nivel) {
 async function carregarContatos() {
     try {
         const rNivel = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json');
-        // CORREÇÃO DO ERRO: Alterado de rNível (com acento) para rNivel (sem acento)
         const nivelAlerta = await rNivel.json(); 
         if (nivelAlerta) {
             document.getElementById('nivel-alerta-valor').value = nivelAlerta;
