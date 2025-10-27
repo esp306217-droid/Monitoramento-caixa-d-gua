@@ -14,8 +14,7 @@
     --accent: #06b6d4; /* Ciano */
     --accent-dark: #0e7490; /* Ciano mais escuro */
     --bg-color-light: #f0f7ff; /* Azul bem claro para cards */
-    --sidebar-bg: #ffffff;
-    --sidebar-width: 220px;
+    --header-bg: #ffffff; /* Fundo do novo cabeçalho */
 }
 * { box-sizing: border-box; }
 html, body {
@@ -29,19 +28,32 @@ body {
     background: #fff; /* Fundo branco */
     color: #334155; 
     overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding-left: var(--sidebar-width); 
+    /* REMOVIDO padding-left */
     padding-bottom: 20px;
-    transition: padding-left 0.3s ease; /* Adiciona transição suave */
+    /* transition: padding-left 0.3s ease; REMOVIDO */
+}
+
+/* NOVO: Cabeçalho principal com botões */
+.main-header {
+    width: 100%;
+    padding: 10px 0;
+    background-color: var(--header-bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px; /* Espaço entre botões */
+    margin-bottom: 20px; /* Espaço antes da logo */
+    position: sticky; /* Opcional: fixa o header no topo */
+    top: 0;
+    z-index: 1000;
 }
 
 /* Views de conteúdo (Caixa, Gráfico, Config) */
 #caixa-view, #grafico-container, #config-view {
     width: 100%;
-    /* REMOVIDO: max-width: 1200px; */
+    max-width: 1200px; /* Limita a largura do conteúdo principal */
+    margin: 0 auto; /* Centraliza o conteúdo principal */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -52,11 +64,14 @@ body {
 
 .logo {
     width: 160px;
-    margin-top: 20px;
-    margin-bottom: -30px; 
+    /* margin-top removido/ajustado */
+    margin-bottom: 20px; /* Ajusta espaço após a logo */
     opacity: 0.95;
     z-index: 10;
     position: relative;
+    display: block; /* Garante que é um bloco */
+    margin-left: auto; /* Centraliza a logo */
+    margin-right: auto; /* Centraliza a logo */
 }
 
 .reservatorio-wrapper {
@@ -99,45 +114,22 @@ body {
 @keyframes onda1 { 0% { transform: translateX(0); } 100% { transform: translateX(50px); } }
 @keyframes onda2 { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
 
-/* --- NAVEGAÇÃO LATERAL --- */
-.navigation-sidebar { 
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: var(--sidebar-width);
-    /* Altura volta para 100% para evitar problemas de layout em páginas longas */
-    height: 100%; 
-    padding: 20px 15px;
-    background: var(--sidebar-bg);
-    box-shadow: 4px 0 12px rgba(0,0,0,0.05);
-    display: flex; 
-    flex-direction: column;
-    gap: 10px; 
-    justify-content: flex-start;
-    align-items: center;
-    z-index: 1000;
-    transition: width 0.3s ease; /* Adiciona transição suave */
-    overflow-y: auto; /* Permite rolagem se houver muitos botões */
-}
-
-.sidebar-logo {
-    width: 120px;
-    margin-bottom: 20px;
-    opacity: 0.9;
-}
+/* --- NAVEGAÇÃO LATERAL REMOVIDA --- */
+/* .navigation-sidebar { ... } REMOVIDO */
+/* .sidebar-logo { ... } REMOVIDO */
 
 /* Estilo de botão principal (Para Carregar, Adicionar, Salvar) */
 .modern-button {
-    width: 100%;
+    /* width: 100%; REMOVIDO - largura automática */
     background: var(--accent); /* Ciano */
     border: none;
     color: #ffffff; /* Texto branco */
     font-weight: 700; 
-    padding: 12px 20px;
+    padding: 10px 20px; /* Padding ajustado */
     border-radius: 8px;
     cursor: pointer;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 1rem;
+    font-size: 0.9rem; /* Tamanho ajustado */
     box-shadow: 0 4px 15px rgba(6,182,212,0.3);
     transition: all 0.2s ease;
     text-align: center;
@@ -157,7 +149,6 @@ body {
 /* --- ESTILOS GRÁFICOS --- */
 #grafico-container header {
     width: 100%; 
-    /* max-width: 1200px;  REMOVIDO */
     display: flex; flex-wrap: wrap;
     justify-content: space-between; align-items: center; gap: 12px;
     margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
@@ -172,10 +163,9 @@ input[type="date"], input[type="month"] {
 }
 #intervalo-picker span { color: #666; font-size: 0.9rem; }
 
-/* .board (container) volta para o fundo branco */
+/* .board (container) */
 .board { 
     width: 100%; 
-    /* max-width: 1200px; REMOVIDO */
     background: #ffffff; /* Fundo branco */
     border-radius: 12px; padding: 18px; 
     box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
@@ -184,7 +174,7 @@ input[type="date"], input[type="month"] {
 }
 .charts { display: grid; grid-template-columns: 1fr; gap: 22px; }
 
-/* .chart-card (quadros) ficam com fundo azul claro e contorno */
+/* .chart-card (quadros) */
 .chart-card { 
     background: var(--bg-color-light); /* Fundo azul claro */
     padding: 14px; border-radius: 10px; 
@@ -200,7 +190,7 @@ canvas {
 }
 .small { font-size: .9rem; color: #666; margin-top: 4px; }
 
-/* Botões de filtro (Diário, Mensal, etc) E Botões da barra lateral */
+/* Botões de filtro (Diário, Mensal, etc) */
 .view-selector { display: flex; gap: 5px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
 .view-btn { 
     padding: 8px 14px; 
@@ -228,22 +218,26 @@ canvas {
     color: #1e3a8a;
 }
 
-/* APLICA O ESTILO .view-btn AOS BOTÕES .nav-button */
+/* APLICA O ESTILO .view-btn AOS BOTÕES .nav-button NO HEADER */
 .nav-button {
-    width: 100%;
-    text-align: left; 
-    padding-left: 15px;
-    font-size: 0.95rem; 
+    /* Herda de .view-btn (aplicado no HTML) */
+    /* Remove estilos específicos da barra lateral */
+    width: auto; 
+    text-align: center; 
+    padding-left: 14px; /* Reset padding */
+    padding-right: 14px;
+    font-size: 0.9rem;
 }
-/* Estilo ativo específico para a barra lateral */
+/* Estilo ativo específico para botões no header */
 .nav-button.active {
-    box-shadow: 0 4px 15px rgba(6,182,212,0.3);
-    border-left: 5px solid #1c7285; /* Linha de destaque */
-    padding-left: 10px; 
+    /* Herda de .view-btn.active */
+    /* Remove/substitui estilos da barra lateral */
+    border-left: none; 
+    box-shadow: 0 2px 8px rgba(6,182,212,0.3); /* Sombra mais pronunciada */
 }
 .nav-button.active:hover {
     background: var(--accent-dark);
-    transform: translateY(-1px);
+    transform: none; /* Sem movimento no hover */
 }
 
 
@@ -286,14 +280,27 @@ canvas {
 
 /* --- RESPONSIVIDADE --- */
 @media (max-width: 800px) {
-    :root {
-        /* ALTERADO: Largura menor para sidebar no mobile */
-        --sidebar-width: 120px; 
-    }
+    /* REMOVIDO: :root specific to mobile */
     body {
-        /* ALTERADO: Ajusta padding para nova largura */
-        padding-left: var(--sidebar-width);
+        /* REMOVIDO: padding-left specific to sidebar */
+        padding-left: 0; 
         padding-bottom: 20px; 
+        padding-top: 60px; /* Adiciona espaço para o header fixo */
+    }
+
+    .main-header {
+        position: fixed; /* Header fixo no mobile */
+        top: 0;
+        left: 0;
+        gap: 8px; /* Menor espaço entre botões */
+        padding: 8px 0;
+        margin-bottom: 10px;
+    }
+
+    /* Ajusta padding dos botões de navegação no header mobile */
+    .nav-button {
+         padding: 8px 10px;
+         font-size: 0.8rem;
     }
     
     #caixa-view, #grafico-container, #config-view { padding: 0.5rem; }
@@ -302,54 +309,19 @@ canvas {
         max-width: 300px;
         height: 50vh; 
     }
-    .logo { margin-bottom: -5%; } 
-    #grafico-container header, .header-right { flex-direction: column; align-items: stretch; gap: 10px; } /* Diminui gap */
+    .logo { 
+        margin-top: 10px; /* Ajusta margem topo da logo */
+        margin-bottom: 15px; 
+    } 
+    #grafico-container header, .header-right { flex-direction: column; align-items: stretch; gap: 10px; } 
     .controls { flex-direction: column; align-items: stretch;} 
     .view-selector { justify-content: center;} 
     .config-board { grid-template-columns: 1fr; }
 
-    /* Mantém a barra lateral, mas mais estreita */
-    .navigation-sidebar {
-        width: var(--sidebar-width); 
-        height: 100%; /* Volta para 100% */
-        bottom: auto; 
-        top: 0;
-        left: 0;
-        flex-direction: column; 
-        justify-content: flex-start; 
-        padding: 15px 8px; /* Diminui padding lateral */ 
-        box-shadow: 2px 0 8px rgba(0,0,0,0.1); 
-        border-bottom-right-radius: 0; /* Remove o canto arredondado */
-    }
-    .sidebar-logo {
-         width: 90%; /* Logo ajustada */
-         max-width: 90px;
-         margin-bottom: 15px;
-    }
-    
-    /* Ajusta botões laterais para mobile */
-    .nav-button {
-        width: 100%; 
-        text-align: left;
-        padding: 8px 8px; /* Diminui padding */
-        font-size: 0.8rem; /* Fonte ainda menor */
-        flex-grow: 0; 
-        border-top: none;
-    }
-     .nav-button:hover {
-        transform: none; 
-     }
-    .nav-button.active {
-        border-left: 3px solid #1c7285; /* Borda menor */ 
-        padding-left: 5px; /* Padding ajustado */
-        padding-top: 8px; /* Reset padding-top */
-        background: var(--accent); 
-        box-shadow: 0 2px 8px rgba(6,182,212,0.15); /* Sombra mais sutil */
-    }
-    .nav-button.active:hover {
-        background: var(--accent-dark);
-        transform: none;
-    }
+    /* REMOVIDO: Bloco inteiro de .navigation-sidebar para mobile */
+    /* REMOVIDO: Bloco .sidebar-logo para mobile */
+    /* REMOVIDO: Bloco .nav-button para mobile (estilos agora no .nav-button geral e header) */
+    /* REMOVIDO: Bloco .nav-button.active para mobile */
     
     /* ALTERADO: Reduz padding do chart card */
     .chart-card {
@@ -364,8 +336,18 @@ canvas {
 </head>
 <body>
 
+<!-- NOVO: Header com os botões -->
+<div class="main-header">
+    <button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
+    <button id="btn-view-grafico" class="nav-button view-btn">Gráfico</button>
+    <button id="btn-view-config" class="nav-button view-btn">Configurações</button>
+</div>
+
+<!-- Logo agora vem depois do header -->
+<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+
 <div id="caixa-view">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    <!-- Logo removida daqui, movida para fora das views -->
     <div class="reservatorio-wrapper" id="caixa-container">
         <!-- SVG da caixa d'água -->
         <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
@@ -457,14 +439,7 @@ canvas {
     </div>
 </div>
 
-<div class="navigation-sidebar">
-    <img class="sidebar-logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-     
-    <!-- Botões de Navegação (estilo .view-btn) -->
-    <button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
-    <button id="btn-view-grafico" class="nav-button view-btn">Gráfico</button>
-    <button id="btn-view-config" class="nav-button view-btn">Configurações</button>
-</div>
+<!-- REMOVIDO: Div .navigation-sidebar -->
 
 <script>
 // --- VARIÁVEIS GLOBAIS ---
@@ -530,7 +505,7 @@ function criarGraficos() {
             animation: false, 
             plugins: { legend: { display: false } }, 
             scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0, max: 100 } },
-            maintainAspectRatio: false // Adicionado para ajudar na responsividade
+            maintainAspectRatio: false 
         }
     });
     const ctxB = document.getElementById('chartBlocos').getContext('2d');
@@ -541,7 +516,7 @@ function criarGraficos() {
             animation: false, 
             plugins: { legend: { display: false } }, 
             scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0, max: 100 } },
-            maintainAspectRatio: false // Adicionado para ajudar na responsividade
+            maintainAspectRatio: false 
         }
     });
 }
@@ -699,9 +674,10 @@ window.onload = function() {
             views[viewName].style.display = 'flex';
         }
 
-        for (const key in btns) {
-            btns[key].classList.remove('active');
-        }
+        // Seleciona todos os botões no header
+        document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
+        
+        // Adiciona active ao botão clicado
         if (btns[viewName]) {
             btns[viewName].classList.add('active');
         }
@@ -759,7 +735,7 @@ window.onload = function() {
     document.getElementById('dataInicio').value = dataInicioPadrao;
     document.getElementById('dataFim').value = dataFimPadrao;
     
-    switchView('caixa'); 
+    switchView('caixa'); // Define a view inicial
     
     carregarHistorico().then(() => {
         loopDeAtualizacao();
@@ -768,16 +744,13 @@ window.onload = function() {
 
     document.getElementById('btnAtualizar').onclick = carregarHistorico;
     
-    document.querySelectorAll('.view-btn').forEach(btn => {
+    // Event listener para os botões Diário/Mensal/Intervalo
+    document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Se o botão clicado não for um botão de navegação lateral
-            if (!e.target.classList.contains('nav-button')) {
-                // Remove o 'active' apenas dos botões irmãos (Diário, Mensal, Intervalo)
-                const parent = e.target.parentElement;
-                if (parent.classList.contains('view-selector')) {
-                    parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-                }
-            }
+            // Remove active dos irmãos
+            const parent = e.target.parentElement;
+            parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            // Adiciona active ao clicado
             e.target.classList.add('active');
             
             // Lógica de troca de view do gráfico
