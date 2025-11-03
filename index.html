@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monitoramento Caixa D’Água PP7</title>
+<title>Monitoramento Caixa D'Água PP7</title>
 
 <!-- Fonte foi removida, usando 'Arial' do sistema -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
@@ -177,7 +177,7 @@ input[type="date"], input[type="month"] {
 
 canvas { 
     width: 100%!important; 
-    height: 340px!important; /* Altura padrão para telas maiores */
+    height: 400px!important; /* Altura aumentada para o único gráfico */
     display: block; 
 }
 .small { font-size: .9rem; color: #666; margin-top: 4px; }
@@ -271,6 +271,44 @@ canvas {
     grid-column: 1 / -1;
 }
 
+/* --- LEITURA ATUAL --- */
+.leitura-atual {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #06b6d4, #0e7490);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(6,182,212,0.3);
+    min-width: 150px;
+    text-align: center;
+    z-index: 100;
+    border: 2px solid white;
+}
+
+.leitura-atual h3 {
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.leitura-valor {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.leitura-hora {
+    font-size: 0.8rem;
+    margin: 5px 0 0 0;
+    opacity: 0.9;
+}
+
 /* --- RESPONSIVIDADE --- */
 @media (max-width: 800px) {
     body {
@@ -313,7 +351,17 @@ canvas {
     }
 
     canvas {
-        height: 250px !important; 
+        height: 300px !important; 
+    }
+
+    .leitura-atual {
+        position: relative;
+        right: auto;
+        top: auto;
+        transform: none;
+        margin: 20px auto;
+        width: 90%;
+        max-width: 200px;
     }
 }
 </style>
@@ -327,6 +375,13 @@ canvas {
 </div>
 
 <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+
+<!-- Leitura Atual Fixa -->
+<div class="leitura-atual" id="leitura-atual">
+    <h3>Leitura Atual</h3>
+    <div class="leitura-valor" id="leitura-valor">0%</div>
+    <div class="leitura-hora" id="leitura-hora">--:--</div>
+</div>
 
 <div id="caixa-view">
     <div class="reservatorio-wrapper" id="caixa-container">
@@ -369,15 +424,27 @@ canvas {
             <div class="controls">
                 <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
                 <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
-                <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
+                <div id="intervalo-picker" style="display:none;">
+                    <input type="month" id="mesInicio" placeholder="Mês inicial">
+                    <span>até</span>
+                    <input type="month" id="mesFim" placeholder="Mês final">
+                </div>
                 <button id="btnAtualizar" class="modern-button">Carregar</button>
             </div>
         </div>
     </header>
     <div class="board">
         <div class="charts">
-            <div class="chart-card"><strong>Gráfico de Linha — Nível (%)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível ao longo do dia selecionado.</div></div>
-            <div class="chart-card"><strong>Gráfico em Blocos — Subida / Queda</strong><canvas id="chartBlocos"></canvas><div class="small">Barras verdes indicam aumento, vermelhas indicam queda.</div></div>
+            <div class="chart-card">
+                <strong>Gráfico de Linha — Nível (%)</strong>
+                <canvas id="chartLinha"></canvas>
+                <div class="small" id="info-linha">Exibe o histórico de nível ao longo do período selecionado.</div>
+            </div>
+            <div class="chart-card">
+                <strong>Gráfico de Velas — Variação Diária</strong>
+                <canvas id="chartVela"></canvas>
+                <div class="small" id="info-vela">Mostra a variação do nível por dia (abertura, máxima, mínima, fechamento).</div>
+            </div>
         </div>
     </div>
 </div>
@@ -429,10 +496,6 @@ canvas {
             <ul id="lista-emails">
                 <!-- E-mails serão inseridos aqui pelo JS -->
             </ul>
-
-            <!-- Botão de Simulação de Envio -->
-            <button id="btn-simular-envio" class="modern-button" style="margin-top: 20px; background: #555; width: 100%;">Simular Envio de Teste (ESP32)</button>
-            <div id="status-simulacao" class="small" style="font-weight:bold; margin-top: 10px;"></div>
         </div>
 
     </div>
@@ -456,13 +519,21 @@ const URL_CONFIG_TELEGRAM = `${DB_URL}/config/telegram.json`;
 const URL_CONFIG_EMAILS = `${DB_URL}/config/emails.json`;
 
 // --- VARIÁVEIS GLOBAIS ---
-let chartLinha, chartBlocos;
+let chartLinha, chartVela;
 let historicoNiveis = [], historicoLabels = [];
+let dadosVela = [], labelsVela = [];
 let ultimaAtualizacaoGrafico = 0;
+let ultimoRegistroHistorico = 0;
 let currentView = 'diario';
-let nivelAtual = 0; // Inicia em 0, mas será atualizado
+let nivelAtual = 1; // Inicia com 1% para nunca mostrar vazio
 let nivelAlertaConfigurado = 30; // Valor padrão
 let authErrorNotified = false; 
+let fetchRetryCount = 0; // Contador de falhas
+const MAX_FETCH_FAILURES = 5; // Limite de falhas
+let loopIntervalo; // Variável para controlar o loop
+
+// Intervalo de salvamento automático (5 minutos em milissegundos)
+const INTERVALO_SALVAMENTO = 5 * 60 * 1000;
 
 // --- FUNÇÕES DE ATUALIZAÇÃO DO DOM ---
 function atualizarCaixaDOM(nivel) {
@@ -487,66 +558,365 @@ function atualizarCaixaDOM(nivel) {
     else if (nivel > nivelAlerta) ledAmarelo.classList.add('aceso');
     else ledVermelho.classList.add('aceso');
 
+    // Atualiza a leitura atual
+    atualizarLeituraAtual(nivel);
+
     // Limpa a mensagem de erro se a atualização for bem-sucedida
     const statusDiv = document.getElementById('status-alerta-caixa');
     statusDiv.innerText = '';
 }
 
-function atualizarGraficosDOM() {
-    if (!chartLinha || !chartBlocos) return;
-    let displayLabels = [...historicoLabels];
-    let displayNiveis = [...historicoNiveis];
-    const datePicker = document.getElementById('dataEscolhida');
-    const hoje = new Date().toISOString().split('T')[0];
+function atualizarLeituraAtual(nivel) {
+    const leituraValor = document.getElementById('leitura-valor');
+    const leituraHora = document.getElementById('leitura-hora');
     
-    if (currentView === 'diario' && datePicker.value === hoje) {
-        const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        if (displayLabels.length === 0 || displayLabels[displayLabels.length - 1] !== horaAgora) {
-            displayLabels.push(horaAgora); // Mostra o horário atual
-            displayNiveis.push(nivelAtual);
-        }
+    leituraValor.textContent = nivel + '%';
+    leituraHora.textContent = new Date().toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+    // Atualiza cores baseadas no nível
+    if (nivel > 60) {
+        leituraValor.style.color = '#33ff33';
+    } else if (nivel > nivelAlertaConfigurado) {
+        leituraValor.style.color = '#ffff33';
+    } else {
+        leituraValor.style.color = '#ff3333';
     }
+}
+
+function atualizarGraficosDOM() {
+    if (!chartLinha || !chartVela) return;
     
-    chartLinha.data.labels = displayLabels;
-    chartLinha.data.datasets[0].data = displayNiveis;
+    chartLinha.data.labels = historicoLabels;
+    chartLinha.data.datasets[0].data = historicoNiveis;
     chartLinha.update('none');
-    const cores = displayNiveis.map((v, i) => i === 0 ? 'rgba(99,102,241,0.85)' : v >= displayNiveis[i - 1] ? 'rgba(34,197,94,0.85)' : 'rgba(239,68,68,0.85)');
-    chartBlocos.data.labels = displayLabels;
-    chartBlocos.data.datasets[0].data = displayNiveis;
-    chartBlocos.data.datasets[0].backgroundColor = cores;
-    chartBlocos.update('none');
+    
+    chartVela.data.labels = labelsVela;
+    chartVela.data.datasets[0].data = dadosVela;
+    chartVela.update('none');
 }
 
 // --- FUNÇÕES DE LÓGICA E FETCH ---
 function criarGraficos() {
+    // Gráfico de Linha
     const ctxL = document.getElementById('chartLinha').getContext('2d');
     const grad = ctxL.createLinearGradient(0, 0, 0, 300);
     grad.addColorStop(0, 'rgba(6,182,212,0.28)');
     grad.addColorStop(1, 'rgba(6,182,212,0.03)');
     chartLinha = new Chart(ctxL, {
         type: 'line',
-        data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: grad, borderColor: 'rgba(6,182,212,0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
+        data: { 
+            labels: [], 
+            datasets: [{ 
+                label: 'Nível (%)', 
+                data: [], 
+                fill: true, 
+                backgroundColor: grad, 
+                borderColor: 'rgba(6,182,212,0.95)', 
+                tension: 0.25, 
+                pointRadius: 3, 
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(6,182,212,1)',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2
+            }] 
+        },
         options: { 
             animation: false, 
-            plugins: { legend: { display: false } }, 
-            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0, max: 100 } },
+            plugins: { 
+                legend: { 
+                    display: true,
+                    labels: {
+                        color: '#666',
+                        font: {
+                            family: 'Arial, Helvetica, sans-serif',
+                            size: 12
+                        }
+                    }
+                } 
+            }, 
+            scales: { 
+                x: { 
+                    ticks: { color: '#666' },
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                }, 
+                y: { 
+                    ticks: { color: '#666' }, 
+                    min: 0, 
+                    max: 100,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                } 
+            },
             maintainAspectRatio: false 
         }
     });
-    const ctxB = document.getElementById('chartBlocos').getContext('2d');
-    chartBlocos = new Chart(ctxB, {
+
+    // Gráfico de Vela
+    const ctxV = document.getElementById('chartVela').getContext('2d');
+    chartVela = new Chart(ctxV, {
         type: 'bar',
-        data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 6 }] },
-        options: { 
-            animation: false, 
-            plugins: { legend: { display: false } }, 
-            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0, max: 100 } },
-            maintainAspectRatio: false 
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Variação Diária',
+                data: [],
+                borderColor: '#06b6d4',
+                borderWidth: 2,
+                backgroundColor: function(context) {
+                    const value = context.raw;
+                    if (!value || !value.o || !value.c) return 'rgba(6,182,212,0.3)';
+                    return value.c >= value.o ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)';
+                }
+            }]
+        },
+        options: {
+            animation: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            if (!value || !value.o) return 'Sem dados';
+                            return [
+                                `Abertura: ${value.o}%`,
+                                `Máxima: ${value.h}%`,
+                                `Mínima: ${value.l}%`,
+                                `Fechamento: ${value.c}%`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#666' },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                y: {
+                    ticks: { color: '#666' },
+                    min: 0,
+                    max: 100,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                }
+            },
+            maintainAspectRatio: false
         }
     });
 }
 
+// Função para calcular dados de vela (OHLC) por hora (para modo diário)
+function calcularDadosVelaPorHora(dados) {
+    const dadosPorHora = {};
+    
+    // Agrupa dados por hora
+    Object.keys(dados).forEach(hora => {
+        const leitura = dados[hora];
+        if (leitura) {
+            const nivel = leitura.nivel;
+            dadosPorHora[hora] = {
+                abertura: nivel,
+                fechamento: nivel,
+                maxima: nivel,
+                minima: nivel
+            };
+        }
+    });
+    
+    // Converte para formato do Chart.js
+    const resultado = {
+        labels: Object.keys(dadosPorHora).sort(),
+        dados: Object.keys(dadosPorHora).sort().map(hora => ({
+            x: hora,
+            o: dadosPorHora[hora].abertura,
+            h: dadosPorHora[hora].maxima,
+            l: dadosPorHora[hora].minima,
+            c: dadosPorHora[hora].fechamento
+        }))
+    };
+    
+    return resultado;
+}
+
+// Função para calcular dados de vela (OHLC) por dia
+function calcularDadosVelaPorDia(dados) {
+    const dadosPorDia = {};
+    
+    // Agrupa dados por dia
+    Object.keys(dados).forEach(data => {
+        const leituras = Object.values(dados[data]);
+        if (leituras.length > 0) {
+            const niveis = leituras.map(l => l.nivel);
+            dadosPorDia[data] = {
+                abertura: niveis[0], // Primeira leitura do dia
+                fechamento: niveis[niveis.length - 1], // Última leitura do dia
+                maxima: Math.max(...niveis),
+                minima: Math.min(...niveis)
+            };
+        }
+    });
+    
+    // Converte para formato do Chart.js
+    const resultado = {
+        labels: Object.keys(dadosPorDia).sort(),
+        dados: Object.keys(dadosPorDia).sort().map(data => ({
+            x: data,
+            o: dadosPorDia[data].abertura,
+            h: dadosPorDia[data].maxima,
+            l: dadosPorDia[data].minima,
+            c: dadosPorDia[data].fechamento
+        }))
+    };
+    
+    return resultado;
+}
+
+// Função para salvar dados no histórico local (localStorage)
+function salvarHistoricoLocal(data, hora, nivel) {
+    try {
+        // Carrega histórico existente
+        const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
+        
+        // Cria estrutura por data
+        if (!historicoLocal[data]) {
+            historicoLocal[data] = {};
+        }
+        
+        // Salva o registro
+        historicoLocal[data][hora] = {
+            nivel: nivel,
+            timestamp: Date.now()
+        };
+        
+        // Salva no localStorage
+        localStorage.setItem('historicoCaixaAgua', JSON.stringify(historicoLocal));
+        console.log(`Histórico salvo localmente: ${data} ${hora} - ${nivel}%`);
+        
+    } catch (e) {
+        console.error('Erro ao salvar histórico local:', e);
+    }
+}
+
+// Função para carregar histórico do localStorage
+function carregarHistoricoLocal(dataFiltro = null) {
+    try {
+        const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
+        const labels = [];
+        const niveis = [];
+        
+        if (dataFiltro) {
+            // Filtra por data específica
+            if (historicoLocal[dataFiltro]) {
+                Object.keys(historicoLocal[dataFiltro])
+                    .sort()
+                    .forEach(hora => {
+                        labels.push(hora);
+                        niveis.push(historicoLocal[dataFiltro][hora].nivel);
+                    });
+            }
+        } else {
+            // Carrega tudo (para modo mensal/intervalo)
+            Object.keys(historicoLocal)
+                .sort()
+                .forEach(data => {
+                    Object.keys(historicoLocal[data])
+                        .sort()
+                        .forEach(hora => {
+                            labels.push(`${data} ${hora}`);
+                            niveis.push(historicoLocal[data][hora].nivel);
+                        });
+                });
+        }
+        
+        return { labels, niveis };
+    } catch (e) {
+        console.error('Erro ao carregar histórico local:', e);
+        return { labels: [], niveis: [] };
+    }
+}
+
+// Função para agrupar dados por semana
+function agruparPorSemanas(dados) {
+    const semanas = {};
+    
+    Object.keys(dados).forEach(data => {
+        const date = new Date(data + 'T00:00:00');
+        const semanaAno = getWeekNumber(date);
+        const chaveSemana = `Semana ${semanaAno.semana}/${semanaAno.ano}`;
+        
+        if (!semanas[chaveSemana]) {
+            semanas[chaveSemana] = { sum: 0, count: 0 };
+        }
+        
+        // Calcula média do dia
+        const leiturasDia = Object.values(dados[data]);
+        const mediaDia = leiturasDia.reduce((sum, leitura) => sum + leitura.nivel, 0) / leiturasDia.length;
+        
+        semanas[chaveSemana].sum += mediaDia;
+        semanas[chaveSemana].count++;
+    });
+    
+    // Calcula médias semanais
+    const resultado = {};
+    Object.keys(semanas).forEach(semana => {
+        resultado[semana] = semanas[semana].sum / semanas[semana].count;
+    });
+    
+    return resultado;
+}
+
+// Função para obter número da semana
+function getWeekNumber(date) {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+    return {
+        semana: Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7),
+        ano: date.getFullYear()
+    };
+}
+
+// Função para agrupar dados por mês
+function agruparPorMeses(dados) {
+    const meses = {};
+    
+    Object.keys(dados).forEach(data => {
+        const [ano, mes] = data.split('-');
+        const chaveMes = `${mes}/${ano}`;
+        
+        if (!meses[chaveMes]) {
+            meses[chaveMes] = { sum: 0, count: 0 };
+        }
+        
+        // Calcula média do dia
+        const leiturasDia = Object.values(dados[data]);
+        const mediaDia = leiturasDia.reduce((sum, leitura) => sum + leitura.nivel, 0) / leiturasDia.length;
+        
+        meses[chaveMes].sum += mediaDia;
+        meses[chaveMes].count++;
+    });
+    
+    // Calcula médias mensais
+    const resultado = {};
+    Object.keys(meses).forEach(mes => {
+        resultado[mes] = meses[mes].sum / meses[mes].count;
+    });
+    
+    return resultado;
+}
+
+// Função para carregar histórico (agora sempre do localStorage primeiro)
 async function carregarHistorico() {
+    const infoLinha = document.getElementById('info-linha');
+    const infoVela = document.getElementById('info-vela');
     let dataInicio, dataFim;
     let dataEscolhida;
 
@@ -555,122 +925,233 @@ async function carregarHistorico() {
         if (!dataEscolhida) return;
         dataInicio = `${dataEscolhida}T00:00:00`;
         dataFim = `${dataEscolhida}T23:59:59`;
-    } else { // Mensal ou Intervalo
-        let inicioStr, fimStr;
-        if (currentView === 'mensal') {
-            const mesAno = document.getElementById('mesEscolhido').value;
-            if (!mesAno) return;
-            inicioStr = `${mesAno}-01`;
-            const [ano, mes] = mesAno.split('-');
-            const ultimoDia = new Date(ano, mes, 0).getDate();
-            fimStr = `${mesAno}-${ultimoDia}`;
-        } else { // Intervalo
-            inicioStr = document.getElementById('dataInicio').value;
-            fimStr = document.getElementById('dataFim').value;
-            if (!inicioStr || !fimStr) return;
-        }
-        dataInicio = `${inicioStr}T00:00:00`;
-        dataFim = `${fimStr}T23:59:59`;
+        infoLinha.textContent = `Exibe o histórico de nível ao longo do dia ${dataEscolhida}.`;
+        infoVela.textContent = `Mostra a variação do nível por hora no dia ${dataEscolhida}.`;
+    } else if (currentView === 'mensal') {
+        const mesAno = document.getElementById('mesEscolhido').value;
+        if (!mesAno) return;
+        const [ano, mes] = mesAno.split('-');
+        dataInicio = `${mesAno}-01T00:00:00`;
+        const ultimoDia = new Date(ano, mes, 0).getDate();
+        dataFim = `${mesAno}-${ultimoDia}T23:59:59`;
+        infoLinha.textContent = `Exibe o histórico de nível por semanas do mês ${mes}/${ano}.`;
+        infoVela.textContent = `Mostra a variação do nível por dia no mês ${mes}/${ano}.`;
+    } else { // Intervalo
+        const mesInicio = document.getElementById('mesInicio').value;
+        const mesFim = document.getElementById('mesFim').value;
+        if (!mesInicio || !mesFim) return;
+        
+        const [anoInicio, mesInicioNum] = mesInicio.split('-');
+        const [anoFim, mesFimNum] = mesFim.split('-');
+        
+        dataInicio = `${mesInicio}-01T00:00:00`;
+        const ultimoDiaFim = new Date(anoFim, mesFimNum, 0).getDate();
+        dataFim = `${mesFim}-${ultimoDiaFim}T23:59:59`;
+        
+        infoLinha.textContent = `Exibe o histórico de nível por meses de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
+        infoVela.textContent = `Mostra a variação do nível por mês de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
     }
 
-    // Tenta carregar dados históricos de ambos os locais
-    let dados = null;
-    let formato = 'novo'; // /PP7_historico
+    console.log("Carregando histórico do localStorage...");
+    
+    // SEMPRE carrega do localStorage primeiro
+    const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
+    
+    // Filtra dados pelo período selecionado
+    const dadosFiltrados = {};
+    Object.keys(historicoLocal)
+        .sort()
+        .forEach(data => {
+            if (data >= dataInicio.split('T')[0] && data <= dataFim.split('T')[0]) {
+                dadosFiltrados[data] = historicoLocal[data];
+            }
+        });
 
-    try {
-        let urlNovoFormato;
-        if (currentView === 'diario') {
-             urlNovoFormato = `${URL_HISTORICO_NOVO}/${dataEscolhida}.json`;
-        } else {
-             const startQuery = dataInicio.split('T')[0];
-             const endQuery = dataFim.split('T')[0];
-             urlNovoFormato = `${URL_HISTORICO_NOVO}.json?orderBy="$key"&startAt="${startQuery}"&endAt="${endQuery}"`;
-        }
-        const rNovo = await fetch(urlNovoFormato);
-        dados = await rNovo.json();
-
-        if (!dados) {
-            formato = 'antigo'; // /leituras
-            // O formato antigo usa timestamp (segundos)
-            const startQuery = String(Math.floor(new Date(dataInicio).getTime() / 1000));
-            const endQuery = String(Math.floor(new Date(dataFim).getTime() / 1000));
-            const urlAntigoFormato = `${URL_HISTORICO_ANTIGO}?orderBy="$key"&startAt="${startQuery}"&endAt="${endQuery}"`;
-            
-            const rAntigo = await fetch(urlAntigoFormato);
-            dados = await rAntigo.json();
-        }
-
-    } catch (e) {
-        console.error("Erro ao carregar histórico:", e);
-        dados = null;
-    }
-
-    // Processa os dados encontrados
-    if (!dados) {
-        console.log("Nenhum dado histórico encontrado para o período.");
-        historicoLabels = [];
-        historicoNiveis = [];
-        atualizarGraficosDOM();
-        return;
-    }
-
-    if (formato === 'novo') {
-        console.log("Carregando pelo formato /PP7_historico");
-        if (currentView === 'diario') {
-            const labels = Object.keys(dados).sort();
-            const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
+    // Processa dados de acordo com a view
+    if (currentView === 'diario') {
+        if (dadosFiltrados[dataEscolhida]) {
+            const labels = Object.keys(dadosFiltrados[dataEscolhida]).sort();
+            const niveis = labels.map(hora => dadosFiltrados[dataEscolhida][hora].nivel);
             historicoLabels = labels;
             historicoNiveis = niveis;
+            
+            // Para gráfico de vela diário, mostra por HORA
+            const dadosVelaDiario = calcularDadosVelaPorHora(dadosFiltrados[dataEscolhida]);
+            labelsVela = dadosVelaDiario.labels;
+            dadosVela = dadosVelaDiario.dados;
         } else {
-            const dailyAverages = {};
-            for (const dateKey in dados) {
-                const dailyReadings = dados[dateKey];
-                let sum = 0; let count = 0;
-                for (const timeKey in dailyReadings) {
-                    sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
-                    count++;
-                }
-                if (count > 0) dailyAverages[dateKey] = sum / count;
-            }
-            const labels = Object.keys(dailyAverages).sort();
-            const niveis = labels.map(key => dailyAverages[key]);
-            historicoLabels = (currentView === 'mensal') ? labels.map(d => d.substring(8, 10)) : labels;
-            historicoNiveis = niveis;
+            historicoLabels = [];
+            historicoNiveis = [];
+            labelsVela = [];
+            dadosVela = [];
         }
-    } else { // formato === 'antigo'
-        console.log("Carregando pelo formato /leituras");
-        const dailyAverages = {};
-        for (const ts in dados) {
-            const date = new Date(parseInt(ts) * 1000);
-            const dateKey = date.toISOString().split('T')[0];
-            if (!dailyAverages[dateKey]) {
-                dailyAverages[dateKey] = { sum: 0, count: 0 };
+    } else if (currentView === 'mensal') {
+        // Agrupa por semanas para linha
+        const semanas = agruparPorSemanas(dadosFiltrados);
+        historicoLabels = Object.keys(semanas);
+        historicoNiveis = Object.values(semanas);
+        
+        // Para vela, mostra por DIA
+        const dadosVelaMensal = calcularDadosVelaPorDia(dadosFiltrados);
+        labelsVela = dadosVelaMensal.labels;
+        dadosVela = dadosVelaMensal.dados;
+    } else { // Intervalo
+        // Agrupa por meses para linha
+        const meses = agruparPorMeses(dadosFiltrados);
+        historicoLabels = Object.keys(meses);
+        historicoNiveis = Object.values(meses);
+        
+        // Para vela, mostra por MÊS
+        const dadosVelaIntervalo = calcularDadosVelaPorDia(dadosFiltrados);
+        labelsVela = dadosVelaIntervalo.labels;
+        dadosVela = dadosVelaIntervalo.dados;
+    }
+
+    // Se não há dados locais, tenta carregar do Firebase como backup
+    if (historicoLabels.length === 0) {
+        console.log("Nenhum dado local encontrado. Tentando carregar do Firebase...");
+        
+        let dados = null;
+        let formato = 'novo';
+
+        try {
+            let urlNovoFormato;
+            if (currentView === 'diario') {
+                 urlNovoFormato = `${URL_HISTORICO_NOVO}/${dataEscolhida}.json`;
+            } else {
+                 const startQuery = dataInicio.split('T')[0];
+                 const endQuery = dataFim.split('T')[0];
+                 urlNovoFormato = `${URL_HISTORICO_NOVO}.json?orderBy="$key"&startAt="${startQuery}"&endAt="${endQuery}"`;
             }
-            dailyAverages[dateKey].sum += dados[ts].nivel_pct ?? dados[ts].nivel ?? 0;
-            dailyAverages[dateKey].count++;
+            const rNovo = await fetch(urlNovoFormato);
+            dados = await rNovo.json();
+
+            if (!dados) {
+                formato = 'antigo';
+                const startQuery = String(Math.floor(new Date(dataInicio).getTime() / 1000));
+                const endQuery = String(Math.floor(new Date(dataFim).getTime() / 1000));
+                const urlAntigoFormato = `${URL_HISTORICO_ANTIGO}?orderBy="$key"&startAt="${startQuery}"&endAt="${endQuery}"`;
+                
+                const rAntigo = await fetch(urlAntigoFormato);
+                dados = await rAntigo.json();
+            }
+
+        } catch (e) {
+            console.error("Erro ao carregar histórico do Firebase:", e);
+            dados = null;
         }
 
-        const labels = Object.keys(dailyAverages).sort();
-        const niveis = labels.map(key => dailyAverages[key].sum / dailyAverages[key].count);
-        
-        if (currentView === 'diario') {
-            // Se for diário, precisamos filtrar /leituras por hora
-            const hourlyLabels = [];
-            const hourlyNiveis = [];
-            for (const ts in dados) {
-                const date = new Date(parseInt(ts) * 1000);
-                const dateKey = date.toISOString().split('T')[0];
-                if (dateKey === dataEscolhida) {
-                    hourlyLabels.push(date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
-                    hourlyNiveis.push(dados[ts].nivel_pct ?? dados[ts].nivel ?? 0);
+        // Se encontrou dados no Firebase, processa e salva localmente
+        if (dados) {
+            console.log("Dados encontrados no Firebase, processando...");
+            
+            if (formato === 'novo') {
+                if (currentView === 'diario') {
+                    const labels = Object.keys(dados).sort();
+                    const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
+                    historicoLabels = labels;
+                    historicoNiveis = niveis;
+                    
+                    // Para gráfico de vela diário, mostra por HORA
+                    const dadosVelaDiario = calcularDadosVelaPorHora(dados);
+                    labelsVela = dadosVelaDiario.labels;
+                    dadosVela = dadosVelaDiario.dados;
+                    
+                    // Salva os dados do Firebase no localStorage
+                    labels.forEach((hora, index) => {
+                        salvarHistoricoLocal(dataEscolhida, hora, niveis[index]);
+                    });
+                } else {
+                    // Para views mensal e intervalo, processa agrupamento
+                    const dadosParaAgrupamento = {};
+                    
+                    Object.keys(dados).forEach(data => {
+                        dadosParaAgrupamento[data] = {};
+                        Object.keys(dados[data]).forEach(hora => {
+                            dadosParaAgrupamento[data][hora] = {
+                                nivel: dados[data][hora].nivel_pct ?? dados[data][hora].nivel ?? 0
+                            };
+                        });
+                    });
+                    
+                    if (currentView === 'mensal') {
+                        const semanas = agruparPorSemanas(dadosParaAgrupamento);
+                        historicoLabels = Object.keys(semanas);
+                        historicoNiveis = Object.values(semanas);
+                        
+                        // Para vela, mostra por DIA
+                        const dadosVelaMensal = calcularDadosVelaPorDia(dadosParaAgrupamento);
+                        labelsVela = dadosVelaMensal.labels;
+                        dadosVela = dadosVelaMensal.dados;
+                    } else {
+                        const meses = agruparPorMeses(dadosParaAgrupamento);
+                        historicoLabels = Object.keys(meses);
+                        historicoNiveis = Object.values(meses);
+                        
+                        // Para vela, mostra por DIA
+                        const dadosVelaIntervalo = calcularDadosVelaPorDia(dadosParaAgrupamento);
+                        labelsVela = dadosVelaIntervalo.labels;
+                        dadosVela = dadosVelaIntervalo.dados;
+                    }
+                }
+            } else {
+                // Processamento para formato antigo
+                const dadosParaAgrupamento = {};
+                
+                for (const ts in dados) {
+                    const date = new Date(parseInt(ts) * 1000);
+                    const dataKey = date.toISOString().split('T')[0];
+                    const horaKey = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    
+                    if (!dadosParaAgrupamento[dataKey]) {
+                        dadosParaAgrupamento[dataKey] = {};
+                    }
+                    
+                    dadosParaAgrupamento[dataKey][horaKey] = {
+                        nivel: dados[ts].nivel_pct ?? dados[ts].nivel ?? 0
+                    };
+                }
+                
+                if (currentView === 'diario') {
+                    if (dadosParaAgrupamento[dataEscolhida]) {
+                        const labels = Object.keys(dadosParaAgrupamento[dataEscolhida]).sort();
+                        const niveis = labels.map(hora => dadosParaAgrupamento[dataEscolhida][hora].nivel);
+                        historicoLabels = labels;
+                        historicoNiveis = niveis;
+                        
+                        // Para gráfico de vela diário, mostra por HORA
+                        const dadosVelaDiario = calcularDadosVelaPorHora(dadosParaAgrupamento[dataEscolhida]);
+                        labelsVela = dadosVelaDiario.labels;
+                        dadosVela = dadosVelaDiario.dados;
+                        
+                        // Salva no localStorage
+                        labels.forEach((hora, index) => {
+                            salvarHistoricoLocal(dataEscolhida, hora, niveis[index]);
+                        });
+                    }
+                } else if (currentView === 'mensal') {
+                    const semanas = agruparPorSemanas(dadosParaAgrupamento);
+                    historicoLabels = Object.keys(semanas);
+                    historicoNiveis = Object.values(semanas);
+                    
+                    // Para vela, mostra por DIA
+                    const dadosVelaMensal = calcularDadosVelaPorDia(dadosParaAgrupamento);
+                    labelsVela = dadosVelaMensal.labels;
+                    dadosVela = dadosVelaMensal.dados;
+                } else {
+                    const meses = agruparPorMeses(dadosParaAgrupamento);
+                    historicoLabels = Object.keys(meses);
+                    historicoNiveis = Object.values(meses);
+                    
+                    // Para vela, mostra por DIA
+                    const dadosVelaIntervalo = calcularDadosVelaPorDia(dadosParaAgrupamento);
+                    labelsVela = dadosVelaIntervalo.labels;
+                    dadosVela = dadosVelaIntervalo.dados;
                 }
             }
-            historicoLabels = hourlyLabels;
-            historicoNiveis = hourlyNiveis;
-        } else {
-            historicoLabels = (currentView === 'mensal') ? labels.map(d => d.substring(8, 10)) : labels;
-            historicoNiveis = niveis;
         }
+    } else {
+        console.log(`Carregados ${historicoLabels.length} registros do localStorage`);
     }
     
     atualizarGraficosDOM();
@@ -679,53 +1160,77 @@ async function carregarHistorico() {
 // --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
     
-    // 1. Busca o nível de alerta (necessário para as cores)
+    // --- Se o contador de falhas exceder o limite, para o loop ---
+    if (fetchRetryCount >= MAX_FETCH_FAILURES) {
+        if (loopIntervalo) clearInterval(loopIntervalo);
+        console.error("Muitas falhas de conexão com o Firebase. Loop interrompido.");
+        const statusDiv = document.getElementById('status-alerta-caixa');
+        statusDiv.style.color = '#ef4444';
+        statusDiv.innerText = 'ERRO DE CONEXÃO. Verifique as Regras do Firebase ou a rede.';
+        return;
+    }
+    
+    // 1. Busca o nível de alerta
+    let configNivelOk = false;
     try {
         const rConfig = await fetch(URL_CONFIG_NIVEL);
+        if (!rConfig.ok) throw new Error(`Falha ao buscar config: ${rConfig.status}`);
         const config = await rConfig.json();
         if (config !== null) {
             nivelAlertaConfigurado = parseInt(config) || 30;
         }
+        configNivelOk = true;
     } catch (e) {
         console.error("Erro ao buscar nível de alerta:", e);
+        fetchRetryCount++;
     }
     
-    // 2. Busca o nível atual (de dois locais)
+    // 2. Busca o nível atual
     let nivelEncontrado = null; 
+    let nivelOk = false;
     try {
-        // Tenta o caminho novo primeiro (/nivel_atual)
         const rNivel = await fetch(URL_NIVEL_ATUAL);
+        if (!rNivel.ok) throw new Error(`Falha ao buscar /nivel_atual: ${rNivel.status}`);
         const nivelNovo = await rNivel.json();
         
         if (nivelNovo !== null) {
             nivelEncontrado = Number(nivelNovo);
         } else {
-            // Se falhar, tenta o caminho legado (/PP7/nivel_pct)
             const rNivelLegado = await fetch(URL_NIVEL_LEGADO_PP7);
+            if (!rNivelLegado.ok) throw new Error(`Falha ao buscar /PP7/nivel_pct: ${rNivelLegado.status}`);
             const nivelLegado = await rNivelLegado.json();
             if (nivelLegado !== null) {
                 nivelEncontrado = Number(nivelLegado);
             }
         }
         
-        // --- [SUA IDEIA FOI APLICADA AQUI] ---
-        // Se o Firebase retornar um valor > 0 (ex: 26), nós o usamos.
-        // Se o Firebase retornar 0 (por causa do bug do ESP32),
-        // nós ignoramos esse 0 e mantemos o valor antigo (que está em 'nivelAtual').
+        // Lógica para manter último valor acima de 0
         if (nivelEncontrado !== null && nivelEncontrado > 0) {
-            nivelAtual = nivelEncontrado; // 'nivelAtual' é a variável global
+            nivelAtual = nivelEncontrado;
+            console.log(`Nível atualizado: ${nivelAtual}%`);
+        } else if (nivelEncontrado === 0 || nivelEncontrado === null) {
+            if (nivelAtual > 0) {
+                console.log(`Nível lido: ${nivelEncontrado}% - Mantendo último valor válido: ${nivelAtual}%`);
+            } else {
+                nivelAtual = 1;
+                console.log(`Nível lido: ${nivelEncontrado}% - Usando fallback: ${nivelAtual}%`);
+            }
         }
-        // Se nivelEncontrado for 0 ou null, 'nivelAtual' (global) não muda
-        // e mantém o último valor bom (ex: 26).
         
-        fetchErrorNotified = false; // Sucesso, reseta o erro
+        nivelOk = true;
         
     } catch(e) {
         console.error("Falha ao ler URL_NIVEL_ATUAL:", e.message);
-        const statusDiv = document.getElementById('status-alerta-caixa');
-        statusDiv.style.color = '#ef4444'; // Vermelho
+        fetchRetryCount++;
         
-        if (e.message.includes("Unauthorized")) {
+        if (nivelAtual <= 0) {
+            nivelAtual = 1;
+        }
+        
+        const statusDiv = document.getElementById('status-alerta-caixa');
+        statusDiv.style.color = '#ef4444';
+        
+        if (e.message.includes("401") || e.message.includes("403") || e.message.includes("Unauthorized")) {
              statusDiv.innerText = 'Falha ao carregar nível (Erro de Regras do Firebase).';
              if (!authErrorNotified) {
                 console.error("======================================================");
@@ -739,32 +1244,35 @@ async function loopDeAtualizacao() {
         }
     }
 
-    // 3. Atualiza o DOM
-    // 'nivelAtual' (global) só terá o último valor > 0
+    // 3. Garante que o nível nunca seja 0 ou negativo
+    if (nivelAtual <= 0) {
+        nivelAtual = 1;
+    }
+
+    // 4. Atualiza o DOM
     atualizarCaixaDOM(nivelAtual); 
+    
+    // 5. Reseta o contador de falhas se AMBAS as buscas funcionarem
+    if (configNivelOk && nivelOk) {
+        fetchRetryCount = 0;
+    }
+    
+    // 6. Salva no histórico a cada 5 minutos
+    const agora = Date.now();
+    if (agora - ultimoRegistroHistorico > INTERVALO_SALVAMENTO) {
+        const dataAtual = new Date().toISOString().split('T')[0];
+        const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        salvarHistoricoLocal(dataAtual, horaAtual, nivelAtual);
+        ultimoRegistroHistorico = agora;
+        
+        console.log(`Registro salvo no histórico: ${dataAtual} ${horaAtual} - ${nivelAtual}%`);
+    }
     
     if (document.getElementById('grafico-container').style.display !== 'none') {
         atualizarGraficosDOM();
     }
-    
-    // 4. Lógica de atualização do histórico (apenas se diário)
-    const agora = Date.now();
-    const cincoMinutos = 5 * 60 * 1000;
-    const datePicker = document.getElementById('dataEscolhida');
-    const hoje = new Date().toISOString().split('T')[0];
-
-    if (agora - ultimaAtualizacaoGrafico > cincoMinutos) {
-        if (currentView === 'diario' && datePicker.value === hoje) {
-            const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            if (historicoLabels[historicoLabels.length - 1] !== hora) {
-                historicoNiveis.push(Number(nivelAtual));
-                historicoLabels.push(hora);
-                ultimaAtualizacaoGrafico = agora;
-            }
-        }
-    }
 }
-
 
 // --- INICIALIZAÇÃO E CONTROLE GERAL ---
 window.onload = function() {
@@ -795,7 +1303,7 @@ window.onload = function() {
         if (viewName === 'grafico') {
             atualizarGraficosDOM();
             if(chartLinha) chartLinha.resize();
-            if(chartBlocos) chartBlocos.resize();
+            if(chartVela) chartVela.resize();
         } else if (viewName === 'config') {
             carregarConfiguracoes(); 
         }
@@ -815,30 +1323,34 @@ window.onload = function() {
             removerEmail(emailParaRemover);
         }
     });
-    
-    // Listener do botão de simulação
-    document.getElementById('btn-simular-envio').addEventListener('click', simularEnvioESP32);
-
 
     // --- Inicialização dos Gráficos e Datas ---
     criarGraficos();
     const hoje = new Date();
     const dataFimPadrao = hoje.toISOString().split('T')[0];
     const mesFimPadrao = hoje.toISOString().substring(0, 7);
-    hoje.setDate(hoje.getDate() - 59); // 60 dias atrás
-    const dataInicioPadrao = hoje.toISOString().split('T')[0];
+    
+    // Define mês inicial como 3 meses atrás
+    const mesInicio = new Date();
+    mesInicio.setMonth(mesInicio.getMonth() - 3);
+    const mesInicioPadrao = mesInicio.toISOString().substring(0, 7);
+    
     document.getElementById('dataEscolhida').value = dataFimPadrao;
     document.getElementById('mesEscolhido').value = mesFimPadrao;
-    document.getElementById('dataInicio').value = dataInicioPadrao;
-    document.getElementById('dataFim').value = dataFimPadrao;
+    document.getElementById('mesInicio').value = mesInicioPadrao;
+    document.getElementById('mesFim').value = mesFimPadrao;
     
-    switchView('caixa'); // Define a view inicial
+    switchView('caixa');
     
-    // --- Loop Principal ---
+    // --- Inicializa com um valor mínimo ---
+    nivelAtual = 1;
+    
+    // --- Carrega histórico do localStorage na inicialização ---
+    console.log("Inicializando sistema...");
     carregarHistorico().then(() => {
-        loopDeAtualizacao(); // Carga inicial
-        // Atualiza a cada 2 segundos (padrão)
-        setInterval(loopDeAtualizacao, 2000); 
+        console.log("Histórico carregado do localStorage");
+        loopDeAtualizacao();
+        loopIntervalo = setInterval(loopDeAtualizacao, 2000);
     });
 
     document.getElementById('btnAtualizar').onclick = carregarHistorico;
@@ -867,7 +1379,7 @@ window.onload = function() {
     });
 };
 
-// --- Funções de configuração (Adaptadas ao ESP32) ---
+// --- Funções de configuração ---
 
 function setStatus(elementId, message, color = 'green', timeout = 3000) {
     const statusDiv = document.getElementById(elementId);
@@ -884,12 +1396,13 @@ async function carregarConfiguracoes() {
     // 1. Carregar Nível de Alerta
     try {
         const r = await fetch(URL_CONFIG_NIVEL);
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
         const nivel = await r.json();
         if (nivel !== null) {
             document.getElementById('nivel-alerta-valor').value = nivel;
-            nivelAlertaConfigurado = parseInt(nivel); // Atualiza global
+            nivelAlertaConfigurado = parseInt(nivel);
         } else {
-            document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado; // Mostra o padrão
+            document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado;
         }
     } catch (e) {
         console.error("Erro ao carregar nível de alerta:", e);
@@ -899,6 +1412,7 @@ async function carregarConfiguracoes() {
     // 2. Carregar ID Telegram
     try {
         const r = await fetch(URL_CONFIG_TELEGRAM);
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
         const id = await r.json();
         if (id !== null) {
             document.getElementById('telegram-id-valor').value = id;
@@ -923,15 +1437,16 @@ async function salvarNivelAlerta() {
     
     setStatus('status-alerta', 'Salvando...', '#eab308', 0);
     try {
-        await fetch(URL_CONFIG_NIVEL, {
+        const r = await fetch(URL_CONFIG_NIVEL, {
             method: 'PUT',
             body: JSON.stringify(parseInt(nivel))
         });
-        nivelAlertaConfigurado = parseInt(nivel); // Atualiza global
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        nivelAlertaConfigurado = parseInt(nivel);
         setStatus('status-alerta', 'Nível de alerta salvo!');
     } catch (e) {
         console.error("Erro ao salvar nível:", e);
-        setStatus('status-alerta', 'Erro ao salvar.', '#ef4444');
+        setStatus('status-alerta', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
     }
 }
 
@@ -944,14 +1459,15 @@ async function salvarTelegramId() {
 
     setStatus('status-telegram', 'Salvando...', '#eab308', 0);
     try {
-        await fetch(URL_CONFIG_TELEGRAM, {
+        const r = await fetch(URL_CONFIG_TELEGRAM, {
             method: 'PUT',
             body: JSON.stringify(id)
         });
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
         setStatus('status-telegram', 'ID do Telegram salvo!');
     } catch (e) {
         console.error("Erro ao salvar ID Telegram:", e);
-        setStatus('status-telegram', 'Erro ao salvar.', '#ef4444');
+        setStatus('status-telegram', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
     }
 }
 
@@ -961,12 +1477,13 @@ async function carregarListaEmails() {
     
     try {
         const r = await fetch(URL_CONFIG_EMAILS);
-        const emails = await r.json(); // Espera um Array: ["email1", "email2"]
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        const emails = await r.json();
         
         listaUL.innerHTML = '';
         if (emails && Array.isArray(emails)) {
             emails.forEach((email, index) => {
-                if (email) { // Ignora nulos se houver
+                if (email) {
                     const li = document.createElement('li');
                     li.className = 'email-item';
                     li.innerHTML = `
@@ -982,7 +1499,7 @@ async function carregarListaEmails() {
         }
     } catch (e) {
         console.error("Erro ao carregar e-mails:", e);
-        listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar e-mails.</li>';
+        listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar e-mails (Verifique Regras do Firebase).</li>';
     }
 }
 
@@ -997,52 +1514,52 @@ async function adicionarEmail() {
 
     setStatus('status-email', 'Adicionando...', '#eab308', 0);
 
-    // 1. Pega a lista atual
     let listaAtual = [];
     try {
         const r = await fetch(URL_CONFIG_EMAILS);
-        const emails = await r.json();
-        if (emails && Array.isArray(emails)) {
-            listaAtual = emails.filter(Boolean); // Remove nulos
+        if (r.ok) { 
+            const emails = await r.json();
+            if (emails && Array.isArray(emails)) {
+                listaAtual = emails.filter(Boolean);
+            }
         }
     } catch (e) {
-        // Ignora se não existir, vai criar a lista
+        console.warn("Erro ao buscar lista de emails (pode ser o primeiro email):", e);
     }
 
-    // 2. Verifica se já existe
     if (listaAtual.includes(email)) {
         setStatus('status-email', 'E-mail já está na lista.', '#eab308');
         input.value = '';
         return;
     }
 
-    // 3. Adiciona e salva a lista inteira
     listaAtual.push(email);
     
     try {
-        await fetch(URL_CONFIG_EMAILS, {
+        const r = await fetch(URL_CONFIG_EMAILS, {
             method: 'PUT',
-            body: JSON.stringify(listaAtual) // Salva o array completo
+            body: JSON.stringify(listaAtual)
         });
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
         setStatus('status-email', 'E-mail adicionado!');
         input.value = '';
-        await carregarListaEmails(); // Recarrega a lista
+        await carregarListaEmails();
     } catch (e) {
         console.error("Erro ao adicionar e-mail:", e);
-        setStatus('status-email', 'Erro ao salvar.', '#ef4444');
+        setStatus('status-email', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
     }
 }
 
 async function removerEmail(emailParaRemover) {
     setStatus('status-email', 'Removendo...', '#eab308', 0);
 
-    // 1. Pega a lista atual
     let listaAtual = [];
     try {
         const r = await fetch(URL_CONFIG_EMAILS);
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
         const emails = await r.json();
         if (emails && Array.isArray(emails)) {
-            listaAtual = emails.filter(Boolean); // Remove nulos
+            listaAtual = emails.filter(Boolean);
         } else {
              setStatus('status-email', 'Lista de e-mails não encontrada.', '#ef4444');
              return;
@@ -1052,58 +1569,22 @@ async function removerEmail(emailParaRemover) {
          return;
     }
 
-    // 2. Remove o email
     const novaLista = listaAtual.filter(email => email !== emailParaRemover);
 
-    // 3. Salva a nova lista
     try {
-        await fetch(URL_CONFIG_EMAILS, {
+        const r = await fetch(URL_CONFIG_EMAILS, {
             method: 'PUT',
-            body: JSON.stringify(novaLista) // Salva o array filtrado
+            body: JSON.stringify(novaLista)
         });
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
         setStatus('status-email', 'E-mail removido!');
-        await carregarListaEmails(); // Recarrega a lista
+        await carregarListaEmails();
     } catch (e) {
         console.error("Erro ao remover e-mail:", e);
-        setStatus('status-email', 'Erro ao salvar.', '#ef4444');
-    }
-}
-
-// Função de Simulação
-async function simularEnvioESP32() {
-    setStatus('status-simulacao', 'Lendo contatos do Firebase...', '#eab308', 0);
-    try {
-        const r = await fetch(URL_CONFIG_EMAILS);
-        const emails = await r.json();
-        const rTelegram = await fetch(URL_CONFIG_TELEGRAM);
-        const telegramId = await rTelegram.json();
-
-        let msg = "Simulação: O ESP32 enviaria alertas para:\n";
-        let count = 0;
-        
-        if (emails && Array.isArray(emails) && emails.length > 0) {
-            msg += `Emails: ${emails.join(', ')}\n`;
-            count += emails.length;
-        }
-        if (telegramId) {
-            msg += `Telegram: ${telegramId}`;
-            count++;
-        }
-
-        if (count === 0) {
-             setStatus('status-simulacao', 'Nenhum contato (Email ou Telegram) salvo no Firebase.', '#ef4444');
-        } else {
-             console.log(msg);
-             setStatus('status-simulacao', 'Simulação OK. O ESP32 enviaria alertas para os contatos salvos. Veja o console (F12) para detalhes.', 'green', 5000);
-        }
-
-    } catch (e) {
-        console.error("Erro na simulação:", e);
-        setStatus('status-simulacao', 'Erro ao ler contatos do Firebase.', '#ef4444');
+        setStatus('status-email', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
     }
 }
 
 </script>
 </body>
 </html>
-
