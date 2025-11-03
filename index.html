@@ -430,14 +430,9 @@ canvas {
                 <!-- E-mails serão inseridos aqui pelo JS -->
             </ul>
 
-            <!-- [NOVO] Botão de Teste -->
-            <h3 style="margin-top: 20px; margin-bottom: 10px; color: #555;">Testar Envio</h3>
-            <p class="small" style="margin-top:-5px; margin-bottom:15px;">
-                Isso simula o envio de um alerta para a lista de e-mails salva. O envio real é feito pelo ESP32.
-            </p>
-            <button id="btn-test-email" class="modern-button" style="background-color: #f59e0b; width: 100%;">Simular Envio de Teste</button>
-            <div id="status-teste-email" class="small" style="font-weight:bold; margin-top: 10px;"></div>
-            <!-- [FIM NOVO] -->
+            <!-- Botão de Simulação de Envio -->
+            <button id="btn-simular-envio" class="modern-button" style="margin-top: 20px; background: #555; width: 100%;">Simular Envio de Teste (ESP32)</button>
+            <div id="status-simulacao" class="small" style="font-weight:bold; margin-top: 10px;"></div>
         </div>
 
     </div>
@@ -447,27 +442,27 @@ canvas {
 // --- CONSTANTES DO FIREBASE ---
 const DB_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/";
 
-// --- [ALTERADO] ---
-// URL para o seu Google Script que lê o Telegram.
-const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbznLTinT8SE7JQxiwlNBl7zdkYiU71wC3D-FApBhckqczLyikH3vpwK02I8fokXgj_BKA/exec"; 
+// O site agora verifica os DOIS locais onde o nível pode estar
+const URL_NIVEL_ATUAL = `${DB_URL}/nivel_atual.json`;       // Usado pelo código C++ do Canvas
+const URL_NIVEL_LEGADO_PP7 = `${DB_URL}/PP7/nivel_pct.json`; // Usado pelo código C++ em campo
+
+// Caminhos de histórico (para o gráfico)
+const URL_HISTORICO_NOVO = `${DB_URL}/PP7_historico`; 
+const URL_HISTORICO_ANTIGO = `${DB_URL}/leituras.json`; 
 
 // Caminhos que o ESP32 lê (e o site grava):
 const URL_CONFIG_NIVEL = `${DB_URL}/config/nivel_minimo.json`; 
 const URL_CONFIG_TELEGRAM = `${DB_URL}/config/telegram.json`;
 const URL_CONFIG_EMAILS = `${DB_URL}/config/emails.json`;
 
-// Caminhos de histórico (para o gráfico)
-const URL_HISTORICO_NOVO = `${DB_URL}/PP7_historico`; 
-const URL_HISTORICO_ANTIGO = `${DB_URL}/leituras.json`; 
-
 // --- VARIÁVEIS GLOBAIS ---
 let chartLinha, chartBlocos;
 let historicoNiveis = [], historicoLabels = [];
 let ultimaAtualizacaoGrafico = 0;
 let currentView = 'diario';
-let nivelAtual = 0;
+let nivelAtual = 0; // Inicia em 0, mas será atualizado
 let nivelAlertaConfigurado = 30; // Valor padrão
-let fetchErrorNotified = false; // Flag para evitar spam de erro
+let authErrorNotified = false; 
 
 // --- FUNÇÕES DE ATUALIZAÇÃO DO DOM ---
 function atualizarCaixaDOM(nivel) {
@@ -475,7 +470,6 @@ function atualizarCaixaDOM(nivel) {
     aguaDiv.style.height = nivel + '%';
     aguaDiv.innerText = nivel + '%';
 
-    // Garante que a cor correta seja usada na simulação
     const nivelAlerta = nivelAlertaConfigurado || 30;
 
     if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
@@ -682,7 +676,7 @@ async function carregarHistorico() {
     atualizarGraficosDOM();
 }
 
-// --- [ALTERADO] --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
+// --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
     
     // 1. Busca o nível de alerta (necessário para as cores)
@@ -693,76 +687,65 @@ async function loopDeAtualizacao() {
             nivelAlertaConfigurado = parseInt(config) || 30;
         }
     } catch (e) {
-        // Usa o padrão (30) se falhar
         console.error("Erro ao buscar nível de alerta:", e);
     }
     
-    // --- [SIMULAÇÃO PARA APRESENTAÇÃO] ---
-    // O código abaixo força o nível em 32% e impede a busca no Google Script.
-    // Para voltar ao normal, apague/comente as 4 linhas abaixo e descomente o bloco "/* ... */"
-    
-    nivelAtual = 32; // <-- Alterado para 32%
-    atualizarCaixaDOM(nivelAtual);
-    if (document.getElementById('grafico-container').style.display !== 'none') {
-        atualizarGraficosDOM();
-    }
-    
-    // --- FIM DA SIMULAÇÃO ---
-
-
-    /* DESCOMENTE ISTO PARA VOLTAR AO NORMAL (APAGUE O BLOCO DE SIMULAÇÃO ACIMA)
-
-    // 2. Busca o nível atual do Google Script (Telegram)
+    // 2. Busca o nível atual (de dois locais)
+    let nivelEncontrado = null; 
     try {
-        const urlComCacheBust = `${URL_GOOGLE_SCRIPT}?cache=${new Date().getTime()}`;
-        const rNivel = await fetch(urlComCacheBust, {
-            method: 'GET',
-            mode: 'cors', 
-            credentials: 'omit',
-            redirect: 'follow' // Segue redirecionamentos do Google
-        });
-
-        if (!rNivel.ok) {
-            // Se o Google Script bloquear o CORS, o rNivel.ok será false e o status 0
-            if(rNivel.status === 0 || rNivel.type === 'opaque') {
-                throw new Error("Falha de CORS. Verifique o Google Script.");
-            }
-            throw new Error(`Google Script retornou erro: ${rNivel.status}`);
-        }
+        // Tenta o caminho novo primeiro (/nivel_atual)
+        const rNivel = await fetch(URL_NIVEL_ATUAL);
+        const nivelNovo = await rNivel.json();
         
-        const data = await rNivel.json();
-        
-        if (data && data.nivel !== undefined) {
-            nivelAtual = parseInt(data.nivel) || 0;
-            fetchErrorNotified = false; 
+        if (nivelNovo !== null) {
+            nivelEncontrado = Number(nivelNovo);
         } else {
-            throw new Error("Resposta do Google Script não continha 'nivel'.");
+            // Se falhar, tenta o caminho legado (/PP7/nivel_pct)
+            const rNivelLegado = await fetch(URL_NIVEL_LEGADO_PP7);
+            const nivelLegado = await rNivelLegado.json();
+            if (nivelLegado !== null) {
+                nivelEncontrado = Number(nivelLegado);
+            }
         }
-
+        
+        // --- [SUA IDEIA FOI APLICADA AQUI] ---
+        // Se o Firebase retornar um valor > 0 (ex: 26), nós o usamos.
+        // Se o Firebase retornar 0 (por causa do bug do ESP32),
+        // nós ignoramos esse 0 e mantemos o valor antigo (que está em 'nivelAtual').
+        if (nivelEncontrado !== null && nivelEncontrado > 0) {
+            nivelAtual = nivelEncontrado; // 'nivelAtual' é a variável global
+        }
+        // Se nivelEncontrado for 0 ou null, 'nivelAtual' (global) não muda
+        // e mantém o último valor bom (ex: 26).
+        
+        fetchErrorNotified = false; // Sucesso, reseta o erro
+        
     } catch(e) {
-        console.error("Falha ao ler nível do Google Script:", e);
+        console.error("Falha ao ler URL_NIVEL_ATUAL:", e.message);
         const statusDiv = document.getElementById('status-alerta-caixa');
         statusDiv.style.color = '#ef4444'; // Vermelho
         
-        if (e.message.includes("CORS")) {
-             statusDiv.innerHTML = 'ERRO: Falha de CORS. <br> Configure o Google Script (adicione .setHeader e faça novo Deploy).';
+        if (e.message.includes("Unauthorized")) {
+             statusDiv.innerText = 'Falha ao carregar nível (Erro de Regras do Firebase).';
+             if (!authErrorNotified) {
+                console.error("======================================================");
+                console.error("ERRO DE PERMISSÃO: As Regras do Firebase estão bloqueando a leitura.");
+                console.error("Copie e cole as regras do arquivo 'regras_firebase.json' no seu painel.");
+                console.error("======================================================");
+                authErrorNotified = true; 
+             }
         } else {
-            statusDiv.innerText = 'Falha ao carregar nível (Script).';
-        }
-
-        if (!fetchErrorNotified) {
-            fetchErrorNotified = true; 
+            statusDiv.innerText = 'Falha ao carregar nível (Sem conexão).';
         }
     }
 
     // 3. Atualiza o DOM
-    atualizarCaixaDOM(nivelAtual);
+    // 'nivelAtual' (global) só terá o último valor > 0
+    atualizarCaixaDOM(nivelAtual); 
+    
     if (document.getElementById('grafico-container').style.display !== 'none') {
         atualizarGraficosDOM();
     }
-
-    */ // FIM DO BLOCO PARA DESCOMENTAR
-
     
     // 4. Lógica de atualização do histórico (apenas se diário)
     const agora = Date.now();
@@ -827,13 +810,15 @@ window.onload = function() {
     document.getElementById('btn-salvar-telegram-id').addEventListener('click', salvarTelegramId);
     document.getElementById('btn-add-email').addEventListener('click', adicionarEmail);
     document.getElementById('lista-emails').addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
+        if (e.target.tagName === 'BUTTON' && e.target.dataset.email) {
             const emailParaRemover = e.target.dataset.email;
             removerEmail(emailParaRemover);
         }
     });
-    // [NOVO] Listener para o botão de teste
-    document.getElementById('btn-test-email').addEventListener('click', simularTesteEmail);
+    
+    // Listener do botão de simulação
+    document.getElementById('btn-simular-envio').addEventListener('click', simularEnvioESP32);
+
 
     // --- Inicialização dos Gráficos e Datas ---
     criarGraficos();
@@ -852,8 +837,8 @@ window.onload = function() {
     // --- Loop Principal ---
     carregarHistorico().then(() => {
         loopDeAtualizacao(); // Carga inicial
-        // Atualiza o nível (da simulação ou script) a cada 30 segundos
-        setInterval(loopDeAtualizacao, 30000); 
+        // Atualiza a cada 2 segundos (padrão)
+        setInterval(loopDeAtualizacao, 2000); 
     });
 
     document.getElementById('btnAtualizar').onclick = carregarHistorico;
@@ -993,11 +978,11 @@ async function carregarListaEmails() {
             });
         }
         if (listaUL.innerHTML === '') {
-            listaUL.innerHTML = '<li class"small" style="text-align:center;">Nenhum e-mail salvo.</li>';
+            listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum e-mail salvo.</li>';
         }
     } catch (e) {
         console.error("Erro ao carregar e-mails:", e);
-        listaUL.innerHTML = '<li class"small" style="text-align:center; color:red;">Erro ao carregar e-mails.</li>';
+        listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar e-mails.</li>';
     }
 }
 
@@ -1084,34 +1069,38 @@ async function removerEmail(emailParaRemover) {
     }
 }
 
-// --- [NOVO] --- Função para simular o teste de e-mail
-async function simularTesteEmail() {
-    setStatus('status-teste-email', 'Buscando lista de e-mails...', '#eab308', 0);
-    
-    let listaEmails = [];
+// Função de Simulação
+async function simularEnvioESP32() {
+    setStatus('status-simulacao', 'Lendo contatos do Firebase...', '#eab308', 0);
     try {
         const r = await fetch(URL_CONFIG_EMAILS);
         const emails = await r.json();
-        if (emails && Array.isArray(emails)) {
-            listaEmails = emails.filter(Boolean); // Remove nulos
+        const rTelegram = await fetch(URL_CONFIG_TELEGRAM);
+        const telegramId = await rTelegram.json();
+
+        let msg = "Simulação: O ESP32 enviaria alertas para:\n";
+        let count = 0;
+        
+        if (emails && Array.isArray(emails) && emails.length > 0) {
+            msg += `Emails: ${emails.join(', ')}\n`;
+            count += emails.length;
         }
+        if (telegramId) {
+            msg += `Telegram: ${telegramId}`;
+            count++;
+        }
+
+        if (count === 0) {
+             setStatus('status-simulacao', 'Nenhum contato (Email ou Telegram) salvo no Firebase.', '#ef4444');
+        } else {
+             console.log(msg);
+             setStatus('status-simulacao', 'Simulação OK. O ESP32 enviaria alertas para os contatos salvos. Veja o console (F12) para detalhes.', 'green', 5000);
+        }
+
     } catch (e) {
-        console.error("Erro ao carregar e-mails para teste:", e);
-        setStatus('status-teste-email', 'Erro ao carregar lista de e-mails.', '#ef4444');
-        return;
+        console.error("Erro na simulação:", e);
+        setStatus('status-simulacao', 'Erro ao ler contatos do Firebase.', '#ef4444');
     }
-
-    if (listaEmails.length === 0) {
-        setStatus('status-teste-email', 'Nenhum e-mail cadastrado para testar.', '#ef4444');
-        return;
-    }
-
-    // Junta os e-mails para exibição
-    const emailsString = listaEmails.join(', ');
-    
-    // Simulação
-    // "nivelAtual" é a variável global da simulação (32%)
-    setStatus('status-teste-email', `Simulação: OK! Um alerta para ${nivelAtual}% seria enviado pelo ESP32 para: ${emailsString}`, 'green', 10000); // 10 segundos
 }
 
 </script>
