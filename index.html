@@ -429,6 +429,15 @@ canvas {
             <ul id="lista-emails">
                 <!-- E-mails serão inseridos aqui pelo JS -->
             </ul>
+
+            <!-- [NOVO] Botão de Teste -->
+            <h3 style="margin-top: 20px; margin-bottom: 10px; color: #555;">Testar Envio</h3>
+            <p class="small" style="margin-top:-5px; margin-bottom:15px;">
+                Isso simula o envio de um alerta para a lista de e-mails salva. O envio real é feito pelo ESP32.
+            </p>
+            <button id="btn-test-email" class="modern-button" style="background-color: #f59e0b; width: 100%;">Simular Envio de Teste</button>
+            <div id="status-teste-email" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+            <!-- [FIM NOVO] -->
         </div>
 
     </div>
@@ -689,10 +698,10 @@ async function loopDeAtualizacao() {
     }
     
     // --- [SIMULAÇÃO PARA APRESENTAÇÃO] ---
-    // O código abaixo força o nível em 30% e impede a busca no Google Script.
+    // O código abaixo força o nível em 32% e impede a busca no Google Script.
     // Para voltar ao normal, apague/comente as 4 linhas abaixo e descomente o bloco "/* ... */"
     
-    nivelAtual = 30;
+    nivelAtual = 32; // <-- Alterado para 32%
     atualizarCaixaDOM(nivelAtual);
     if (document.getElementById('grafico-container').style.display !== 'none') {
         atualizarGraficosDOM();
@@ -823,6 +832,8 @@ window.onload = function() {
             removerEmail(emailParaRemover);
         }
     });
+    // [NOVO] Listener para o botão de teste
+    document.getElementById('btn-test-email').addEventListener('click', simularTesteEmail);
 
     // --- Inicialização dos Gráficos e Datas ---
     criarGraficos();
@@ -1071,6 +1082,36 @@ async function removerEmail(emailParaRemover) {
         console.error("Erro ao remover e-mail:", e);
         setStatus('status-email', 'Erro ao salvar.', '#ef4444');
     }
+}
+
+// --- [NOVO] --- Função para simular o teste de e-mail
+async function simularTesteEmail() {
+    setStatus('status-teste-email', 'Buscando lista de e-mails...', '#eab308', 0);
+    
+    let listaEmails = [];
+    try {
+        const r = await fetch(URL_CONFIG_EMAILS);
+        const emails = await r.json();
+        if (emails && Array.isArray(emails)) {
+            listaEmails = emails.filter(Boolean); // Remove nulos
+        }
+    } catch (e) {
+        console.error("Erro ao carregar e-mails para teste:", e);
+        setStatus('status-teste-email', 'Erro ao carregar lista de e-mails.', '#ef4444');
+        return;
+    }
+
+    if (listaEmails.length === 0) {
+        setStatus('status-teste-email', 'Nenhum e-mail cadastrado para testar.', '#ef4444');
+        return;
+    }
+
+    // Junta os e-mails para exibição
+    const emailsString = listaEmails.join(', ');
+    
+    // Simulação
+    // "nivelAtual" é a variável global da simulação (32%)
+    setStatus('status-teste-email', `Simulação: OK! Um alerta para ${nivelAtual}% seria enviado pelo ESP32 para: ${emailsString}`, 'green', 10000); // 10 segundos
 }
 
 </script>
