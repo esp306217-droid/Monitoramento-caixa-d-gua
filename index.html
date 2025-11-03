@@ -790,7 +790,7 @@ async function carregarContatos() {
             nivelAlertaConfigurado = parseInt(nivelAlerta); 
         }
 
-        const rContatos = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/notificacoes.json');
+        const rContatos = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
         const contatos = await rContatos.json();
         const lista = document.getElementById('lista-contatos');
         lista.innerHTML = '';
@@ -807,18 +807,21 @@ async function carregarContatos() {
         console.error("Erro ao carregar configurações:", e);
     }
 }
+
 async function adicionarContato(valor, tipo) {
     if (!valor) { alert('Por favor, insira um contato.'); return; }
-    await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/notificacoes.json', {
+    await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', {
         method: 'POST', body: JSON.stringify({ valor, tipo })
     });
     document.getElementById('contato-valor').value = '';
     await carregarContatos();
 }
+
 async function removerContato(id) {
-    await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/notificacoes/${id}.json`, { method: 'DELETE' });
+    await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { method: 'DELETE' });
     await carregarContatos();
 }
+
 
 </script>
 <script>
@@ -903,3 +906,4 @@ async function removerContato(id) {
   carregarContatos();
 </script></body>
 </html>
+
