@@ -1,13 +1,12 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Monitoramento Caixa D’Água PP7</title>
-
 <!-- Fonte foi removida, usando 'Arial' do sistema -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
-
 <style>
 /* --- ESTILOS GERAIS --- */
 :root {
@@ -333,114 +332,103 @@ canvas {
     }
 }
 </style>
-</head>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script></head>
 <body>
-
 <!-- NOVO: Header com os botões -->
 <div class="main-header">
-    <button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
-    <button id="btn-view-grafico" class="nav-button view-btn">Gráfico</button>
-    <button id="btn-view-config" class="nav-button view-btn">Configurações</button>
+<button class="nav-button view-btn" id="btn-view-caixa">Caixa D'água</button>
+<button class="nav-button view-btn" id="btn-view-grafico">Gráfico</button>
+<button class="nav-button view-btn" id="btn-view-config">Configurações</button>
 </div>
-
 <!-- Logo agora vem depois do header -->
-<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-
+<img alt="Logo Via Cristais" class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg"/>
 <div id="caixa-view">
-    <!-- Logo removida daqui, movida para fora das views -->
-    <div class="reservatorio-wrapper" id="caixa-container">
-        <!-- SVG da caixa d'água -->
-        <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
-            <defs>
-                <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#DADADA"/><stop offset="50%" stop-color="#FAFAFA"/><stop offset="100%" stop-color="#CFCFCF"/>
-                </linearGradient>
-                <clipPath id="mascara-agua">
-                    <path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
-                </clipPath>
-            </defs>
-            <foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
-                <div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
-                    <div class="agua" id="agua">0%</div>
-                </div>
-            </foreignObject>
-            <g id="estrutura-reservatorio">
-                <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
-                <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
-                <g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
-                <g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
-            </g>
-        </svg>
-    </div>
+<!-- Logo removida daqui, movida para fora das views -->
+<div class="reservatorio-wrapper" id="caixa-container">
+<!-- SVG da caixa d'água -->
+<svg id="reservatorio-svg" preserveaspectratio="xMidYMin meet" viewbox="0 0 400 1000">
+<defs>
+<lineargradient id="grad-metal" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#DADADA"></stop><stop offset="50%" stop-color="#FAFAFA"></stop><stop offset="100%" stop-color="#CFCFCF"></stop>
+</lineargradient>
+<clippath id="mascara-agua">
+<path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"></path>
+</clippath>
+</defs>
+<foreignobject clip-path="url(#mascara-agua)" height="280" width="190" x="105" y="220">
+<div class="agua-wrapper" xmlns="http://www.w3.org/1999/xhtml">
+<div class="agua" id="agua">0%</div>
 </div>
-
+</foreignobject>
+<g id="estrutura-reservatorio">
+<g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"></path><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"></path></g>
+<g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"></path><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"></path></g>
+<g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"></path><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"></path></g>
+<g id="leds-base"><circle class="led-base verde" cx="160" cy="975" id="led-verde" r="12"></circle><circle class="led-base amarelo" cx="200" cy="975" id="led-amarelo" r="12"></circle><circle class="led-base vermelho" cx="240" cy="975" id="led-vermelho" r="12"></circle></g>
+</g>
+</svg>
+</div>
+</div>
 <div id="grafico-container" style="display:none;">
-    <header>
-        <div class="header-right">
-            <h1>Histórico de Monitoramento</h1>
-            <div class="view-selector">
-                <button class="view-btn active" data-view="diario">Diário</button>
-                <button class="view-btn" data-view="mensal">Mensal</button>
-                <button class="view-btn" data-view="intervalo">Intervalo</button>
-            </div>
-            <div class="controls">
-                <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
-                <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
-                <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
-                <!-- Botão de Ação Principal -->
-                <button id="btnAtualizar" class="modern-button">Carregar</button>
-            </div>
-        </div>
-    </header>
-    <div class="board">
-        <div class="charts">
-            <div class="chart-card"><strong>Gráfico de Linha — Nível (%)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível ao longo do dia selecionado.</div></div>
-            <div class="chart-card"><strong>Gráfico em Blocos — Subida / Queda</strong><canvas id="chartBlocos"></canvas><div class="small">Barras verdes indicam aumento, vermelhas indicam queda.</div></div>
-        </div>
-    </div>
+<header>
+<div class="header-right">
+<h1>Histórico de Monitoramento</h1>
+<div class="view-selector">
+<button class="view-btn active" data-view="diario">Diário</button>
+<button class="view-btn" data-view="mensal">Mensal</button>
+<button class="view-btn" data-view="intervalo">Intervalo</button>
 </div>
-
+<div class="controls">
+<div id="diario-picker"><input id="dataEscolhida" type="date"/></div>
+<div id="mensal-picker" style="display:none;"><input id="mesEscolhido" type="month"/></div>
+<div id="intervalo-picker" style="display:none;"><input id="dataInicio" type="date"/><span>até</span><input id="dataFim" type="date"/></div>
+<!-- Botão de Ação Principal -->
+<button class="modern-button" id="btnAtualizar">Carregar</button>
+</div>
+</div>
+</header>
+<div class="board">
+<div class="charts">
+<div class="chart-card"><strong>Gráfico de Linha — Nível (%)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível ao longo do dia selecionado.</div></div>
+<div class="chart-card"><strong>Gráfico em Blocos — Subida / Queda</strong><canvas id="chartBlocos"></canvas><div class="small">Barras verdes indicam aumento, vermelhas indicam queda.</div></div>
+</div>
+</div>
+</div>
 <div id="config-view" style="display:none;">
-    <h1>Configurações de Notificação</h1>
-    <div class="config-board">
-        
-        <div class="config-card">
-            <h2>Adicionar Novo Contato</h2>
-            <div class="form-group">
-                <input type="text" id="contato-valor" placeholder="Email ou ID do Telegram">
-                <select id="contato-tipo">
-                    <option value="email">Email</option>
-                    <option value="telegram">Telegram</option>
-                </select>
-            </div>
-            <!-- Botão de Ação Principal -->
-            <button id="btn-add-contato" class="modern-button">Adicionar</button>
-        </div>
-
-        <div class="config-card">
-            <h2>Definir Nível de Alerta (%)</h2>
-            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
+<h1>Configurações de Notificação</h1>
+<div class="config-board">
+<div class="config-card">
+<h2>Adicionar Novo Contato</h2>
+<div class="form-group">
+<input id="contato-valor" placeholder="Email ou ID do Telegram" type="text"/>
+<select id="contato-tipo">
+<option value="email">Email</option>
+<option value="telegram">Telegram</option>
+</select>
+</div>
+<!-- Botão de Ação Principal -->
+<button class="modern-button" id="btn-add-contato">Adicionar</button>
+</div>
+<div class="config-card">
+<h2>Definir Nível de Alerta (%)</h2>
+<p class="small" style="margin-top:-10px; margin-bottom:15px;">
                 Define a porcentagem que dispara o alerta de nível baixo.
             </p>
-            <div class="form-group">
-                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 40" min="1" max="99">
-                <!-- Botão de Ação Principal -->
-                <button id="btn-salvar-nivel-alerta" class="modern-button">Salvar</button>
-            </div>
-            <div id="status-alerta" class="small" style="font-weight:bold;"></div>
-        </div>
-        
-        <div class="config-card" style="grid-column: 1 / -1;">
-            <h2>Contatos Salvos</h2>
-            <ul id="lista-contatos">
-                </ul>
-        </div>
-
-    </div>
+<div class="form-group">
+<input id="nivel-alerta-valor" max="99" min="1" placeholder="Ex: 40" type="number"/>
+<!-- Botão de Ação Principal -->
+<button class="modern-button" id="btn-salvar-nivel-alerta">Salvar</button>
 </div>
-
+<div class="small" id="status-alerta" style="font-weight:bold;"></div>
+</div>
+<div class="config-card" style="grid-column: 1 / -1;">
+<h2>Contatos Salvos</h2>
+<ul id="lista-contatos">
+</ul>
+</div>
+</div>
+</div>
 <!-- REMOVIDO: Div .navigation-sidebar -->
-
 <script>
 // --- VARIÁVEIS GLOBAIS ---
 let chartLinha, chartBlocos;
@@ -833,6 +821,85 @@ async function removerContato(id) {
 }
 
 </script>
-</body>
-</html>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDBU7TrHUKPZdF8bTuxHDSmKPml4q8bBf4",
+    databaseURL: "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
+  function adicionarContato() {
+    const email = document.getElementById("emailInput").value;
+    const telegram = document.getElementById("telegramInput").value;
+    if (email.length > 3) {
+      const novoEmailRef = db.ref("/config/emails").push();
+      novoEmailRef.set(email);
+    }
+    if (telegram.length > 3) {
+      db.ref("/config/telegram").set(telegram);
+    }
+    document.getElementById("emailInput").value = "";
+    document.getElementById("telegramInput").value = "";
+    carregarContatos();
+  }
+
+  function salvarNivelAlerta() {
+    const nivel = parseInt(document.getElementById("nivelAlertaInput").value);
+    if (!isNaN(nivel) && nivel >= 0 && nivel <= 100) {
+      db.ref("/config/nivel_minimo").set(nivel);
+      alert("Nível de alerta salvo: " + nivel + "%");
+    }
+  }
+
+  function carregarContatos() {
+    db.ref("/config/emails").once("value").then(snapshot => {
+      const lista = document.getElementById("listaContatos");
+      lista.innerHTML = "";
+      const data = snapshot.val();
+      for (let key in data) {
+        const li = document.createElement("li");
+        li.innerText = data[key];
+        lista.appendChild(li);
+      }
+    });
+  }
+
+  function carregarHistorico() {
+    db.ref("/leituras").once("value").then(snapshot => {
+      const data = snapshot.val();
+      const labels = [];
+      const valores = [];
+
+      for (let timestamp in data) {
+        labels.push(timestamp);
+        valores.push(data[timestamp].nivel_pct);
+      }
+
+      const ctx = document.getElementById("graficoHistorico").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Nível (%)",
+            data: valores,
+            borderColor: "blue",
+            fill: false
+          }]
+        }
+      });
+    });
+  }
+
+  function carregarNivelAtual() {
+    db.ref("/nivel_atual").on("value", snapshot => {
+      const nivel = snapshot.val();
+      document.getElementById("nivelAtual").innerText = nivel + "%";
+    });
+  }
+
+  carregarNivelAtual();
+  carregarContatos();
+</script></body>
+</html>
