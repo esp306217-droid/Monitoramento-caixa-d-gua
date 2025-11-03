@@ -8,6 +8,9 @@
 <!-- Fonte foi removida, usando 'Arial' do sistema -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 
+<!-- 1. ADICIONADO: SCRIPT DO EMAILJS -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
 <style>
 /* --- ESTILOS GERAIS --- */
 :root {
@@ -239,7 +242,6 @@ canvas {
 
 /* --- ESTILOS CONFIGURAÇÕES --- */
 #config-view h1 { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; }
-/* [ALTERADO] Grid de 2 colunas */
 .config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
 .config-card { 
     background: #ffffff; /* Fundo branco */
@@ -255,24 +257,17 @@ canvas {
     font-size: 0.9rem;
     color: #333;
 }
-/* [ALTERADO] Lista de E-mails */
-#lista-emails { list-style: none; padding: 0; margin: 0; }
-.email-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-.email-item span { font-weight: bold; color: #333; word-break: break-all; }
-.email-item button { 
+#lista-contatos { list-style: none; padding: 0; margin: 0; }
+.contato-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+.contato-item span { font-weight: bold; color: #333; }
+.contato-item button { 
     background: #ef4444; color: white; font-size: 0.8rem;
     padding: 6px 10px; border-radius: 6px; border: none; cursor: pointer;
     text-transform: uppercase;
     font-weight: 700;
     font-family: Arial, Helvetica, sans-serif;
-    flex-shrink: 0; /* Impede que o botão encolha */
-    margin-left: 10px;
 }
-.email-item button:hover { background: #dc2626; }
-/* [ALTERADO] Card de E-mails ocupará a largura toda */
-.card-emails {
-    grid-column: 1 / -1;
-}
+.contato-item button:hover { background: #dc2626; }
 
 /* --- RESPONSIVIDADE --- */
 @media (max-width: 800px) {
@@ -291,6 +286,7 @@ canvas {
         margin-bottom: 10px;
     }
 
+    /* Ajusta padding dos botões de navegação no header mobile */
     .nav-button {
           padding: 8px 10px;
           font-size: 0.8rem;
@@ -303,13 +299,13 @@ canvas {
         height: 50vh; 
     }
     .logo { 
-        margin-top: 10px;
+        margin-top: 10px; /* Ajusta margem topo da logo */
         margin-bottom: 15px; 
     } 
     #grafico-container header, .header-right { flex-direction: column; align-items: stretch; gap: 10px; } 
     .controls { flex-direction: column; align-items: stretch;} 
     .view-selector { justify-content: center;} 
-    .config-board { grid-template-columns: 1fr; } /* [ALTERADO] 1 coluna no mobile */
+    .config-board { grid-template-columns: 1fr; }
     
     .chart-card {
         padding: 10px;
@@ -323,12 +319,14 @@ canvas {
 </head>
 <body>
 
+<!-- NOVO: Header com os botões -->
 <div class="main-header">
     <button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
     <button id="btn-view-grafico" class="nav-button view-btn">Gráfico</button>
     <button id="btn-view-config" class="nav-button view-btn">Configurações</button>
 </div>
 
+<!-- Logo agora vem depois do header -->
 <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
 
 <div id="caixa-view">
@@ -383,73 +381,47 @@ canvas {
     </div>
 </div>
 
-<!-- [ALTERADO] Esta é a nova view de Configurações, adaptada ao seu ESP32 -->
 <div id="config-view" style="display:none;">
     <h1>Configurações de Notificação</h1>
-    <p class="small" style="max-width: 600px; margin: -10px auto 20px auto;">
-        As configurações salvas aqui serão lidas automaticamente pelo ESP32 em campo.
-    </p>
     <div class="config-board">
         
-        <!-- Card 1: Nível de Alerta (ESP lê /config/nivel_minimo) -->
+        <div class="config-card">
+            <h2>Adicionar Novo Contato</h2>
+            <div class="form-group">
+                <input type="text" id="contato-valor" placeholder="Email ou ID do Telegram">
+                <select id="contato-tipo">
+                    <option value="email">Email</option>
+                    <option value="telegram">Telegram</option>
+                </select>
+            </div>
+            <button id="btn-add-contato" class="modern-button">Adicionar</button>
+            <div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+        </div>
+
         <div class="config-card">
             <h2>Definir Nível de Alerta (%)</h2>
             <p class="small" style="margin-top:-10px; margin-bottom:15px;">
                 Define a porcentagem que dispara o alerta de nível baixo.
             </p>
             <div class="form-group">
-                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
+                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 40" min="1" max="99">
                 <button id="btn-salvar-nivel-alerta" class="modern-button">Salvar</button>
             </div>
             <div id="status-alerta" class="small" style="font-weight:bold;"></div>
         </div>
-
-        <!-- Card 2: ID Telegram (ESP lê /config/telegram) -->
-        <div class="config-card">
-            <h2>Definir Chat ID do Telegram</h2>
-            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
-                ID numérico do usuário ou grupo do Telegram.
-            </p>
-            <div class="form-group">
-                <input type="text" id="telegram-id-valor" placeholder="Ex: -100123...">
-                <button id="btn-salvar-telegram-id" class="modern-button">Salvar</button>
-            </div>
-            <div id="status-telegram" class="small" style="font-weight:bold;"></div>
-        </div>
         
-        <!-- Card 3: Lista de E-mails (ESP lê /config/emails) -->
-        <div class="config-card card-emails">
-            <h2>Gerenciar E-mails de Alerta</h2>
-            <div class="form-group">
-                <input type="email" id="email-valor" placeholder="novo.email@provedor.com">
-                <button id="btn-add-email" class="modern-button">Adicionar</button>
-            </div>
-            <div id="status-email" class="small" style="font-weight:bold; margin-bottom: 15px;"></div>
-            
-            <h3 style="margin-bottom: 10px; color: #555;">E-mails Salvos:</h3>
-            <ul id="lista-emails">
-                <!-- E-mails serão inseridos aqui pelo JS -->
+        <div class="config-card" style="grid-column: 1 / -1;">
+            <h2>Contatos Salvos</h2>
+            <ul id="lista-contatos">
+                <!-- Contatos serão inseridos aqui pelo JS -->
             </ul>
+            <div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div>
         </div>
 
     </div>
 </div>
 
 <script>
-// --- [ALTERADO] ---
-// Todas as URLs do Firebase foram atualizadas para apontar para
-// os locais corretos que o seu ESP32 está lendo.
-
-// --- CONSTANTES DO FIREBASE ---
-const DB_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/";
-const URL_NIVEL_ATUAL = `${DB_URL}/nivel_atual.json`; // O ESP32 grava em /nivel_atual
-const URL_HISTORICO = `${DB_URL}/leituras.json`; // O ESP32 grava em /leituras/{timestamp}
-
-// Caminhos que o ESP32 lê:
-const URL_CONFIG_NIVEL = `${DB_URL}/config/nivel_minimo.json`; 
-const URL_CONFIG_TELEGRAM = `${DB_URL}/config/telegram.json`;
-const URL_CONFIG_EMAILS = `${DB_URL}/config/emails.json`; // Espera um Array de strings
-
 // --- VARIÁVEIS GLOBAIS ---
 let chartLinha, chartBlocos;
 let historicoNiveis = [], historicoLabels = [];
@@ -457,6 +429,72 @@ let ultimaAtualizacaoGrafico = 0;
 let currentView = 'diario';
 let nivelAtual = 0;
 let nivelAlertaConfigurado = 30; // Valor padrão
+let alertaEmailEnviado = false; // ADICIONADO: Flag para evitar spam de e-mails
+let emailJsInicializado = false; // ADICIONADO: Flag para verificar a inicialização
+
+// --- 2. ADICIONADO: INICIALIZAÇÃO E FUNÇÃO DE ENVIO EMAILJS ---
+// IIFE (Função de inicialização) MOVIDA para dentro do window.onload
+// para garantir a ordem correta de execução.
+
+const SERVICE_ID = "service_txwft9l";
+const TEMPLATE_ID = "template_c5l1j8r";
+
+async function enviarEmailAlerta(nivel) {
+    // ADICIONADO: Trava de segurança para não enviar se o EmailJS não foi inicializado
+    if (!emailJsInicializado) {
+        console.warn("EmailJS não foi inicializado. Abortando envio de e-mail. Verifique sua Public Key.");
+        return false; // Retorna falha
+    }
+
+    // 1. Buscar contatos do Firebase
+    let contatos = {};
+    try {
+        const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
+        contatos = await r.json();
+        if (!contatos) {
+            console.warn("Alerta disparado, mas não há contatos de e-mail cadastrados.");
+            return false; // Não é um erro de envio, mas não há o que fazer.
+        }
+    } catch (e) {
+        console.error("Erro ao buscar contatos para enviar e-mail:", e);
+        return false; // Falha ao buscar contatos
+    }
+
+    // 2. Filtrar apenas e-mails
+    const emailsParaEnviar = Object.values(contatos)
+                                 .filter(c => c.tipo === 'email' && c.valor)
+                                 .map(c => c.valor);
+
+    if (emailsParaEnviar.length === 0) {
+        console.warn("Alerta disparado, mas não há contatos do TIPO 'email' cadastrados.");
+        return false;
+    }
+
+    console.log(`Tentando enviar e-mail de alerta para o nível: ${nivel}% para:`, emailsParaEnviar);
+    
+    // 3. Enviar um e-mail para cada
+    let todosEnviadosComSucesso = true;
+    for (const email of emailsParaEnviar) {
+        // Parâmetros para o template do EmailJS
+        // Assumindo que o template espera uma variável "to_email" e "nivel_agua"
+        const templateParams = {
+            nivel_agua: nivel,
+            to_email: email 
+        };
+
+        try {
+            await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
+            console.log(`E-mail enviado com SUCESSO para ${email}!`);
+        } catch (err) {
+            console.error(`ERRO ao enviar e-mail de alerta para ${email}:`, err);
+            todosEnviadosComSucesso = false; // Se um falhar, marca como falha
+        }
+    }
+    
+    return todosEnviadosComSucesso;
+}
+// --- FIM DA SEÇÃO EMAILJS ---
+
 
 // --- FUNÇÕES DE ATUALIZAÇÃO DO DOM ---
 function atualizarCaixaDOM(nivel) {
@@ -486,20 +524,10 @@ function atualizarGraficosDOM() {
     let displayNiveis = [...historicoNiveis];
     const datePicker = document.getElementById('dataEscolhida');
     const hoje = new Date().toISOString().split('T')[0];
-    
-    // [MODIFICADO] Lógica para "Atual"
-    // Se a visualização for diária E for hoje, adiciona o nível atual
-    // A lógica de salvar na sessão foi removida para simplificar,
-    // pois o ESP32 já salva o histórico a cada 5 min.
     if (currentView === 'diario' && datePicker.value === hoje) {
-        // Evita duplicar a "Atual" se já houver um dado para o minuto atual
-        const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        if (displayLabels.length === 0 || displayLabels[displayLabels.length - 1] !== horaAgora) {
-            displayLabels.push(horaAgora); // Mostra o horário atual
-            displayNiveis.push(nivelAtual);
-        }
+        displayLabels.push("Atual");
+        displayNiveis.push(nivelAtual);
     }
-    
     chartLinha.data.labels = displayLabels;
     chartLinha.data.datasets[0].data = displayNiveis;
     chartLinha.update('none');
@@ -539,140 +567,90 @@ function criarGraficos() {
     });
 }
 
-// --- [ALTERADO] --- Função de carregar histórico
-// Adaptada para ler a estrutura de /leituras (baseada em timestamp)
-// E também para ler a estrutura de /PP7_historico (baseada em data/hora)
-// Isso garante compatibilidade futura se o ESP32 for atualizado.
 async function carregarHistorico() {
     let url = '';
     let processData;
-    
-    // Tenta primeiro o formato /PP7_historico (novo formato)
-    // Se falhar, tenta o formato /leituras (formato antigo do ESP32)
-    
-    let dataInicio, dataFim;
-    let dataEscolhida;
 
     if (currentView === 'diario') {
-        dataEscolhida = document.getElementById('dataEscolhida').value;
-        if (!dataEscolhida) return;
-        dataInicio = `${dataEscolhida}T00:00:00`;
-        dataFim = `${dataEscolhida}T23:59:59`;
+        const data = document.getElementById('dataEscolhida').value;
+        if (!data) return;
+        url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_historico/${data}.json`;
+        processData = (dados) => {
+            const labels = Object.keys(dados).sort();
+            const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
+            return { labels, niveis };
+        };
     } else { // Mensal ou Intervalo
-        let inicioStr, fimStr;
+        let dataInicio, dataFim;
         if (currentView === 'mensal') {
             const mesAno = document.getElementById('mesEscolhido').value;
             if (!mesAno) return;
-            inicioStr = `${mesAno}-01`;
+            dataInicio = `${mesAno}-01`;
             const [ano, mes] = mesAno.split('-');
             const ultimoDia = new Date(ano, mes, 0).getDate();
-            fimStr = `${mesAno}-${ultimoDia}`;
+            dataFim = `${mesAno}-${ultimoDia}`;
         } else { // Intervalo
-            inicioStr = document.getElementById('dataInicio').value;
-            fimStr = document.getElementById('dataFim').value;
-            if (!inicioStr || !fimStr) return;
-        }
-        dataInicio = `${inicioStr}T00:00:00`;
-        dataFim = `${fimStr}T23:59:59`;
-    }
-
-    // 1. Tenta formato /PP7_historico (YYYY-MM-DD / HH:MM)
-    try {
-        let urlNovoFormato;
-        if (currentView === 'diario') {
-             urlNovoFormato = `${DB_URL}/PP7_historico/${dataEscolhida}.json`;
-        } else {
-             const startQuery = dataInicio.split('T')[0];
-             const endQuery = dataFim.split('T')[0];
-             urlNovoFormato = `${DB_URL}/PP7_historico.json?orderBy="$key"&startAt="${startQuery}"&endAt="${endQuery}"`;
-        }
-
-        const r = await fetch(urlNovoFormato);
-        const dados = await r.json();
-
-        if (dados) {
-            console.log("Carregando pelo formato /PP7_historico");
-            if (currentView === 'diario') {
-                // Formato: {"10:00": {nivel_pct: 50}, "10:05": {nivel_pct: 52}}
-                const labels = Object.keys(dados).sort();
-                const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
-                historicoLabels = labels;
-                historicoNiveis = niveis;
-            } else {
-                // Formato: {"2023-10-01": {...}, "2023-10-02": {...}}
-                const dailyAverages = {};
-                for (const dateKey in dados) {
-                    const dailyReadings = dados[dateKey];
-                    let sum = 0; let count = 0;
-                    for (const timeKey in dailyReadings) {
-                        sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
-                        count++; 
-                    }
-                    if (count > 0) dailyAverages[dateKey] = sum / count;
-                }
-                const labels = Object.keys(dailyAverages).sort();
-                const niveis = labels.map(key => dailyAverages[key]);
-                // Se for mensal, mostra só o dia (ex: "01", "02")
-                historicoLabels = (currentView === 'mensal') ? labels.map(d => d.substring(8, 10)) : labels;
-                historicoNiveis = niveis;
-            }
-            atualizarGraficosDOM();
-            return; // Sucesso, não precisa tentar o formato antigo
+            dataInicio = document.getElementById('dataInicio').value;
+            dataFim = document.getElementById('dataFim').value;
+            if (!dataInicio || !dataFim) return;
         }
         
-        // Se 'dados' for nulo, tenta o formato antigo
-        console.log("Formato /PP7_historico não encontrado ou vazio, tentando formato /leituras");
-
-    } catch (e) {
-        console.error("Erro ao carregar formato /PP7_historico, tentando /leituras...", e);
+        url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
+        
+        processData = (dados) => {
+            const dailyAverages = {};
+            for (const dateKey in dados) {
+                const dailyReadings = dados[dateKey];
+                let sum = 0; let count = 0;
+                
+                // --- INÍCIO DA CORREÇÃO ---
+                // O código duplicado e a lógica incorreta foram removidos מכאן.
+                for (const timeKey in dailyReadings) {
+                    sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
+                    count++; // <-- Lógica de contagem corrigida
+                }
+                // O cálculo da média agora é feito fora do loop interno.
+                if (count > 0) dailyAverages[dateKey] = sum / count;
+                // --- FIM DA CORREÇÃO ---
+            }
+            const labels = Object.keys(dailyAverages).sort();
+            const niveis = labels.map(key => dailyAverages[key]);
+            const displayLabels = (currentView === 'mensal') ? labels.map(d => d.substring(8, 10)) : labels;
+            return { labels: displayLabels, niveis };
+        };
     }
-    
-    // 2. Tenta formato /leituras (baseado em timestamp ISO)
+
     try {
-        const urlAntigoFormato = `${URL_HISTORICO}?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
-        const r = await fetch(urlAntigoFormato);
+        const r = await fetch(url);
         const dados = await r.json();
+        
+        const isTodayDiario = (currentView === 'diario' && document.getElementById('dataEscolhida').value === new Date().toISOString().split('T')[0]);
 
         if (!dados) {
-            console.log("Nenhum dado encontrado para o período em /leituras.");
-            historicoLabels = [];
-            historicoNiveis = [];
-        } else {
-            console.log("Carregando pelo formato /leituras");
-            const leituras = {}; // Usado para agrupar
-            
-            for (const key in dados) {
-                const nivel = dados[key].nivel_pct ?? dados[key].nivel ?? 0;
-                let label;
-                
-                if (currentView === 'diario') {
-                    // Agrupa por hora/minuto (ex: "10:30")
-                    label = key.substring(11, 16); 
-                } else {
-                    // Agrupa por dia (ex: "2023-10-01")
-                    label = key.substring(0, 10);
-                }
-                
-                if (!leituras[label]) {
-                    leituras[label] = { sum: 0, count: 0 };
-                }
-                leituras[label].sum += nivel;
-                leituras[label].count++;
+            if (!isTodayDiario) {
+                console.log("Nenhum dado encontrado para o período selecionado.");
+                historicoLabels = [];
+                historicoNiveis = [];
             }
-            
-            const labels = Object.keys(leituras).sort();
-            const niveis = labels.map(key => leituras[key].sum / leituras[key].count);
-            // Se for mensal, mostra só o dia (ex: "01", "02")
-            historicoLabels = (currentView === 'mensal') ? labels.map(d => d.substring(8, 10)) : labels;
-            historicoNiveis = niveis;
+        } else {
+            const result = processData(dados);
+            if (!isTodayDiario) {
+                historicoLabels = result.labels;
+                historicoNiveis = result.niveis;
+            } else {
+                const firebaseLabels = result.labels || [];
+                const firebaseNiveis = result.niveis || [];
+                
+                const sessionOnlyLabels = historicoLabels.filter(label => !firebaseLabels.includes(label));
+                const sessionOnlyNiveis = sessionOnlyLabels.map(label => historicoNiveis[historicoLabels.indexOf(label)]);
+                
+                historicoLabels = [...firebaseLabels, ...sessionOnlyLabels];
+                historicoNiveis = [...firebaseNiveis, ...sessionOnlyNiveis];
+            }
         }
         atualizarGraficosDOM();
-    
-    } catch (e) {
-        console.error("Erro ao carregar histórico (formato /leituras):", e);
-    }
+    } catch (e) { console.error("Erro ao carregar histórico:", e); }
 }
-
 
 // --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
@@ -680,27 +658,54 @@ async function loopDeAtualizacao() {
         let j;
         let config; 
         
-        const dataUrl = URL_NIVEL_ATUAL; // /nivel_atual.json
-        const configUrl = URL_CONFIG_NIVEL; // /config/nivel_minimo.json
+        const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
+        const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
         
-        // O ESP32 pode não ter um servidor web, então vamos SEMPRE buscar do Firebase.
-        // O bloco 'if (window.location.hostname...)' foi removido.
-        
-        const [r, rConfig] = await Promise.all([
-            fetch(dataUrl),
-            fetch(configUrl)
-        ]);
-        
-        j = await r.json(); // Nível atual (deve ser um número)
-        config = await rConfig.json(); // Nível de alerta (deve ser um número)
-        
-        nivelAtual = (typeof j === 'number') ? j : 0;
-        
-        if (config && typeof config === 'number') {
-            nivelAlertaConfigurado = parseInt(config);
+        if (window.location.hostname.includes("192.168.") || window.location.hostname.includes("10.")) {
+            const r = await fetch('/data');
+            j = await r.json();
+            const rConfig = await fetch(configUrl);
+            config = await rConfig.json();
         } else {
-            nivelAlertaConfigurado = 30; // Padrão
+            const [r, rConfig] = await Promise.all([
+                fetch(dataUrl),
+                fetch(configUrl)
+            ]);
+            j = await r.json();
+            config = await rConfig.json();
         }
+        
+        nivelAtual = j.nivel_pct || j.nivel || 0;
+        if (config) {
+            nivelAlertaConfigurado = parseInt(config) || 30;
+        }
+        
+        // --- 3. ADICIONADO: LÓGICA DE GATILHO DO EMAIL ---
+        if (nivelAtual <= nivelAlertaConfigurado) {
+            // Nível está baixo.
+            if (!alertaEmailEnviado) {
+                // E o e-mail ainda não foi enviado.
+                console.log(`Disparando alerta! Nível ${nivelAtual}% <= ${nivelAlertaConfigurado}%`);
+                alertaEmailEnviado = true; // Define a flag para não enviar de novo
+                
+                // Chama a função de envio (não bloqueia o loop)
+                enviarEmailAlerta(nivelAtual).then(success => {
+                    if (!success) {
+                        // Se falhar, reseta a flag para tentar de novo no próximo ciclo
+                        console.log("Falha no envio, re-armando o gatilho.");
+                        alertaEmailEnviado = false; 
+                    }
+                });
+            }
+        } else {
+            // Nível está acima do alerta, situação normal.
+            if (alertaEmailEnviado) {
+                // Se o e-mail tinha sido enviado, reseta a flag.
+                console.log("Nível voltou ao normal. Alerta de e-mail re-armado.");
+                alertaEmailEnviado = false; 
+            }
+        }
+        // --- FIM DA LÓGICA DE ALERTA ---
 
         atualizarCaixaDOM(nivelAtual);
         
@@ -708,26 +713,51 @@ async function loopDeAtualizacao() {
             atualizarGraficosDOM();
         }
         
-    } catch(e) { 
-        console.error("Erro no loop de atualização:", e); 
-        // Se o /nivel_atual for nulo ou inválido, o fetch falha.
-        // Tentamos ler o /PP7/nivel_pct como fallback
-        try {
-            const r = await fetch(DB_URL + "/PP7/nivel_pct.json");
-            const j = await r.json();
-            nivelAtual = (typeof j === 'number') ? j : 0;
-            atualizarCaixaDOM(nivelAtual);
-        } catch (e2) {
-            console.error("Erro no fallback de atualização:", e2);
+        const agora = Date.now();
+        const cincoMinutos = 5 * 60 * 1000;
+        const datePicker = document.getElementById('dataEscolhida');
+        const hoje = new Date().toISOString().split('T')[0];
+
+        if (agora - ultimaAtualizacaoGrafico > cincoMinutos) {
+            if (currentView === 'diario' && datePicker.value === hoje) {
+                const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                if (historicoLabels[historicoLabels.length - 1] !== hora) {
+                    historicoNiveis.push(Number(nivelAtual));
+                    historicoLabels.push(hora);
+                    ultimaAtualizacaoGrafico = agora;
+                }
+            }
         }
-    }
-    
-    // A lógica de salvar o histórico no navegador foi removida,
-    // pois o ESP32 já salva no Firebase a cada 5 minutos.
+    } catch(e) { console.error("Erro no loop de atualização:", e); }
 }
 
 // --- INICIALIZAÇÃO E CONTROLE GERAL ---
 window.onload = function() {
+    
+    // --- INICIALIZAÇÃO EMAILJS MOVIDA PARA CÁ ---
+    (function() {
+        // SUBSTITUA "SUA_PUBLIC_KEY_AQUI" PELA SUA CHAVE PÚBLICA
+        const PUBLIC_KEY = "xwk898VhH0VS-PSg9"; 
+    
+        if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") {
+            console.error(
+                "ERRO DE CONFIGURAÇÃO EMAILJS: A 'Public Key' (Chave Pública) não foi definida. " +
+                "Por favor, edite o arquivo index.html (agora perto da linha 589) e insira sua chave real."
+            );
+            emailJsInicializado = false; // Define a flag de inicialização
+            return; // Impede a inicialização se a chave não foi trocada
+        }
+        
+        try {
+            emailjs.init(PUBLIC_KEY); 
+            emailJsInicializado = true; // Define a flag de inicialização
+            console.log("EmailJS inicializado. Pronto para enviar alertas.");
+        } catch(e) {
+            console.error("ERRO CRÍTICO AO INICIALIZAR EMAILJS:", e);
+            emailJsInicializado = false;
+        }
+    })();
+    // --- FIM DA INICIALIZAÇÃO EMAILJS ---
 
     const views = {
         caixa: document.getElementById('caixa-view'),
@@ -748,18 +778,22 @@ window.onload = function() {
             views[viewName].style.display = 'flex';
         }
 
+        // Seleciona todos os botões no header
         document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
+        
+        // Adiciona active ao botão clicado
         if (btns[viewName]) {
             btns[viewName].classList.add('active');
         }
 
         if (viewName === 'grafico') {
             atualizarGraficosDOM();
+             // Força o redimensionamento dos gráficos ao trocar para a view
             if(chartLinha) chartLinha.resize();
             if(chartBlocos) chartBlocos.resize();
         } else if (viewName === 'config') {
-            // --- [ALTERADO] --- Carrega todas as novas configurações
-            carregarConfiguracoesAtuais(); 
+            carregarContatos(); 
+            carregarNivelAlertaAtual(); // Carrega o nível salvo ao abrir config
         }
     }
 
@@ -767,22 +801,40 @@ window.onload = function() {
     btns.grafico.addEventListener('click', () => switchView('grafico'));
     btns.config.addEventListener('click', () => switchView('config'));
     
-    // --- [ALTERADO] --- Novos listeners para os novos botões
-    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', salvarNivelAlerta);
-    document.getElementById('btn-salvar-telegram-id').addEventListener('click', salvarTelegramID);
-    document.getElementById('btn-add-email').addEventListener('click', adicionarEmail);
+    document.getElementById('btn-add-contato').addEventListener('click', () => {
+        const valor = document.getElementById('contato-valor').value;
+        const tipo = document.getElementById('contato-tipo').value;
+        adicionarContato(valor, tipo);
+    });
 
-    // Listener para a lista de e-mails
-    document.getElementById('lista-emails').addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON' && e.target.dataset.email) {
-            // Lógica de confirmação customizada
-            const btn = e.target;
-            const emailParaRemover = btn.dataset.email;
+    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => {
+        const nivel = document.getElementById('nivel-alerta-valor').value;
+        const statusDiv = document.getElementById('status-alerta');
+        
+        if (nivel && nivel >= 1 && nivel <= 99) {
+            salvarNivelAlerta(parseInt(nivel));
+        } else {
+            statusDiv.style.color = 'red';
+            statusDiv.innerText = 'Insira um valor válido (1-99).';
+            setTimeout(() => { statusDiv.innerText = ''; }, 3000);
+        }
+    });
+
+    document.getElementById('lista-contatos').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const id = e.target.dataset.id;
             
+            // Lógica de confirmação customizada (substitui o confirm())
+            const btn = e.target;
             if (btn.dataset.confirming) {
-                removerEmail(emailParaRemover);
+                // Segundo clique: confirmar e remover
+                removerContato(id);
+                btn.dataset.confirming = 'false';
+                btn.innerText = 'Remover';
             } else {
-                document.querySelectorAll('#lista-emails button[data-confirming="true"]').forEach(b => {
+                // Primeiro clique: pedir confirmação
+                // Resetar outros botões que possam estar confirmando
+                document.querySelectorAll('#lista-contatos button[data-confirming="true"]').forEach(b => {
                     b.dataset.confirming = 'false';
                     b.innerText = 'Remover';
                 });
@@ -790,6 +842,7 @@ window.onload = function() {
                 btn.dataset.confirming = 'true';
                 btn.innerText = 'Confirmar?';
                 
+                // Resetar após 3 segundos se não for clicado
                 setTimeout(() => {
                     if (btn.dataset.confirming === 'true') {
                          btn.dataset.confirming = 'false';
@@ -800,19 +853,18 @@ window.onload = function() {
         }
     });
 
-    // --- Inicialização Padrão ---
     criarGraficos();
     const hoje = new Date();
     const dataFimPadrao = hoje.toISOString().split('T')[0];
     const mesFimPadrao = hoje.toISOString().substring(0, 7);
-    hoje.setDate(hoje.getDate() - 59);
+    hoje.setDate(hoje.getDate() - 59); // Define início para 60 dias atrás
     const dataInicioPadrao = hoje.toISOString().split('T')[0];
     document.getElementById('dataEscolhida').value = dataFimPadrao;
     document.getElementById('mesEscolhido').value = mesFimPadrao;
     document.getElementById('dataInicio').value = dataInicioPadrao;
     document.getElementById('dataFim').value = dataFimPadrao;
     
-    switchView('caixa'); 
+    switchView('caixa'); // Define a view inicial
     
     carregarHistorico().then(() => {
         loopDeAtualizacao();
@@ -821,12 +873,16 @@ window.onload = function() {
 
     document.getElementById('btnAtualizar').onclick = carregarHistorico;
     
+    // Event listener para os botões Diário/Mensal/Intervalo
     document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            // Remove active dos irmãos
             const parent = e.target.parentElement;
             parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            // Adiciona active ao clicado
             e.target.classList.add('active');
             
+            // Lógica de troca de view do gráfico
             if (e.target.dataset.view) {
                 currentView = e.target.dataset.view;
                 const pickers = {
@@ -845,197 +901,150 @@ window.onload = function() {
     });
 };
 
-// --- [ALTERADO] --- Funções de configuração adaptadas para o ESP32
-
-// Função auxiliar para mostrar status
-function mostrarStatus(elementId, mensagem, cor = 'red', duracao = 3000) {
-    const statusDiv = document.getElementById(elementId);
-    if (!statusDiv) return; // Garante que o elemento existe
-    statusDiv.style.color = cor;
-    statusDiv.innerText = mensagem;
-    if (duracao > 0) {
-        setTimeout(() => { statusDiv.innerText = ''; }, duracao);
-    }
-}
-
-// Carrega todas as configurações quando a view é aberta
-async function carregarConfiguracoesAtuais() {
+// --- Funções de configuração (Restante do código) ---
+async function salvarNivelAlerta(nivel) {
+    const statusDiv = document.getElementById('status-alerta');
+    statusDiv.style.color = '#eab308'; // Amarelo
+    statusDiv.innerText = 'Salvando...';
     try {
-        // Carregar Nível de Alerta
-        const rNivel = await fetch(URL_CONFIG_NIVEL);
-        const nivelSalvo = await rNivel.json();
-        if (nivelSalvo && typeof nivelSalvo === 'number') {
-            document.getElementById('nivel-alerta-valor').value = nivelSalvo;
-            nivelAlertaConfigurado = parseInt(nivelSalvo); // Atualiza global para os LEDs
-        } else {
-            document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado; // Padrão
-        }
-
-        // Carregar ID Telegram
-        const rTel = await fetch(URL_CONFIG_TELEGRAM);
-        const telSalvo = await rTel.json();
-        if (telSalvo && typeof telSalvo === 'string') {
-            document.getElementById('telegram-id-valor').value = telSalvo;
-        }
-        
-        // Carregar Lista de E-mails
-        carregarListaEmails();
-
-    } catch (e) {
-        console.error("Erro ao carregar configurações:", e);
-        mostrarStatus('status-alerta', 'Erro ao carregar configurações.', 'red', 0);
-    }
-}
-
-// Salva o Nível de Alerta (ex: 30)
-async function salvarNivelAlerta() {
-    const nivel = document.getElementById('nivel-alerta-valor').value;
-    if (!nivel || nivel < 1 || nivel > 99) {
-        mostrarStatus('status-alerta', 'Insira um valor válido (1-99).');
-        return;
-    }
-    
-    mostrarStatus('status-alerta', 'Salvando...', '#eab308', 0);
-    try {
-        await fetch(URL_CONFIG_NIVEL, {
-            method: 'PUT',
-            body: JSON.stringify(parseInt(nivel))
+        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json', {
+            method: 'PUT', // PUT substitui o valor no nó
+            body: JSON.stringify(nivel)
         });
-        nivelAlertaConfigurado = parseInt(nivel); // Atualiza global
-        mostrarStatus('status-alerta', `Nível salvo em ${nivel}%.`, 'green');
+        nivelAlertaConfigurado = nivel; // Atualiza a variável global
+        statusDiv.style.color = 'green';
+        statusDiv.innerText = `Nível de alerta salvo em ${nivel}%.`;
+        document.getElementById('nivel-alerta-valor').value = nivel; // Atualiza o input
     } catch (e) {
         console.error("Erro ao salvar nível:", e);
-        mostrarStatus('status-alerta', 'Erro ao salvar.');
+        statusDiv.style.color = 'red';
+        statusDiv.innerText = 'Erro ao salvar.';
+    } finally {
+        setTimeout(() => { statusDiv.innerText = ''; }, 3000);
     }
 }
 
-// Salva o ID do Telegram (ex: "-100123...")
-async function salvarTelegramID() {
-    const id = document.getElementById('telegram-id-valor').value;
-    if (!id) {
-        mostrarStatus('status-telegram', 'Insira um ID válido.');
+async function carregarNivelAlertaAtual() {
+    try {
+        const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json');
+        const nivelSalvo = await r.json();
+        if (nivelSalvo) {
+            document.getElementById('nivel-alerta-valor').value = nivelSalvo;
+            nivelAlertaConfigurado = parseInt(nivelSalvo);
+        } else {
+             document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado; // Mostra o padrão
+        }
+    } catch (e) {
+        console.error("Erro ao carregar nível de alerta:", e);
+    }
+}
+
+async function adicionarContato(valor, tipo) {
+    const statusDiv = document.getElementById('status-contato'); // Pegar o novo div
+    statusDiv.innerText = ''; // Limpar status anterior
+
+    if (!valor || (tipo === 'email' && !valor.includes('@'))) {
+        // alert("Por favor, insira um valor válido."); // REMOVIDO
+        statusDiv.style.color = 'red';
+        statusDiv.innerText = 'Por favor, insira um valor válido.';
+        setTimeout(() => { statusDiv.innerText = ''; }, 3000);
         return;
     }
     
-    mostrarStatus('status-telegram', 'Salvando...', '#eab308', 0);
+    statusDiv.style.color = '#eab308'; // Amarelo
+    statusDiv.innerText = 'Salvando contato...';
+    
+    const novoContato = { valor, tipo };
     try {
-        await fetch(URL_CONFIG_TELEGRAM, {
-            method: 'PUT',
-            body: JSON.stringify(id) // Salva como string
+        const response = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', { // Adicionar 'response'
+            method: 'POST', // POST cria um novo ID único
+            body: JSON.stringify(novoContato)
         });
-        mostrarStatus('status-telegram', 'ID do Telegram salvo.', 'green');
+
+        if (!response.ok) { // Adicionar verificação
+            throw new Error(`Erro no Firebase: ${response.statusText}`);
+        }
+
+        document.getElementById('contato-valor').value = ''; // Limpa o input
+        statusDiv.style.color = 'green';
+        statusDiv.innerText = 'Contato salvo com sucesso!';
+        carregarContatos(); // Recarrega a lista
     } catch (e) {
-        console.error("Erro ao salvar Telegram ID:", e);
-        mostrarStatus('status-telegram', 'Erro ao salvar.');
+        console.error("Erro ao adicionar contato:", e);
+        // alert("Erro ao salvar contato."); // REMOVIDO
+        statusDiv.style.color = 'red';
+        statusDiv.innerText = 'Erro ao salvar contato.';
+    } finally {
+        setTimeout(() => { statusDiv.innerText = ''; }, 3000); // Limpar status depois de um tempo
     }
 }
 
-// Carrega a lista de e-mails (um array)
-async function carregarListaEmails() {
-    const listaUL = document.getElementById('lista-emails');
+async function removerContato(id) {
+    const statusDiv = document.getElementById('status-lista-contatos'); // Usar o novo div
+    statusDiv.innerText = 'Removendo...';
+    statusDiv.style.color = '#eab308';
+
+    try {
+        const response = await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { // Adicionar 'response'
+            method: 'DELETE'
+        });
+
+        if (!response.ok) { // Adicionar verificação
+             throw new Error(`Erro no Firebase: ${response.statusText}`);
+        }
+
+        statusDiv.innerText = 'Contato removido.';
+        statusDiv.style.color = 'green';
+        carregarContatos(); // Recarrega a lista
+    } catch (e) {
+        console.error("Erro ao remover contato:", e);
+        // alert("Erro ao remover contato."); // REMOVIDO
+        statusDiv.innerText = 'Erro ao remover contato.';
+        statusDiv.style.color = 'red';
+    } finally {
+         setTimeout(() => { statusDiv.innerText = ''; }, 3000);
+    }
+}
+
+async function carregarContatos() {
+    const listaUL = document.getElementById('lista-contatos');
     listaUL.innerHTML = '<li>Carregando...</li>';
     try {
-        const r = await fetch(URL_CONFIG_EMAILS);
-        const emails = await r.json(); // Espera um array: ["a@b.com", "c@d.com"]
+        const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
+        const contatos = await r.json();
         
-        listaUL.innerHTML = ''; 
-        if (Array.isArray(emails)) {
-            emails.forEach(email => {
-                if (email) {
+        listaUL.innerHTML = ''; // Limpa a lista
+        if (contatos) {
+            Object.keys(contatos).forEach(id => {
+                const c = contatos[id];
+                
+                // --- INÍCIO DA CORREÇÃO ---
+                // Adiciona uma verificação para garantir que 'c' e 'c.tipo' existam
+                if (c && c.tipo && c.valor) {
                     const li = document.createElement('li');
-                    li.className = 'email-item';
+                    li.className = 'contato-item';
                     li.innerHTML = `
-                        <span>${email}</span>
-                        <button data-email="${email}">Remover</button>
+                        <span>[${c.tipo.toUpperCase()}] ${c.valor}</span>
+                        <button data-id="${id}">Remover</button>
                     `;
                     listaUL.appendChild(li);
+                } else {
+                    // Loga um aviso se um contato malformado for encontrado
+                    console.warn(`Contato malformado encontrado no Firebase com id ${id}:`, c);
                 }
+                // --- FIM DA CORREÇÃO ---
             });
         }
         if (listaUL.innerHTML === '') {
-            listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum e-mail salvo.</li>';
+            listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>';
         }
     } catch (e) {
-        console.error("Erro ao carregar e-mails:", e);
-        listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar e-mails.</li>';
-    }
-}
-
-// Adiciona um e-mail ao array
-async function adicionarEmail() {
-    const emailInput = document.getElementById('email-valor');
-    const novoEmail = emailInput.value;
-
-    if (!novoEmail || !novoEmail.includes('@')) {
-        mostrarStatus('status-email', 'Insira um e-mail válido.');
-        return;
-    }
-    
-    mostrarStatus('status-email', 'Adicionando...', '#eab308', 0);
-
-    try {
-        // 1. Pega a lista atual
-        const r = await fetch(URL_CONFIG_EMAILS);
-        let emails = await r.json();
-        if (!Array.isArray(emails)) {
-            emails = []; // Se não existir ou for inválido, começa um novo array
-        }
-
-        // 2. Verifica se já existe
-        if (emails.includes(novoEmail)) {
-            mostrarStatus('status-email', 'Este e-mail já está na lista.');
-            return;
-        }
-
-        // 3. Adiciona o novo e-mail
-        emails.push(novoEmail);
-
-        // 4. Salva a lista completa de volta
-        await fetch(URL_CONFIG_EMAILS, {
-            method: 'PUT',
-            body: JSON.stringify(emails)
-        });
-
-        emailInput.value = ''; // Limpa o input
-        mostrarStatus('status-email', 'E-mail adicionado!', 'green');
-        carregarListaEmails(); // Recarrega a lista
-    } catch (e) {
-        console.error("Erro ao adicionar e-mail:", e);
-        mostrarStatus('status-email', 'Erro ao adicionar e-mail.');
-    }
-}
-
-// Remove um e-mail do array
-async function removerEmail(emailParaRemover) {
-    mostrarStatus('status-email', 'Removendo...', '#eab308', 0);
-    
-    try {
-        // 1. Pega a lista atual
-        const r = await fetch(URL_CONFIG_EMAILS);
-        let emails = await r.json();
-        if (!Array.isArray(emails)) {
-            emails = []; 
-        }
-
-        // 2. Filtra o e-mail
-        const novaLista = emails.filter(email => email !== emailParaRemover);
-
-        // 3. Salva a lista filtrada de volta
-        await fetch(URL_CONFIG_EMAILS, {
-            method: 'PUT',
-            body: JSON.stringify(novaLista)
-        });
-
-        mostrarStatus('status-email', 'E-mail removido.', 'green');
-        carregarListaEmails(); // Recarrega a lista
-    } catch (e) {
-        console.error("Erro ao remover e-mail:", e);
-        mostrarStatus('status-email', 'Erro ao remover e-mail.');
+        console.error("Erro ao carregar contatos:", e);
+        listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar contatos.</li>';
     }
 }
 
 </script>
 </body>
 </html>
-
 
