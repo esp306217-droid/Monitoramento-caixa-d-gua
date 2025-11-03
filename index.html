@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Monitoramento Caixa D’Água PP7</title>
+
 <!-- Fonte foi removida, usando 'Arial' do sistema -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
 <style>
 /* --- ESTILOS GERAIS --- */
 :root {
@@ -27,9 +28,7 @@ body {
     background: #fff; /* Fundo branco */
     color: #334155; 
     overflow-x: hidden;
-    /* REMOVIDO padding-left */
     padding-bottom: 20px;
-    /* transition: padding-left 0.3s ease; REMOVIDO */
 }
 
 /* NOVO: Cabeçalho principal com botões */
@@ -63,7 +62,6 @@ body {
 
 .logo {
     width: 160px;
-    /* margin-top removido/ajustado */
     margin-bottom: 20px; /* Ajusta espaço após a logo */
     opacity: 0.95;
     z-index: 10;
@@ -113,13 +111,8 @@ body {
 @keyframes onda1 { 0% { transform: translateX(0); } 100% { transform: translateX(50px); } }
 @keyframes onda2 { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
 
-/* --- NAVEGAÇÃO LATERAL REMOVIDA --- */
-/* .navigation-sidebar { ... } REMOVIDO */
-/* .sidebar-logo { ... } REMOVIDO */
-
 /* Estilo de botão principal (Para Carregar, Adicionar, Salvar) */
 .modern-button {
-    /* width: 100%; REMOVIDO - largura automática */
     background: var(--accent); /* Ciano */
     border: none;
     color: #ffffff; /* Texto branco */
@@ -219,8 +212,6 @@ canvas {
 
 /* APLICA O ESTILO .view-btn AOS BOTÕES .nav-button NO HEADER */
 .nav-button {
-    /* Herda de .view-btn (aplicado no HTML) */
-    /* Remove estilos específicos da barra lateral */
     width: auto; 
     text-align: center; 
     padding-left: 14px; /* Reset padding */
@@ -229,8 +220,6 @@ canvas {
 }
 /* Estilo ativo específico para botões no header */
 .nav-button.active {
-    /* Herda de .view-btn.active */
-    /* Remove/substitui estilos da barra lateral */
     border-left: none; 
     box-shadow: 0 2px 8px rgba(6,182,212,0.3); /* Sombra mais pronunciada */
 }
@@ -250,9 +239,10 @@ canvas {
 
 /* --- ESTILOS CONFIGURAÇÕES --- */
 #config-view h1 { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; }
+/* [ALTERADO] Grid de 2 colunas */
 .config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
 .config-card { 
-    background: var(--sidebar-bg); /* Fundo branco */
+    background: #ffffff; /* Fundo branco */
     padding: 20px; border-radius: 12px; 
     border: 1px solid #eee; text-align: left;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -265,23 +255,28 @@ canvas {
     font-size: 0.9rem;
     color: #333;
 }
-#lista-contatos { list-style: none; padding: 0; margin: 0; }
-.contato-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-.contato-item span { font-weight: bold; color: #333; }
-.contato-item button { 
+/* [ALTERADO] Lista de E-mails */
+#lista-emails { list-style: none; padding: 0; margin: 0; }
+.email-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+.email-item span { font-weight: bold; color: #333; word-break: break-all; }
+.email-item button { 
     background: #ef4444; color: white; font-size: 0.8rem;
     padding: 6px 10px; border-radius: 6px; border: none; cursor: pointer;
     text-transform: uppercase;
     font-weight: 700;
     font-family: Arial, Helvetica, sans-serif;
+    flex-shrink: 0; /* Impede que o botão encolha */
+    margin-left: 10px;
 }
-.contato-item button:hover { background: #dc2626; }
+.email-item button:hover { background: #dc2626; }
+/* [ALTERADO] Card de E-mails ocupará a largura toda */
+.card-emails {
+    grid-column: 1 / -1;
+}
 
 /* --- RESPONSIVIDADE --- */
 @media (max-width: 800px) {
-    /* REMOVIDO: :root specific to mobile */
     body {
-        /* REMOVIDO: padding-left specific to sidebar */
         padding-left: 0; 
         padding-bottom: 20px; 
         padding-top: 60px; /* Adiciona espaço para o header fixo */
@@ -296,10 +291,9 @@ canvas {
         margin-bottom: 10px;
     }
 
-    /* Ajusta padding dos botões de navegação no header mobile */
     .nav-button {
-         padding: 8px 10px;
-         font-size: 0.8rem;
+          padding: 8px 10px;
+          font-size: 0.8rem;
     }
     
     #caixa-view, #grafico-container, #config-view { padding: 0.5rem; }
@@ -309,20 +303,14 @@ canvas {
         height: 50vh; 
     }
     .logo { 
-        margin-top: 10px; /* Ajusta margem topo da logo */
+        margin-top: 10px;
         margin-bottom: 15px; 
     } 
     #grafico-container header, .header-right { flex-direction: column; align-items: stretch; gap: 10px; } 
     .controls { flex-direction: column; align-items: stretch;} 
     .view-selector { justify-content: center;} 
-    .config-board { grid-template-columns: 1fr; }
-
-    /* REMOVIDO: Bloco inteiro de .navigation-sidebar para mobile */
-    /* REMOVIDO: Bloco .sidebar-logo para mobile */
-    /* REMOVIDO: Bloco .nav-button para mobile (estilos agora no .nav-button geral e header) */
-    /* REMOVIDO: Bloco .nav-button.active para mobile */
+    .config-board { grid-template-columns: 1fr; } /* [ALTERADO] 1 coluna no mobile */
     
-    /* ALTERADO: Reduz padding do chart card */
     .chart-card {
         padding: 10px;
     }
@@ -332,104 +320,136 @@ canvas {
     }
 }
 </style>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script></head>
+</head>
 <body>
-<!-- NOVO: Header com os botões -->
+
 <div class="main-header">
-<button class="nav-button view-btn" id="btn-view-caixa">Caixa D'água</button>
-<button class="nav-button view-btn" id="btn-view-grafico">Gráfico</button>
-<button class="nav-button view-btn" id="btn-view-config">Configurações</button>
+    <button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
+    <button id="btn-view-grafico" class="nav-button view-btn">Gráfico</button>
+    <button id="btn-view-config" class="nav-button view-btn">Configurações</button>
 </div>
-<!-- Logo agora vem depois do header -->
-<img alt="Logo Via Cristais" class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg"/>
+
+<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+
 <div id="caixa-view">
-<!-- Logo removida daqui, movida para fora das views -->
-<div class="reservatorio-wrapper" id="caixa-container">
-<!-- SVG da caixa d'água -->
-<svg id="reservatorio-svg" preserveaspectratio="xMidYMin meet" viewbox="0 0 400 1000">
-<defs>
-<lineargradient id="grad-metal" x1="0%" x2="100%" y1="0%" y2="0%">
-<stop offset="0%" stop-color="#DADADA"></stop><stop offset="50%" stop-color="#FAFAFA"></stop><stop offset="100%" stop-color="#CFCFCF"></stop>
-</lineargradient>
-<clippath id="mascara-agua">
-<path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"></path>
-</clippath>
-</defs>
-<foreignobject clip-path="url(#mascara-agua)" height="280" width="190" x="105" y="220">
-<div class="agua-wrapper" xmlns="http://www.w3.org/1999/xhtml">
-<div class="agua" id="agua">0%</div>
+    <div class="reservatorio-wrapper" id="caixa-container">
+        <!-- SVG da caixa d'água -->
+        <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
+            <defs>
+                <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#DADADA"/><stop offset="50%" stop-color="#FAFAFA"/><stop offset="100%" stop-color="#CFCFCF"/>
+                </linearGradient>
+                <clipPath id="mascara-agua">
+                    <path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
+                </clipPath>
+            </defs>
+            <foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
+                    <div class="agua" id="agua">0%</div>
+                </div>
+            </foreignObject>
+            <g id="estrutura-reservatorio">
+                <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
+                <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
+                <g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
+                <g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
+            </g>
+        </svg>
+    </div>
 </div>
-</foreignobject>
-<g id="estrutura-reservatorio">
-<g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"></path><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"></path></g>
-<g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"></path><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"></path></g>
-<g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"></path><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"></path></g>
-<g id="leds-base"><circle class="led-base verde" cx="160" cy="975" id="led-verde" r="12"></circle><circle class="led-base amarelo" cx="200" cy="975" id="led-amarelo" r="12"></circle><circle class="led-base vermelho" cx="240" cy="975" id="led-vermelho" r="12"></circle></g>
-</g>
-</svg>
-</div>
-</div>
+
 <div id="grafico-container" style="display:none;">
-<header>
-<div class="header-right">
-<h1>Histórico de Monitoramento</h1>
-<div class="view-selector">
-<button class="view-btn active" data-view="diario">Diário</button>
-<button class="view-btn" data-view="mensal">Mensal</button>
-<button class="view-btn" data-view="intervalo">Intervalo</button>
+    <header>
+        <div class="header-right">
+            <h1>Histórico de Monitoramento</h1>
+            <div class="view-selector">
+                <button class="view-btn active" data-view="diario">Diário</button>
+                <button class="view-btn" data-view="mensal">Mensal</button>
+                <button class="view-btn" data-view="intervalo">Intervalo</button>
+            </div>
+            <div class="controls">
+                <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
+                <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
+                <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
+                <button id="btnAtualizar" class="modern-button">Carregar</button>
+            </div>
+        </div>
+    </header>
+    <div class="board">
+        <div class="charts">
+            <div class="chart-card"><strong>Gráfico de Linha — Nível (%)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível ao longo do dia selecionado.</div></div>
+            <div class="chart-card"><strong>Gráfico em Blocos — Subida / Queda</strong><canvas id="chartBlocos"></canvas><div class="small">Barras verdes indicam aumento, vermelhas indicam queda.</div></div>
+        </div>
+    </div>
 </div>
-<div class="controls">
-<div id="diario-picker"><input id="dataEscolhida" type="date"/></div>
-<div id="mensal-picker" style="display:none;"><input id="mesEscolhido" type="month"/></div>
-<div id="intervalo-picker" style="display:none;"><input id="dataInicio" type="date"/><span>até</span><input id="dataFim" type="date"/></div>
-<!-- Botão de Ação Principal -->
-<button class="modern-button" id="btnAtualizar">Carregar</button>
-</div>
-</div>
-</header>
-<div class="board">
-<div class="charts">
-<div class="chart-card"><strong>Gráfico de Linha — Nível (%)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível ao longo do dia selecionado.</div></div>
-<div class="chart-card"><strong>Gráfico em Blocos — Subida / Queda</strong><canvas id="chartBlocos"></canvas><div class="small">Barras verdes indicam aumento, vermelhas indicam queda.</div></div>
-</div>
-</div>
-</div>
+
+<!-- [ALTERADO] Esta é a nova view de Configurações, adaptada ao seu ESP32 -->
 <div id="config-view" style="display:none;">
-<h1>Configurações de Notificação</h1>
-<div class="config-board">
-<div class="config-card">
-<h2>Adicionar Novo Contato</h2>
-<div class="form-group">
-<input id="contato-valor" placeholder="Email ou ID do Telegram" type="text"/>
-<select id="contato-tipo">
-<option value="email">Email</option>
-<option value="telegram">Telegram</option>
-</select>
-</div>
-<!-- Botão de Ação Principal -->
-<button class="modern-button" id="btn-add-contato">Adicionar</button>
-</div>
-<div class="config-card">
-<h2>Definir Nível de Alerta (%)</h2>
-<p class="small" style="margin-top:-10px; margin-bottom:15px;">
+    <h1>Configurações de Notificação</h1>
+    <p class="small" style="max-width: 600px; margin: -10px auto 20px auto;">
+        As configurações salvas aqui serão lidas automaticamente pelo ESP32 em campo.
+    </p>
+    <div class="config-board">
+        
+        <!-- Card 1: Nível de Alerta (ESP lê /config/nivel_minimo) -->
+        <div class="config-card">
+            <h2>Definir Nível de Alerta (%)</h2>
+            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
                 Define a porcentagem que dispara o alerta de nível baixo.
             </p>
-<div class="form-group">
-<input id="nivel-alerta-valor" max="99" min="1" placeholder="Ex: 40" type="number"/>
-<!-- Botão de Ação Principal -->
-<button class="modern-button" id="btn-salvar-nivel-alerta">Salvar</button>
+            <div class="form-group">
+                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
+                <button id="btn-salvar-nivel-alerta" class="modern-button">Salvar</button>
+            </div>
+            <div id="status-alerta" class="small" style="font-weight:bold;"></div>
+        </div>
+
+        <!-- Card 2: ID Telegram (ESP lê /config/telegram) -->
+        <div class="config-card">
+            <h2>Definir Chat ID do Telegram</h2>
+            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
+                ID numérico do usuário ou grupo do Telegram.
+            </p>
+            <div class="form-group">
+                <input type="text" id="telegram-id-valor" placeholder="Ex: -100123...">
+                <button id="btn-salvar-telegram-id" class="modern-button">Salvar</button>
+            </div>
+            <div id="status-telegram" class="small" style="font-weight:bold;"></div>
+        </div>
+        
+        <!-- Card 3: Lista de E-mails (ESP lê /config/emails) -->
+        <div class="config-card card-emails">
+            <h2>Gerenciar E-mails de Alerta</h2>
+            <div class="form-group">
+                <input type="email" id="email-valor" placeholder="novo.email@provedor.com">
+                <button id="btn-add-email" class="modern-button">Adicionar</button>
+            </div>
+            <div id="status-email" class="small" style="font-weight:bold; margin-bottom: 15px;"></div>
+            
+            <h3 style="margin-bottom: 10px; color: #555;">E-mails Salvos:</h3>
+            <ul id="lista-emails">
+                <!-- E-mails serão inseridos aqui pelo JS -->
+            </ul>
+        </div>
+
+    </div>
 </div>
-<div class="small" id="status-alerta" style="font-weight:bold;"></div>
-</div>
-<div class="config-card" style="grid-column: 1 / -1;">
-<h2>Contatos Salvos</h2>
-<ul id="lista-contatos">
-</ul>
-</div>
-</div>
-</div>
-<!-- REMOVIDO: Div .navigation-sidebar -->
+
 <script>
+// --- [ALTERADO] ---
+// Todas as URLs do Firebase foram atualizadas para apontar para
+// os locais corretos que o seu ESP32 está lendo.
+
+// --- CONSTANTES DO FIREBASE ---
+const DB_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/";
+const URL_NIVEL_ATUAL = `${DB_URL}/nivel_atual.json`; // O ESP32 grava em /nivel_atual
+const URL_HISTORICO = `${DB_URL}/leituras.json`; // O ESP32 grava em /leituras/{timestamp}
+
+// Caminhos que o ESP32 lê:
+const URL_CONFIG_NIVEL = `${DB_URL}/config/nivel_minimo.json`; 
+const URL_CONFIG_TELEGRAM = `${DB_URL}/config/telegram.json`;
+const URL_CONFIG_EMAILS = `${DB_URL}/config/emails.json`; // Espera um Array de strings
+
 // --- VARIÁVEIS GLOBAIS ---
 let chartLinha, chartBlocos;
 let historicoNiveis = [], historicoLabels = [];
@@ -466,10 +486,20 @@ function atualizarGraficosDOM() {
     let displayNiveis = [...historicoNiveis];
     const datePicker = document.getElementById('dataEscolhida');
     const hoje = new Date().toISOString().split('T')[0];
+    
+    // [MODIFICADO] Lógica para "Atual"
+    // Se a visualização for diária E for hoje, adiciona o nível atual
+    // A lógica de salvar na sessão foi removida para simplificar,
+    // pois o ESP32 já salva o histórico a cada 5 min.
     if (currentView === 'diario' && datePicker.value === hoje) {
-        displayLabels.push("Atual");
-        displayNiveis.push(nivelAtual);
+        // Evita duplicar a "Atual" se já houver um dado para o minuto atual
+        const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        if (displayLabels.length === 0 || displayLabels[displayLabels.length - 1] !== horaAgora) {
+            displayLabels.push(horaAgora); // Mostra o horário atual
+            displayNiveis.push(nivelAtual);
+        }
     }
+    
     chartLinha.data.labels = displayLabels;
     chartLinha.data.datasets[0].data = displayNiveis;
     chartLinha.update('none');
@@ -509,85 +539,140 @@ function criarGraficos() {
     });
 }
 
+// --- [ALTERADO] --- Função de carregar histórico
+// Adaptada para ler a estrutura de /leituras (baseada em timestamp)
+// E também para ler a estrutura de /PP7_historico (baseada em data/hora)
+// Isso garante compatibilidade futura se o ESP32 for atualizado.
 async function carregarHistorico() {
     let url = '';
     let processData;
+    
+    // Tenta primeiro o formato /PP7_historico (novo formato)
+    // Se falhar, tenta o formato /leituras (formato antigo do ESP32)
+    
+    let dataInicio, dataFim;
+    let dataEscolhida;
 
     if (currentView === 'diario') {
-        const data = document.getElementById('dataEscolhida').value;
-        if (!data) return;
-        url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_historico/${data}.json`;
-        processData = (dados) => {
-            const labels = Object.keys(dados).sort();
-            const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
-            return { labels, niveis };
-        };
+        dataEscolhida = document.getElementById('dataEscolhida').value;
+        if (!dataEscolhida) return;
+        dataInicio = `${dataEscolhida}T00:00:00`;
+        dataFim = `${dataEscolhida}T23:59:59`;
     } else { // Mensal ou Intervalo
-        let dataInicio, dataFim;
+        let inicioStr, fimStr;
         if (currentView === 'mensal') {
             const mesAno = document.getElementById('mesEscolhido').value;
             if (!mesAno) return;
-            dataInicio = `${mesAno}-01`;
+            inicioStr = `${mesAno}-01`;
             const [ano, mes] = mesAno.split('-');
             const ultimoDia = new Date(ano, mes, 0).getDate();
-            dataFim = `${mesAno}-${ultimoDia}`;
+            fimStr = `${mesAno}-${ultimoDia}`;
         } else { // Intervalo
-            dataInicio = document.getElementById('dataInicio').value;
-            dataFim = document.getElementById('dataFim').value;
-            if (!dataInicio || !dataFim) return;
+            inicioStr = document.getElementById('dataInicio').value;
+            fimStr = document.getElementById('dataFim').value;
+            if (!inicioStr || !fimStr) return;
         }
-        
-        url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
-        
-        processData = (dados) => {
-            const dailyAverages = {};
-            for (const dateKey in dados) {
-                const dailyReadings = dados[dateKey];
-                let sum = 0; let count = 0;
-                for (const timeKey in dailyReadings) {
-                    sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
-                    count++;
-                }
-                if (count > 0) dailyAverages[dateKey] = sum / count;
-            }
-            const labels = Object.keys(dailyAverages).sort();
-            const niveis = labels.map(key => dailyAverages[key]);
-            const displayLabels = (currentView === 'mensal') ? labels.map(d => d.substring(8, 10)) : labels;
-            return { labels: displayLabels, niveis };
-        };
+        dataInicio = `${inicioStr}T00:00:00`;
+        dataFim = `${fimStr}T23:59:59`;
     }
 
+    // 1. Tenta formato /PP7_historico (YYYY-MM-DD / HH:MM)
     try {
-        const r = await fetch(url);
+        let urlNovoFormato;
+        if (currentView === 'diario') {
+             urlNovoFormato = `${DB_URL}/PP7_historico/${dataEscolhida}.json`;
+        } else {
+             const startQuery = dataInicio.split('T')[0];
+             const endQuery = dataFim.split('T')[0];
+             urlNovoFormato = `${DB_URL}/PP7_historico.json?orderBy="$key"&startAt="${startQuery}"&endAt="${endQuery}"`;
+        }
+
+        const r = await fetch(urlNovoFormato);
         const dados = await r.json();
+
+        if (dados) {
+            console.log("Carregando pelo formato /PP7_historico");
+            if (currentView === 'diario') {
+                // Formato: {"10:00": {nivel_pct: 50}, "10:05": {nivel_pct: 52}}
+                const labels = Object.keys(dados).sort();
+                const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
+                historicoLabels = labels;
+                historicoNiveis = niveis;
+            } else {
+                // Formato: {"2023-10-01": {...}, "2023-10-02": {...}}
+                const dailyAverages = {};
+                for (const dateKey in dados) {
+                    const dailyReadings = dados[dateKey];
+                    let sum = 0; let count = 0;
+                    for (const timeKey in dailyReadings) {
+                        sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
+                        count++; 
+                    }
+                    if (count > 0) dailyAverages[dateKey] = sum / count;
+                }
+                const labels = Object.keys(dailyAverages).sort();
+                const niveis = labels.map(key => dailyAverages[key]);
+                // Se for mensal, mostra só o dia (ex: "01", "02")
+                historicoLabels = (currentView === 'mensal') ? labels.map(d => d.substring(8, 10)) : labels;
+                historicoNiveis = niveis;
+            }
+            atualizarGraficosDOM();
+            return; // Sucesso, não precisa tentar o formato antigo
+        }
         
-        const isTodayDiario = (currentView === 'diario' && document.getElementById('dataEscolhida').value === new Date().toISOString().split('T')[0]);
+        // Se 'dados' for nulo, tenta o formato antigo
+        console.log("Formato /PP7_historico não encontrado ou vazio, tentando formato /leituras");
+
+    } catch (e) {
+        console.error("Erro ao carregar formato /PP7_historico, tentando /leituras...", e);
+    }
+    
+    // 2. Tenta formato /leituras (baseado em timestamp ISO)
+    try {
+        const urlAntigoFormato = `${URL_HISTORICO}?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
+        const r = await fetch(urlAntigoFormato);
+        const dados = await r.json();
 
         if (!dados) {
-            if (!isTodayDiario) {
-                console.log("Nenhum dado encontrado para o período selecionado.");
-                historicoLabels = [];
-                historicoNiveis = [];
-            }
+            console.log("Nenhum dado encontrado para o período em /leituras.");
+            historicoLabels = [];
+            historicoNiveis = [];
         } else {
-            const result = processData(dados);
-            if (!isTodayDiario) {
-                historicoLabels = result.labels;
-                historicoNiveis = result.niveis;
-            } else {
-                const firebaseLabels = result.labels || [];
-                const firebaseNiveis = result.niveis || [];
+            console.log("Carregando pelo formato /leituras");
+            const leituras = {}; // Usado para agrupar
+            
+            for (const key in dados) {
+                const nivel = dados[key].nivel_pct ?? dados[key].nivel ?? 0;
+                let label;
                 
-                const sessionOnlyLabels = historicoLabels.filter(label => !firebaseLabels.includes(label));
-                const sessionOnlyNiveis = sessionOnlyLabels.map(label => historicoNiveis[historicoLabels.indexOf(label)]);
+                if (currentView === 'diario') {
+                    // Agrupa por hora/minuto (ex: "10:30")
+                    label = key.substring(11, 16); 
+                } else {
+                    // Agrupa por dia (ex: "2023-10-01")
+                    label = key.substring(0, 10);
+                }
                 
-                historicoLabels = [...firebaseLabels, ...sessionOnlyLabels];
-                historicoNiveis = [...firebaseNiveis, ...sessionOnlyNiveis];
+                if (!leituras[label]) {
+                    leituras[label] = { sum: 0, count: 0 };
+                }
+                leituras[label].sum += nivel;
+                leituras[label].count++;
             }
+            
+            const labels = Object.keys(leituras).sort();
+            const niveis = labels.map(key => leituras[key].sum / leituras[key].count);
+            // Se for mensal, mostra só o dia (ex: "01", "02")
+            historicoLabels = (currentView === 'mensal') ? labels.map(d => d.substring(8, 10)) : labels;
+            historicoNiveis = niveis;
         }
         atualizarGraficosDOM();
-    } catch (e) { console.error("Erro ao carregar histórico:", e); }
+    
+    } catch (e) {
+        console.error("Erro ao carregar histórico (formato /leituras):", e);
+    }
 }
+
 
 // --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
@@ -595,54 +680,55 @@ async function loopDeAtualizacao() {
         let j;
         let config; 
         
-        const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
-        const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
+        const dataUrl = URL_NIVEL_ATUAL; // /nivel_atual.json
+        const configUrl = URL_CONFIG_NIVEL; // /config/nivel_minimo.json
         
-        if (window.location.hostname.includes("192.168.") || window.location.hostname.includes("10.")) {
-            const r = await fetch('/data');
-            j = await r.json();
-            const rConfig = await fetch(configUrl);
-            config = await rConfig.json();
+        // O ESP32 pode não ter um servidor web, então vamos SEMPRE buscar do Firebase.
+        // O bloco 'if (window.location.hostname...)' foi removido.
+        
+        const [r, rConfig] = await Promise.all([
+            fetch(dataUrl),
+            fetch(configUrl)
+        ]);
+        
+        j = await r.json(); // Nível atual (deve ser um número)
+        config = await rConfig.json(); // Nível de alerta (deve ser um número)
+        
+        nivelAtual = (typeof j === 'number') ? j : 0;
+        
+        if (config && typeof config === 'number') {
+            nivelAlertaConfigurado = parseInt(config);
         } else {
-            const [r, rConfig] = await Promise.all([
-                fetch(dataUrl),
-                fetch(configUrl)
-            ]);
-            j = await r.json();
-            config = await rConfig.json();
+            nivelAlertaConfigurado = 30; // Padrão
         }
-        
-        nivelAtual = j.nivel_pct || j.nivel || 0;
-        if (config) {
-            nivelAlertaConfigurado = parseInt(config) || 30;
-        }
-        
+
         atualizarCaixaDOM(nivelAtual);
         
         if (document.getElementById('grafico-container').style.display !== 'none') {
             atualizarGraficosDOM();
         }
         
-        const agora = Date.now();
-        const cincoMinutos = 5 * 60 * 1000;
-        const datePicker = document.getElementById('dataEscolhida');
-        const hoje = new Date().toISOString().split('T')[0];
-
-        if (agora - ultimaAtualizacaoGrafico > cincoMinutos) {
-            if (currentView === 'diario' && datePicker.value === hoje) {
-                const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                if (historicoLabels[historicoLabels.length - 1] !== hora) {
-                    historicoNiveis.push(Number(nivelAtual));
-                    historicoLabels.push(hora);
-                    ultimaAtualizacaoGrafico = agora;
-                }
-            }
+    } catch(e) { 
+        console.error("Erro no loop de atualização:", e); 
+        // Se o /nivel_atual for nulo ou inválido, o fetch falha.
+        // Tentamos ler o /PP7/nivel_pct como fallback
+        try {
+            const r = await fetch(DB_URL + "/PP7/nivel_pct.json");
+            const j = await r.json();
+            nivelAtual = (typeof j === 'number') ? j : 0;
+            atualizarCaixaDOM(nivelAtual);
+        } catch (e2) {
+            console.error("Erro no fallback de atualização:", e2);
         }
-    } catch(e) { console.error("Erro no loop de atualização:", e); }
+    }
+    
+    // A lógica de salvar o histórico no navegador foi removida,
+    // pois o ESP32 já salva no Firebase a cada 5 minutos.
 }
 
 // --- INICIALIZAÇÃO E CONTROLE GERAL ---
 window.onload = function() {
+
     const views = {
         caixa: document.getElementById('caixa-view'),
         grafico: document.getElementById('grafico-container'),
@@ -662,21 +748,18 @@ window.onload = function() {
             views[viewName].style.display = 'flex';
         }
 
-        // Seleciona todos os botões no header
         document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
-        
-        // Adiciona active ao botão clicado
         if (btns[viewName]) {
             btns[viewName].classList.add('active');
         }
 
         if (viewName === 'grafico') {
             atualizarGraficosDOM();
-             // Força o redimensionamento dos gráficos ao trocar para a view
             if(chartLinha) chartLinha.resize();
             if(chartBlocos) chartBlocos.resize();
         } else if (viewName === 'config') {
-            carregarContatos(); 
+            // --- [ALTERADO] --- Carrega todas as novas configurações
+            carregarConfiguracoesAtuais(); 
         }
     }
 
@@ -684,34 +767,40 @@ window.onload = function() {
     btns.grafico.addEventListener('click', () => switchView('grafico'));
     btns.config.addEventListener('click', () => switchView('config'));
     
-    document.getElementById('btn-add-contato').addEventListener('click', () => {
-        const valor = document.getElementById('contato-valor').value;
-        const tipo = document.getElementById('contato-tipo').value;
-        adicionarContato(valor, tipo);
-    });
+    // --- [ALTERADO] --- Novos listeners para os novos botões
+    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', salvarNivelAlerta);
+    document.getElementById('btn-salvar-telegram-id').addEventListener('click', salvarTelegramID);
+    document.getElementById('btn-add-email').addEventListener('click', adicionarEmail);
 
-    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => {
-        const nivel = document.getElementById('nivel-alerta-valor').value;
-        const statusDiv = document.getElementById('status-alerta');
-        
-        if (nivel && nivel >= 1 && nivel <= 99) {
-            salvarNivelAlerta(parseInt(nivel));
-        } else {
-            statusDiv.style.color = 'red';
-            statusDiv.innerText = 'Insira um valor válido (1-99).';
-            setTimeout(() => { statusDiv.innerText = ''; }, 3000);
-        }
-    });
-
-    document.getElementById('lista-contatos').addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-            const id = e.target.dataset.id;
-            if (confirm('Tem certeza que deseja remover este contato?')) {
-                removerContato(id);
+    // Listener para a lista de e-mails
+    document.getElementById('lista-emails').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON' && e.target.dataset.email) {
+            // Lógica de confirmação customizada
+            const btn = e.target;
+            const emailParaRemover = btn.dataset.email;
+            
+            if (btn.dataset.confirming) {
+                removerEmail(emailParaRemover);
+            } else {
+                document.querySelectorAll('#lista-emails button[data-confirming="true"]').forEach(b => {
+                    b.dataset.confirming = 'false';
+                    b.innerText = 'Remover';
+                });
+                
+                btn.dataset.confirming = 'true';
+                btn.innerText = 'Confirmar?';
+                
+                setTimeout(() => {
+                    if (btn.dataset.confirming === 'true') {
+                         btn.dataset.confirming = 'false';
+                         btn.innerText = 'Remover';
+                    }
+                }, 3000);
             }
         }
     });
 
+    // --- Inicialização Padrão ---
     criarGraficos();
     const hoje = new Date();
     const dataFimPadrao = hoje.toISOString().split('T')[0];
@@ -723,7 +812,7 @@ window.onload = function() {
     document.getElementById('dataInicio').value = dataInicioPadrao;
     document.getElementById('dataFim').value = dataFimPadrao;
     
-    switchView('caixa'); // Define a view inicial
+    switchView('caixa'); 
     
     carregarHistorico().then(() => {
         loopDeAtualizacao();
@@ -732,16 +821,12 @@ window.onload = function() {
 
     document.getElementById('btnAtualizar').onclick = carregarHistorico;
     
-    // Event listener para os botões Diário/Mensal/Intervalo
     document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Remove active dos irmãos
             const parent = e.target.parentElement;
             parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            // Adiciona active ao clicado
             e.target.classList.add('active');
             
-            // Lógica de troca de view do gráfico
             if (e.target.dataset.view) {
                 currentView = e.target.dataset.view;
                 const pickers = {
@@ -760,150 +845,196 @@ window.onload = function() {
     });
 };
 
-// --- Funções de configuração ---
-async function salvarNivelAlerta(nivel) {
-    const statusDiv = document.getElementById('status-alerta');
-    statusDiv.style.color = '#eab308'; // Amarelo
-    statusDiv.innerText = 'Salvando...';
-    try {
-        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json', {
-            method: 'PUT', // PUT substitui o valor no nó
-            body: JSON.stringify(nivel)
-        });
-        statusDiv.style.color = 'green';
-        statusDiv.innerText = 'Nível de alerta salvo com sucesso!';
-        nivelAlertaConfigurado = nivel; 
-    } catch (e) {
-        statusDiv.style.color = 'red';
-        statusDiv.innerText = 'Erro ao salvar.';
-        console.error("Erro ao salvar nível:", e);
+// --- [ALTERADO] --- Funções de configuração adaptadas para o ESP32
+
+// Função auxiliar para mostrar status
+function mostrarStatus(elementId, mensagem, cor = 'red', duracao = 3000) {
+    const statusDiv = document.getElementById(elementId);
+    if (!statusDiv) return; // Garante que o elemento existe
+    statusDiv.style.color = cor;
+    statusDiv.innerText = mensagem;
+    if (duracao > 0) {
+        setTimeout(() => { statusDiv.innerText = ''; }, duracao);
     }
-    setTimeout(() => { statusDiv.innerText = ''; }, 3000);
 }
 
-async function carregarContatos() {
+// Carrega todas as configurações quando a view é aberta
+async function carregarConfiguracoesAtuais() {
     try {
-        const rNivel = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json');
-        const nivelAlerta = await rNivel.json(); 
-        if (nivelAlerta) {
-            document.getElementById('nivel-alerta-valor').value = nivelAlerta;
-            nivelAlertaConfigurado = parseInt(nivelAlerta); 
+        // Carregar Nível de Alerta
+        const rNivel = await fetch(URL_CONFIG_NIVEL);
+        const nivelSalvo = await rNivel.json();
+        if (nivelSalvo && typeof nivelSalvo === 'number') {
+            document.getElementById('nivel-alerta-valor').value = nivelSalvo;
+            nivelAlertaConfigurado = parseInt(nivelSalvo); // Atualiza global para os LEDs
+        } else {
+            document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado; // Padrão
         }
 
-        const rContatos = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
-        const contatos = await rContatos.json();
-        const lista = document.getElementById('lista-contatos');
-        lista.innerHTML = '';
-        if (contatos) {
-            for (const id in contatos) {
-                const contato = contatos[id];
-                const item = document.createElement('li');
-                item.className = 'contato-item';
-                item.innerHTML = `<div><span>${contato.valor}</span><small>(${contato.tipo})</small></div><button data-id="${id}">Remover</button>`;
-                lista.appendChild(item);
-            }
+        // Carregar ID Telegram
+        const rTel = await fetch(URL_CONFIG_TELEGRAM);
+        const telSalvo = await rTel.json();
+        if (telSalvo && typeof telSalvo === 'string') {
+            document.getElementById('telegram-id-valor').value = telSalvo;
         }
+        
+        // Carregar Lista de E-mails
+        carregarListaEmails();
+
     } catch (e) {
         console.error("Erro ao carregar configurações:", e);
+        mostrarStatus('status-alerta', 'Erro ao carregar configurações.', 'red', 0);
     }
 }
 
-async function adicionarContato(valor, tipo) {
-    if (!valor) { alert('Por favor, insira um contato.'); return; }
-    await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', {
-        method: 'POST', body: JSON.stringify({ valor, tipo })
-    });
-    document.getElementById('contato-valor').value = '';
-    await carregarContatos();
+// Salva o Nível de Alerta (ex: 30)
+async function salvarNivelAlerta() {
+    const nivel = document.getElementById('nivel-alerta-valor').value;
+    if (!nivel || nivel < 1 || nivel > 99) {
+        mostrarStatus('status-alerta', 'Insira um valor válido (1-99).');
+        return;
+    }
+    
+    mostrarStatus('status-alerta', 'Salvando...', '#eab308', 0);
+    try {
+        await fetch(URL_CONFIG_NIVEL, {
+            method: 'PUT',
+            body: JSON.stringify(parseInt(nivel))
+        });
+        nivelAlertaConfigurado = parseInt(nivel); // Atualiza global
+        mostrarStatus('status-alerta', `Nível salvo em ${nivel}%.`, 'green');
+    } catch (e) {
+        console.error("Erro ao salvar nível:", e);
+        mostrarStatus('status-alerta', 'Erro ao salvar.');
+    }
 }
 
-async function removerContato(id) {
-    await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { method: 'DELETE' });
-    await carregarContatos();
+// Salva o ID do Telegram (ex: "-100123...")
+async function salvarTelegramID() {
+    const id = document.getElementById('telegram-id-valor').value;
+    if (!id) {
+        mostrarStatus('status-telegram', 'Insira um ID válido.');
+        return;
+    }
+    
+    mostrarStatus('status-telegram', 'Salvando...', '#eab308', 0);
+    try {
+        await fetch(URL_CONFIG_TELEGRAM, {
+            method: 'PUT',
+            body: JSON.stringify(id) // Salva como string
+        });
+        mostrarStatus('status-telegram', 'ID do Telegram salvo.', 'green');
+    } catch (e) {
+        console.error("Erro ao salvar Telegram ID:", e);
+        mostrarStatus('status-telegram', 'Erro ao salvar.');
+    }
 }
 
+// Carrega a lista de e-mails (um array)
+async function carregarListaEmails() {
+    const listaUL = document.getElementById('lista-emails');
+    listaUL.innerHTML = '<li>Carregando...</li>';
+    try {
+        const r = await fetch(URL_CONFIG_EMAILS);
+        const emails = await r.json(); // Espera um array: ["a@b.com", "c@d.com"]
+        
+        listaUL.innerHTML = ''; 
+        if (Array.isArray(emails)) {
+            emails.forEach(email => {
+                if (email) {
+                    const li = document.createElement('li');
+                    li.className = 'email-item';
+                    li.innerHTML = `
+                        <span>${email}</span>
+                        <button data-email="${email}">Remover</button>
+                    `;
+                    listaUL.appendChild(li);
+                }
+            });
+        }
+        if (listaUL.innerHTML === '') {
+            listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum e-mail salvo.</li>';
+        }
+    } catch (e) {
+        console.error("Erro ao carregar e-mails:", e);
+        listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar e-mails.</li>';
+    }
+}
+
+// Adiciona um e-mail ao array
+async function adicionarEmail() {
+    const emailInput = document.getElementById('email-valor');
+    const novoEmail = emailInput.value;
+
+    if (!novoEmail || !novoEmail.includes('@')) {
+        mostrarStatus('status-email', 'Insira um e-mail válido.');
+        return;
+    }
+    
+    mostrarStatus('status-email', 'Adicionando...', '#eab308', 0);
+
+    try {
+        // 1. Pega a lista atual
+        const r = await fetch(URL_CONFIG_EMAILS);
+        let emails = await r.json();
+        if (!Array.isArray(emails)) {
+            emails = []; // Se não existir ou for inválido, começa um novo array
+        }
+
+        // 2. Verifica se já existe
+        if (emails.includes(novoEmail)) {
+            mostrarStatus('status-email', 'Este e-mail já está na lista.');
+            return;
+        }
+
+        // 3. Adiciona o novo e-mail
+        emails.push(novoEmail);
+
+        // 4. Salva a lista completa de volta
+        await fetch(URL_CONFIG_EMAILS, {
+            method: 'PUT',
+            body: JSON.stringify(emails)
+        });
+
+        emailInput.value = ''; // Limpa o input
+        mostrarStatus('status-email', 'E-mail adicionado!', 'green');
+        carregarListaEmails(); // Recarrega a lista
+    } catch (e) {
+        console.error("Erro ao adicionar e-mail:", e);
+        mostrarStatus('status-email', 'Erro ao adicionar e-mail.');
+    }
+}
+
+// Remove um e-mail do array
+async function removerEmail(emailParaRemover) {
+    mostrarStatus('status-email', 'Removendo...', '#eab308', 0);
+    
+    try {
+        // 1. Pega a lista atual
+        const r = await fetch(URL_CONFIG_EMAILS);
+        let emails = await r.json();
+        if (!Array.isArray(emails)) {
+            emails = []; 
+        }
+
+        // 2. Filtra o e-mail
+        const novaLista = emails.filter(email => email !== emailParaRemover);
+
+        // 3. Salva a lista filtrada de volta
+        await fetch(URL_CONFIG_EMAILS, {
+            method: 'PUT',
+            body: JSON.stringify(novaLista)
+        });
+
+        mostrarStatus('status-email', 'E-mail removido.', 'green');
+        carregarListaEmails(); // Recarrega a lista
+    } catch (e) {
+        console.error("Erro ao remover e-mail:", e);
+        mostrarStatus('status-email', 'Erro ao remover e-mail.');
+    }
+}
 
 </script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDBU7TrHUKPZdF8bTuxHDSmKPml4q8bBf4",
-    databaseURL: "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  function adicionarContato() {
-    const email = document.getElementById("emailInput").value;
-    const telegram = document.getElementById("telegramInput").value;
-    if (email.length > 3) {
-      const novoEmailRef = db.ref("/config/emails").push();
-      novoEmailRef.set(email);
-    }
-    if (telegram.length > 3) {
-      db.ref("/config/telegram").set(telegram);
-    }
-    document.getElementById("emailInput").value = "";
-    document.getElementById("telegramInput").value = "";
-    carregarContatos();
-  }
-
-  function salvarNivelAlerta() {
-    const nivel = parseInt(document.getElementById("nivelAlertaInput").value);
-    if (!isNaN(nivel) && nivel >= 0 && nivel <= 100) {
-      db.ref("/config/nivel_minimo").set(nivel);
-      alert("Nível de alerta salvo: " + nivel + "%");
-    }
-  }
-
-  function carregarContatos() {
-    db.ref("/config/emails").once("value").then(snapshot => {
-      const lista = document.getElementById("listaContatos");
-      lista.innerHTML = "";
-      const data = snapshot.val();
-      for (let key in data) {
-        const li = document.createElement("li");
-        li.innerText = data[key];
-        lista.appendChild(li);
-      }
-    });
-  }
-
-  function carregarHistorico() {
-    db.ref("/leituras").once("value").then(snapshot => {
-      const data = snapshot.val();
-      const labels = [];
-      const valores = [];
-
-      for (let timestamp in data) {
-        labels.push(timestamp);
-        valores.push(data[timestamp].nivel_pct);
-      }
-
-      const ctx = document.getElementById("graficoHistorico").getContext("2d");
-      new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [{
-            label: "Nível (%)",
-            data: valores,
-            borderColor: "blue",
-            fill: false
-          }]
-        }
-      });
-    });
-  }
-
-  function carregarNivelAtual() {
-    db.ref("/nivel_atual").on("value", snapshot => {
-      const nivel = snapshot.val();
-      document.getElementById("nivelAtual").innerText = nivel + "%";
-    });
-  }
-
-  carregarNivelAtual();
-  carregarContatos();
-</script></body>
+</body>
 </html>
 
