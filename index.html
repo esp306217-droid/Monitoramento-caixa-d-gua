@@ -441,9 +441,9 @@ canvas {
                 <div class="small" id="info-linha">Exibe o histórico de nível ao longo do período selecionado.</div>
             </div>
             <div class="chart-card">
-                <strong>Gráfico de Velas — Variação Diária</strong>
+                <strong>Gráfico de Barras — Variação</strong>
                 <canvas id="chartVela"></canvas>
-                <div class="small" id="info-vela">Mostra a variação do nível por dia (abertura, máxima, mínima, fechamento).</div>
+                <div class="small" id="info-vela">Mostra a variação do nível por período.</div>
             </div>
         </div>
     </div>
@@ -658,41 +658,43 @@ function criarGraficos() {
         }
     });
 
-    // Gráfico de Vela
+    // GRÁFICO DE BARRAS MODERNO EM AZUL
     const ctxV = document.getElementById('chartVela').getContext('2d');
+    
     chartVela = new Chart(ctxV, {
         type: 'bar',
         data: {
             labels: [],
             datasets: [{
-                label: 'Variação Diária',
+                label: 'Nível (%)',
                 data: [],
-                borderColor: '#06b6d4',
-                borderWidth: 2,
-                backgroundColor: function(context) {
-                    const value = context.raw;
-                    if (!value || !value.o || !value.c) return 'rgba(6,182,212,0.3)';
-                    return value.c >= value.o ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)';
-                }
+                backgroundColor: 'rgba(6, 182, 212, 0.8)',
+                borderColor: 'rgba(6, 182, 212, 1)',
+                borderWidth: 1,
+                borderRadius: 6,
+                borderSkipped: false,
             }]
         },
         options: {
             animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    display: false
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#666',
+                        font: {
+                            family: 'Arial, Helvetica, sans-serif',
+                            size: 12
+                        }
+                    }
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            const value = context.raw;
-                            if (!value || !value.o) return 'Sem dados';
-                            return [
-                                `Abertura: ${value.o}%`,
-                                `Máxima: ${value.h}%`,
-                                `Mínima: ${value.l}%`,
-                                `Fechamento: ${value.c}%`
-                            ];
+                            return `Nível: ${context.parsed.y}%`;
                         }
                     }
                 }
@@ -700,7 +702,10 @@ function criarGraficos() {
             scales: {
                 x: {
                     ticks: { color: '#666' },
-                    grid: { color: 'rgba(0,0,0,0.05)' }
+                    grid: { 
+                        color: 'rgba(0,0,0,0.05)',
+                        display: false
+                    }
                 },
                 y: {
                     ticks: { color: '#666' },
@@ -708,76 +713,86 @@ function criarGraficos() {
                     max: 100,
                     grid: { color: 'rgba(0,0,0,0.05)' }
                 }
-            },
-            maintainAspectRatio: false
+            }
         }
     });
 }
 
-// Função para calcular dados de vela (OHLC) por hora (para modo diário)
-function calcularDadosVelaPorHora(dados) {
-    const dadosPorHora = {};
+// Função para calcular dados de barras por hora (modo diário)
+function calcularDadosBarrasPorHora(dadosHora) {
+    const horas = Object.keys(dadosHora).sort();
+    const niveis = [];
     
-    // Agrupa dados por hora
-    Object.keys(dados).forEach(hora => {
-        const leitura = dados[hora];
-        if (leitura) {
-            const nivel = leitura.nivel;
-            dadosPorHora[hora] = {
-                abertura: nivel,
-                fechamento: nivel,
-                maxima: nivel,
-                minima: nivel
-            };
-        }
+    horas.forEach(hora => {
+        const nivel = dadosHora[hora].nivel;
+        niveis.push(nivel);
     });
     
-    // Converte para formato do Chart.js
-    const resultado = {
-        labels: Object.keys(dadosPorHora).sort(),
-        dados: Object.keys(dadosPorHora).sort().map(hora => ({
-            x: hora,
-            o: dadosPorHora[hora].abertura,
-            h: dadosPorHora[hora].maxima,
-            l: dadosPorHora[hora].minima,
-            c: dadosPorHora[hora].fechamento
-        }))
+    return {
+        labels: horas,
+        niveis: niveis
     };
-    
-    return resultado;
 }
 
-// Função para calcular dados de vela (OHLC) por dia
-function calcularDadosVelaPorDia(dados) {
-    const dadosPorDia = {};
+// Função para calcular dados de barras por dia (modo mensal)
+function calcularDadosBarrasPorDia(dadosMensal) {
+    const dias = Object.keys(dadosMensal).sort();
+    const niveis = [];
     
-    // Agrupa dados por dia
-    Object.keys(dados).forEach(data => {
-        const leituras = Object.values(dados[data]);
-        if (leituras.length > 0) {
-            const niveis = leituras.map(l => l.nivel);
-            dadosPorDia[data] = {
-                abertura: niveis[0], // Primeira leitura do dia
-                fechamento: niveis[niveis.length - 1], // Última leitura do dia
-                maxima: Math.max(...niveis),
-                minima: Math.min(...niveis)
-            };
+    dias.forEach(dia => {
+        const leiturasDoDia = Object.values(dadosMensal[dia]);
+        if (leiturasDoDia.length > 0) {
+            // Usa a última leitura do dia como valor representativo
+            const ultimoNivel = leiturasDoDia[leiturasDoDia.length - 1].nivel;
+            niveis.push(ultimoNivel);
+        } else {
+            niveis.push(0);
         }
     });
     
-    // Converte para formato do Chart.js
-    const resultado = {
-        labels: Object.keys(dadosPorDia).sort(),
-        dados: Object.keys(dadosPorDia).sort().map(data => ({
-            x: data,
-            o: dadosPorDia[data].abertura,
-            h: dadosPorDia[data].maxima,
-            l: dadosPorDia[data].minima,
-            c: dadosPorDia[data].fechamento
-        }))
+    return {
+        labels: dias,
+        niveis: niveis
     };
+}
+
+// Função para calcular dados de barras por mês (modo intervalo)
+function calcularDadosBarrasPorMes(dadosIntervalo) {
+    const mesesAgrupados = {};
     
-    return resultado;
+    // Agrupa dados por mês
+    Object.keys(dadosIntervalo).forEach(dia => {
+        const [ano, mes] = dia.split('-');
+        const chaveMes = `${mes}/${ano}`;
+        
+        if (!mesesAgrupados[chaveMes]) {
+            mesesAgrupados[chaveMes] = [];
+        }
+        
+        const leiturasDoDia = Object.values(dadosIntervalo[dia]);
+        leiturasDoDia.forEach(leitura => {
+            mesesAgrupados[chaveMes].push(leitura.nivel);
+        });
+    });
+    
+    const meses = Object.keys(mesesAgrupados).sort();
+    const niveis = [];
+    
+    meses.forEach(mes => {
+        const niveisMes = mesesAgrupados[mes];
+        if (niveisMes.length > 0) {
+            // Usa a média do mês como valor representativo
+            const media = niveisMes.reduce((a, b) => a + b, 0) / niveisMes.length;
+            niveis.push(media);
+        } else {
+            niveis.push(0);
+        }
+    });
+    
+    return {
+        labels: meses,
+        niveis: niveis
+    };
 }
 
 // Função para salvar dados no histórico local (localStorage)
@@ -926,7 +941,7 @@ async function carregarHistorico() {
         dataInicio = `${dataEscolhida}T00:00:00`;
         dataFim = `${dataEscolhida}T23:59:59`;
         infoLinha.textContent = `Exibe o histórico de nível ao longo do dia ${dataEscolhida}.`;
-        infoVela.textContent = `Mostra a variação do nível por hora no dia ${dataEscolhida}.`;
+        infoVela.textContent = `Mostra o nível por hora no dia ${dataEscolhida}.`;
     } else if (currentView === 'mensal') {
         const mesAno = document.getElementById('mesEscolhido').value;
         if (!mesAno) return;
@@ -935,7 +950,7 @@ async function carregarHistorico() {
         const ultimoDia = new Date(ano, mes, 0).getDate();
         dataFim = `${mesAno}-${ultimoDia}T23:59:59`;
         infoLinha.textContent = `Exibe o histórico de nível por semanas do mês ${mes}/${ano}.`;
-        infoVela.textContent = `Mostra a variação do nível por dia no mês ${mes}/${ano}.`;
+        infoVela.textContent = `Mostra o nível por dia no mês ${mes}/${ano}.`;
     } else { // Intervalo
         const mesInicio = document.getElementById('mesInicio').value;
         const mesFim = document.getElementById('mesFim').value;
@@ -949,12 +964,12 @@ async function carregarHistorico() {
         dataFim = `${mesFim}-${ultimoDiaFim}T23:59:59`;
         
         infoLinha.textContent = `Exibe o histórico de nível por meses de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
-        infoVela.textContent = `Mostra a variação do nível por mês de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
+        infoVela.textContent = `Mostra o nível por mês de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
     }
 
     console.log("Carregando histórico do localStorage...");
     
-    // SEMPRE carrega do localStorage primeiro
+    // Carrega do localStorage
     const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
     
     // Filtra dados pelo período selecionado
@@ -975,10 +990,10 @@ async function carregarHistorico() {
             historicoLabels = labels;
             historicoNiveis = niveis;
             
-            // Para gráfico de vela diário, mostra por HORA
-            const dadosVelaDiario = calcularDadosVelaPorHora(dadosFiltrados[dataEscolhida]);
-            labelsVela = dadosVelaDiario.labels;
-            dadosVela = dadosVelaDiario.dados;
+            // Dados de barras por HORA
+            const dadosBarras = calcularDadosBarrasPorHora(dadosFiltrados[dataEscolhida]);
+            labelsVela = dadosBarras.labels;
+            dadosVela = dadosBarras.niveis;
         } else {
             historicoLabels = [];
             historicoNiveis = [];
@@ -986,25 +1001,25 @@ async function carregarHistorico() {
             dadosVela = [];
         }
     } else if (currentView === 'mensal') {
-        // Agrupa por semanas para linha
+        // Para linha: agrupa por semanas
         const semanas = agruparPorSemanas(dadosFiltrados);
         historicoLabels = Object.keys(semanas);
         historicoNiveis = Object.values(semanas);
         
-        // Para vela, mostra por DIA
-        const dadosVelaMensal = calcularDadosVelaPorDia(dadosFiltrados);
-        labelsVela = dadosVelaMensal.labels;
-        dadosVela = dadosVelaMensal.dados;
+        // Para barras: por DIA
+        const dadosBarras = calcularDadosBarrasPorDia(dadosFiltrados);
+        labelsVela = dadosBarras.labels;
+        dadosVela = dadosBarras.niveis;
     } else { // Intervalo
-        // Agrupa por meses para linha
+        // Para linha: agrupa por meses
         const meses = agruparPorMeses(dadosFiltrados);
         historicoLabels = Object.keys(meses);
         historicoNiveis = Object.values(meses);
         
-        // Para vela, mostra por MÊS
-        const dadosVelaIntervalo = calcularDadosVelaPorDia(dadosFiltrados);
-        labelsVela = dadosVelaIntervalo.labels;
-        dadosVela = dadosVelaIntervalo.dados;
+        // Para barras: por MÊS
+        const dadosBarras = calcularDadosBarrasPorMes(dadosFiltrados);
+        labelsVela = dadosBarras.labels;
+        dadosVela = dadosBarras.niveis;
     }
 
     // Se não há dados locais, tenta carregar do Firebase como backup
@@ -1052,10 +1067,10 @@ async function carregarHistorico() {
                     historicoLabels = labels;
                     historicoNiveis = niveis;
                     
-                    // Para gráfico de vela diário, mostra por HORA
-                    const dadosVelaDiario = calcularDadosVelaPorHora(dados);
-                    labelsVela = dadosVelaDiario.labels;
-                    dadosVela = dadosVelaDiario.dados;
+                    // Para gráfico de barras diário, mostra por HORA
+                    const dadosBarras = calcularDadosBarrasPorHora(dados);
+                    labelsVela = dadosBarras.labels;
+                    dadosVela = dadosBarras.niveis;
                     
                     // Salva os dados do Firebase no localStorage
                     labels.forEach((hora, index) => {
@@ -1079,19 +1094,19 @@ async function carregarHistorico() {
                         historicoLabels = Object.keys(semanas);
                         historicoNiveis = Object.values(semanas);
                         
-                        // Para vela, mostra por DIA
-                        const dadosVelaMensal = calcularDadosVelaPorDia(dadosParaAgrupamento);
-                        labelsVela = dadosVelaMensal.labels;
-                        dadosVela = dadosVelaMensal.dados;
+                        // Para barras, mostra por DIA
+                        const dadosBarras = calcularDadosBarrasPorDia(dadosParaAgrupamento);
+                        labelsVela = dadosBarras.labels;
+                        dadosVela = dadosBarras.niveis;
                     } else {
                         const meses = agruparPorMeses(dadosParaAgrupamento);
                         historicoLabels = Object.keys(meses);
                         historicoNiveis = Object.values(meses);
                         
-                        // Para vela, mostra por DIA
-                        const dadosVelaIntervalo = calcularDadosVelaPorDia(dadosParaAgrupamento);
-                        labelsVela = dadosVelaIntervalo.labels;
-                        dadosVela = dadosVelaIntervalo.dados;
+                        // Para barras, mostra por MÊS
+                        const dadosBarras = calcularDadosBarrasPorMes(dadosParaAgrupamento);
+                        labelsVela = dadosBarras.labels;
+                        dadosVela = dadosBarras.niveis;
                     }
                 }
             } else {
@@ -1119,10 +1134,10 @@ async function carregarHistorico() {
                         historicoLabels = labels;
                         historicoNiveis = niveis;
                         
-                        // Para gráfico de vela diário, mostra por HORA
-                        const dadosVelaDiario = calcularDadosVelaPorHora(dadosParaAgrupamento[dataEscolhida]);
-                        labelsVela = dadosVelaDiario.labels;
-                        dadosVela = dadosVelaDiario.dados;
+                        // Para gráfico de barras diário, mostra por HORA
+                        const dadosBarras = calcularDadosBarrasPorHora(dadosParaAgrupamento[dataEscolhida]);
+                        labelsVela = dadosBarras.labels;
+                        dadosVela = dadosBarras.niveis;
                         
                         // Salva no localStorage
                         labels.forEach((hora, index) => {
@@ -1134,19 +1149,19 @@ async function carregarHistorico() {
                     historicoLabels = Object.keys(semanas);
                     historicoNiveis = Object.values(semanas);
                     
-                    // Para vela, mostra por DIA
-                    const dadosVelaMensal = calcularDadosVelaPorDia(dadosParaAgrupamento);
-                    labelsVela = dadosVelaMensal.labels;
-                    dadosVela = dadosVelaMensal.dados;
+                    // Para barras, mostra por DIA
+                    const dadosBarras = calcularDadosBarrasPorDia(dadosParaAgrupamento);
+                    labelsVela = dadosBarras.labels;
+                    dadosVela = dadosBarras.niveis;
                 } else {
                     const meses = agruparPorMeses(dadosParaAgrupamento);
                     historicoLabels = Object.keys(meses);
                     historicoNiveis = Object.values(meses);
                     
-                    // Para vela, mostra por DIA
-                    const dadosVelaIntervalo = calcularDadosVelaPorDia(dadosParaAgrupamento);
-                    labelsVela = dadosVelaIntervalo.labels;
-                    dadosVela = dadosVelaIntervalo.dados;
+                    // Para barras, mostra por MÊS
+                    const dadosBarras = calcularDadosBarrasPorMes(dadosParaAgrupamento);
+                    labelsVela = dadosBarras.labels;
+                    dadosVela = dadosBarras.niveis;
                 }
             }
         }
@@ -1154,7 +1169,17 @@ async function carregarHistorico() {
         console.log(`Carregados ${historicoLabels.length} registros do localStorage`);
     }
     
-    atualizarGraficosDOM();
+    // Atualiza os gráficos
+    if (chartLinha && chartVela) {
+        chartLinha.data.labels = historicoLabels;
+        chartLinha.data.datasets[0].data = historicoNiveis;
+        
+        chartVela.data.labels = labelsVela;
+        chartVela.data.datasets[0].data = dadosVela;
+        
+        chartLinha.update('none');
+        chartVela.update('none');
+    }
 }
 
 // --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
