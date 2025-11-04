@@ -218,6 +218,7 @@ input[type="date"], input[type="month"] {
     width: 100%;
     position: relative;
     height: 400px;
+    min-height: 300px;
 }
 
 canvas { 
@@ -472,6 +473,7 @@ canvas {
 
     .chart-container {
         height: 300px !important;
+        min-height: 250px;
     }
 
     canvas {
@@ -515,6 +517,7 @@ canvas {
 @media (max-width: 480px) {
     .chart-container {
         height: 250px !important;
+        min-height: 200px;
     }
 
     canvas {
@@ -558,6 +561,17 @@ canvas {
     input {
         font-size: 16px;
     }
+}
+
+/* Melhorar o comportamento responsivo dos gráficos */
+#grafico-container {
+    backface-visibility: hidden;
+    perspective: 1000;
+}
+
+.chart-container canvas {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }
 </style>
 </head>
@@ -862,6 +876,7 @@ function criarGraficos() {
         options: { 
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 200,
             animation: {
                 duration: 0
             },
@@ -948,6 +963,7 @@ function criarGraficos() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            resizeDelay: 200,
             animation: {
                 duration: 0
             },
@@ -1009,12 +1025,28 @@ function criarGraficos() {
 
 // --- FUNÇÃO PARA REDIMENSIONAR GRÁFICOS ---
 function redimensionarGraficos() {
+    console.log("🔄 Redimensionando gráficos...");
+    
+    // Forçar um recálculo do layout
     if (chartLinha) {
+        const canvasLinha = chartLinha.canvas;
+        const containerLinha = canvasLinha.parentElement;
+        containerLinha.style.height = containerLinha.offsetHeight + 'px';
+        
         chartLinha.resize();
+        chartLinha.update('none');
     }
+    
     if (chartVela) {
+        const canvasVela = chartVela.canvas;
+        const containerVela = canvasVela.parentElement;
+        containerVela.style.height = containerVela.offsetHeight + 'px';
+        
         chartVela.resize();
+        chartVela.update('none');
     }
+    
+    console.log("✅ Redimensionamento concluído");
 }
 
 function agruparPorDias(dados) {
@@ -1208,8 +1240,12 @@ async function carregarHistorico() {
         chartLinha.update('none');
         chartVela.update('none');
         
-        // Redimensionar após atualização
-        setTimeout(redimensionarGraficos, 100);
+        // Redimensionar após atualização com múltiplas tentativas
+        setTimeout(() => {
+            redimensionarGraficos();
+            // Segunda tentativa para garantir
+            setTimeout(redimensionarGraficos, 200);
+        }, 100);
     }
 }
 
@@ -1383,11 +1419,15 @@ window.onload = function() {
         }
 
         if (viewName === 'grafico') {
-            carregarHistorico();
-            // Adicionar delay para garantir que o DOM esteja renderizado
+            // Forçar um redesenho do layout
             setTimeout(() => {
-                redimensionarGraficos();
-            }, 300);
+                carregarHistorico();
+                // Múltiplas tentativas de redimensionamento
+                setTimeout(() => {
+                    redimensionarGraficos();
+                    setTimeout(redimensionarGraficos, 300);
+                }, 200);
+            }, 100);
         } else if (viewName === 'config') {
             carregarConfiguracoes(); 
         }
@@ -1460,17 +1500,27 @@ window.onload = function() {
     // Adicionar listener para redimensionamento da tela
     window.addEventListener('resize', function() {
         if (document.getElementById('grafico-container').style.display !== 'none') {
-            redimensionarGraficos();
+            setTimeout(redimensionarGraficos, 150);
         }
     });
 
-    // Adicionar listener para orientação da tela (mobile)
+    // Tratar mudança de orientação em dispositivos móveis
     window.addEventListener('orientationchange', function() {
         setTimeout(() => {
             if (document.getElementById('grafico-container').style.display !== 'none') {
                 redimensionarGraficos();
+                setTimeout(redimensionarGraficos, 500);
             }
         }, 300);
+    });
+
+    // Forçar redimensionamento inicial quando a página carrega
+    window.addEventListener('load', function() {
+        setTimeout(() => {
+            if (document.getElementById('grafico-container').style.display !== 'none') {
+                redimensionarGraficos();
+            }
+        }, 1000);
     });
 };
 
