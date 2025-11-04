@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Monitoramento Caixa D'Água PP7</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
@@ -14,19 +14,23 @@
     --bg-color-light: #f0f7ff;
     --header-bg: #ffffff;
 }
-* { box-sizing: border-box; }
+* { 
+    box-sizing: border-box; 
+    -webkit-tap-highlight-color: transparent;
+}
 html, body {
     height: 100%;
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
 }
 body {
     font-family: Arial, Helvetica, sans-serif; 
     text-align: center;
     background: #fff;
     color: #334155; 
-    overflow-x: hidden;
     padding-bottom: 20px;
+    -webkit-text-size-adjust: 100%;
 }
 
 .main-header {
@@ -122,6 +126,7 @@ body {
     text-align: center;
     text-transform: uppercase;
     letter-spacing: 0.05em; 
+    touch-action: manipulation;
 }
 .modern-button:hover {
     background: var(--accent-dark); 
@@ -139,42 +144,98 @@ body {
     justify-content: space-between; align-items: center; gap: 12px;
     margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
 }
-#grafico-container header h1 { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 1.5rem; color: #1e3a8a; }
-.header-right { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; justify-content: flex-end; flex-grow: 1; }
-.controls { display: flex; gap: 10px; align-items: center; }
+#grafico-container header h1 { 
+    margin: 0; 
+    font-family: Arial, Helvetica, sans-serif; 
+    font-size: 1.5rem; 
+    color: #1e3a8a; 
+    width: 100%;
+    text-align: center;
+}
+.header-right { 
+    display: flex; 
+    flex-wrap: wrap; 
+    align-items: center; 
+    gap: 20px; 
+    justify-content: center; 
+    flex-grow: 1;
+    width: 100%;
+}
+.controls { 
+    display: flex; 
+    gap: 10px; 
+    align-items: center; 
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+}
 input[type="date"], input[type="month"] { 
-    background: #f0f0f0; color: #333; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
+    background: #f0f0f0; 
+    color: #333; 
+    border: 1px solid #ccc; 
+    border-radius: 6px; 
+    padding: 8px 12px;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 0.9rem;
+    min-width: 120px;
 }
 #intervalo-picker span { color: #666; font-size: 0.9rem; }
 
 .board { 
     width: 100%; 
     background: #ffffff;
-    border-radius: 12px; padding: 18px; 
+    border-radius: 12px; 
+    padding: 18px; 
     box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
     border: 1px solid #eee;
     margin: 0 auto; 
 }
-.charts { display: grid; grid-template-columns: 1fr; gap: 22px; }
+.charts { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    gap: 22px; 
+    width: 100%;
+}
 
 .chart-card { 
     background: var(--bg-color-light);
-    padding: 14px; border-radius: 10px; 
+    padding: 14px; 
+    border-radius: 10px; 
     border: 1px solid #b0cce3;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    width: 100%;
+    overflow: hidden;
 }
-.chart-card strong { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.1rem;}
+.chart-card strong { 
+    font-family: Arial, Helvetica, sans-serif; 
+    color: #1e3a8a; 
+    font-size: 1.1rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.chart-container {
+    width: 100%;
+    position: relative;
+    height: 400px;
+}
 
 canvas { 
-    width: 100%!important; 
-    height: 400px!important;
+    width: 100% !important; 
+    height: 100% !important;
     display: block; 
 }
 .small { font-size: .9rem; color: #666; margin-top: 4px; }
 
-.view-selector { display: flex; gap: 5px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
+.view-selector { 
+    display: flex; 
+    gap: 5px; 
+    background: #e2e8f0; 
+    padding: 4px; 
+    border-radius: 8px; 
+    flex-wrap: wrap;
+    justify-content: center;
+}
 .view-btn { 
     padding: 8px 14px; 
     border: none; 
@@ -190,6 +251,7 @@ canvas {
     letter-spacing: 0.03em;
     width: auto;
     text-align: center;
+    touch-action: manipulation;
 }
 .view-btn.active { 
     background: var(--accent); 
@@ -207,6 +269,7 @@ canvas {
     padding-left: 14px;
     padding-right: 14px;
     font-size: 0.9rem;
+    touch-action: manipulation;
 }
 .nav-button.active {
     border-left: none; 
@@ -225,32 +288,74 @@ canvas {
 .led-base.aceso.verde { fill: #33ff33; filter: drop-shadow(0 0 5px #33ff33) drop-shadow(0 0 10px #33ff33); animation: pisca 1.2s infinite; }
 
 #config-view h1 { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; }
-.config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
+.config-board { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    gap: 20px; 
+    width: 100%; 
+    max-width: 900px; 
+}
 .config-card { 
     background: #ffffff;
-    padding: 20px; border-radius: 12px; 
-    border: 1px solid #eee; text-align: left;
+    padding: 20px; 
+    border-radius: 12px; 
+    border: 1px solid #eee; 
+    text-align: left;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    width: 100%;
 }
-.config-card h2 { margin-top: 0; font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.25rem;}
-.form-group { display: flex; gap: 10px; margin-bottom: 15px; }
+.config-card h2 { 
+    margin-top: 0; 
+    font-family: Arial, Helvetica, sans-serif; 
+    color: #1e3a8a; 
+    font-size: 1.25rem;
+}
+.form-group { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 15px; 
+    flex-wrap: wrap;
+}
 .form-group input, .form-group select { 
-    flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; 
+    flex-grow: 1; 
+    padding: 8px; 
+    border: 1px solid #ccc; 
+    border-radius: 6px; 
     font-family: Arial, Helvetica, sans-serif;
     font-size: 0.9rem;
     color: #333;
+    min-width: 150px;
 }
 #lista-emails { list-style: none; padding: 0; margin: 0; }
-.email-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-.email-item span { font-weight: bold; color: #333; word-break: break-all; }
+.email-item { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 10px; 
+    border-bottom: 1px solid #eee; 
+    flex-wrap: wrap;
+}
+.email-item span { 
+    font-weight: bold; 
+    color: #333; 
+    word-break: break-all; 
+    flex: 1;
+    margin-right: 10px;
+}
 .email-item button { 
-    background: #ef4444; color: white; font-size: 0.8rem;
-    padding: 6px 10px; border-radius: 6px; border: none; cursor: pointer;
+    background: #ef4444; 
+    color: white; 
+    font-size: 0.8rem;
+    padding: 6px 10px; 
+    border-radius: 6px; 
+    border: none; 
+    cursor: pointer;
     text-transform: uppercase;
     font-weight: 700;
     font-family: Arial, Helvetica, sans-serif;
     flex-shrink: 0; 
     margin-left: 10px;
+    touch-action: manipulation;
 }
 .email-item button:hover { background: #dc2626; }
 .card-emails {
@@ -294,11 +399,13 @@ canvas {
     opacity: 0.9;
 }
 
+/* --- CORREÇÕES PARA MOBILE --- */
 @media (max-width: 800px) {
     body {
         padding-left: 0; 
         padding-bottom: 20px; 
         padding-top: 60px;
+        font-size: 14px;
     }
 
     .main-header {
@@ -308,34 +415,68 @@ canvas {
         gap: 8px;
         padding: 8px 0;
         margin-bottom: 10px;
+        width: 100%;
     }
 
     .nav-button {
-          padding: 8px 10px;
-          font-size: 0.8rem;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        flex: 1;
+        min-width: 0;
     }
     
-    #caixa-view, #grafico-container, #config-view { padding: 0.5rem; }
+    #caixa-view, #grafico-container, #config-view { 
+        padding: 0.5rem; 
+        width: 100%;
+    }
+    
     .reservatorio-wrapper { 
-        width: 90%; 
+        width: 95%; 
         max-width: 300px;
         height: 50vh; 
+        min-height: 400px;
     }
+    
     .logo { 
         margin-top: 10px;
         margin-bottom: 15px; 
+        width: 140px;
     } 
-    #grafico-container header, .header-right { flex-direction: column; align-items: stretch; gap: 10px; } 
-    .controls { flex-direction: column; align-items: stretch;} 
-    .view-selector { justify-content: center;} 
-    .config-board { grid-template-columns: 1fr; }
+    
+    #grafico-container header, .header-right { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    } 
+    
+    .controls { 
+        flex-direction: column; 
+        align-items: stretch;
+        gap: 8px;
+    } 
+    
+    .view-selector { 
+        justify-content: center;
+        width: 100%;
+    } 
+    
+    .config-board { 
+        grid-template-columns: 1fr; 
+        gap: 15px;
+    }
     
     .chart-card {
         padding: 10px;
+        margin: 0 5px;
+    }
+
+    .chart-container {
+        height: 300px !important;
     }
 
     canvas {
-        height: 300px !important; 
+        height: 300px !important;
+        max-height: 300px;
     }
 
     .leitura-atual {
@@ -347,6 +488,57 @@ canvas {
         width: 90%;
         max-width: 200px;
     }
+
+    input[type="date"], input[type="month"] {
+        width: 100%;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+
+    .form-group {
+        flex-direction: column;
+    }
+
+    .form-group input, .form-group select {
+        width: 100%;
+    }
+
+    #grafico-container header h1 {
+        font-size: 1.3rem;
+    }
+
+    .modern-button {
+        padding: 12px 16px;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-container {
+        height: 250px !important;
+    }
+
+    canvas {
+        height: 250px !important;
+    }
+
+    .reservatorio-wrapper {
+        height: 45vh;
+        min-height: 350px;
+    }
+
+    .main-header {
+        gap: 5px;
+    }
+
+    .nav-button {
+        padding: 6px 8px;
+        font-size: 0.75rem;
+    }
+
+    .view-btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
 }
 
 .erro-conexao {
@@ -357,6 +549,15 @@ canvas {
     border-radius: 8px;
     margin: 10px 0;
     font-weight: bold;
+}
+
+/* Prevenir zoom em inputs no iOS */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    select,
+    textarea,
+    input {
+        font-size: 16px;
+    }
 }
 </style>
 </head>
@@ -428,12 +629,16 @@ canvas {
         <div class="charts">
             <div class="chart-card">
                 <strong>Gráfico de Linha — Nível (%)</strong>
-                <canvas id="chartLinha"></canvas>
+                <div class="chart-container">
+                    <canvas id="chartLinha"></canvas>
+                </div>
                 <div class="small" id="info-linha">Exibe o histórico de nível ao longo do período selecionado.</div>
             </div>
             <div class="chart-card">
                 <strong>Gráfico de Barras — Variação</strong>
-                <canvas id="chartVela"></canvas>
+                <div class="chart-container">
+                    <canvas id="chartVela"></canvas>
+                </div>
                 <div class="small" id="info-vela">Mostra a variação do nível por período.</div>
             </div>
         </div>
@@ -620,12 +825,21 @@ function deveSalvarHistorico() {
     return (agora - ultimoRegistroHistorico) >= INTERVALO_SALVAMENTO;
 }
 
-// --- FUNÇÕES DO GRÁFICO ---
+// --- FUNÇÕES DO GRÁFICO - CORRIGIDAS PARA MOBILE ---
 function criarGraficos() {
+    // Destruir gráficos existentes se houver
+    if (chartLinha) {
+        chartLinha.destroy();
+    }
+    if (chartVela) {
+        chartVela.destroy();
+    }
+
     const ctxL = document.getElementById('chartLinha').getContext('2d');
     const grad = ctxL.createLinearGradient(0, 0, 0, 300);
     grad.addColorStop(0, 'rgba(6,182,212,0.28)');
     grad.addColorStop(1, 'rgba(6,182,212,0.03)');
+    
     chartLinha = new Chart(ctxL, {
         type: 'line',
         data: { 
@@ -637,15 +851,20 @@ function criarGraficos() {
                 backgroundColor: grad, 
                 borderColor: 'rgba(6,182,212,0.95)', 
                 tension: 0.25, 
-                pointRadius: 3, 
+                pointRadius: 2, // Menor para mobile
                 borderWidth: 2,
                 pointBackgroundColor: 'rgba(6,182,212,1)',
                 pointBorderColor: '#ffffff',
-                pointBorderWidth: 2
+                pointBorderWidth: 1,
+                pointHoverRadius: 4
             }] 
         },
         options: { 
-            animation: false, 
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 0
+            },
             plugins: { 
                 legend: { 
                     display: true,
@@ -653,20 +872,43 @@ function criarGraficos() {
                         color: '#666',
                         font: {
                             family: 'Arial, Helvetica, sans-serif',
-                            size: 12
+                            size: window.innerWidth < 480 ? 10 : 12
                         }
                     }
-                } 
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    titleFont: {
+                        size: window.innerWidth < 480 ? 10 : 12
+                    },
+                    bodyFont: {
+                        size: window.innerWidth < 480 ? 10 : 12
+                    }
+                }
             }, 
             scales: { 
                 x: { 
-                    ticks: { color: '#666' },
+                    ticks: { 
+                        color: '#666',
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: {
+                            size: window.innerWidth < 480 ? 8 : 10
+                        }
+                    },
                     grid: {
                         color: 'rgba(0,0,0,0.05)'
                     }
                 }, 
                 y: { 
-                    ticks: { color: '#666' }, 
+                    ticks: { 
+                        color: '#666',
+                        font: {
+                            size: window.innerWidth < 480 ? 8 : 10
+                        }
+                    }, 
                     min: 0, 
                     max: 100,
                     grid: {
@@ -674,7 +916,16 @@ function criarGraficos() {
                     }
                 } 
             },
-            maintainAspectRatio: false 
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            elements: {
+                point: {
+                    radius: window.innerWidth < 480 ? 2 : 3
+                }
+            }
         }
     });
 
@@ -690,14 +941,16 @@ function criarGraficos() {
                 backgroundColor: 'rgba(6, 182, 212, 0.8)',
                 borderColor: 'rgba(6, 182, 212, 1)',
                 borderWidth: 1,
-                borderRadius: 6,
+                borderRadius: 4, // Menor para mobile
                 borderSkipped: false,
             }]
         },
         options: {
-            animation: false,
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 0
+            },
             plugins: {
                 legend: {
                     display: true,
@@ -706,11 +959,18 @@ function criarGraficos() {
                         color: '#666',
                         font: {
                             family: 'Arial, Helvetica, sans-serif',
-                            size: 12
+                            size: window.innerWidth < 480 ? 10 : 12
                         }
                     }
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    titleFont: {
+                        size: window.innerWidth < 480 ? 10 : 12
+                    },
+                    bodyFont: {
+                        size: window.innerWidth < 480 ? 10 : 12
+                    },
                     callbacks: {
                         label: function(context) {
                             return `Nível: ${context.parsed.y}%`;
@@ -720,14 +980,24 @@ function criarGraficos() {
             },
             scales: {
                 x: {
-                    ticks: { color: '#666' },
+                    ticks: { 
+                        color: '#666',
+                        font: {
+                            size: window.innerWidth < 480 ? 8 : 10
+                        }
+                    },
                     grid: { 
                         color: 'rgba(0,0,0,0.05)',
                         display: false
                     }
                 },
                 y: {
-                    ticks: { color: '#666' },
+                    ticks: { 
+                        color: '#666',
+                        font: {
+                            size: window.innerWidth < 480 ? 8 : 10
+                        }
+                    },
                     min: 0,
                     max: 100,
                     grid: { color: 'rgba(0,0,0,0.05)' }
@@ -735,6 +1005,16 @@ function criarGraficos() {
             }
         }
     });
+}
+
+// --- FUNÇÃO PARA REDIMENSIONAR GRÁFICOS ---
+function redimensionarGraficos() {
+    if (chartLinha) {
+        chartLinha.resize();
+    }
+    if (chartVela) {
+        chartVela.resize();
+    }
 }
 
 function agruparPorDias(dados) {
@@ -851,11 +1131,9 @@ async function carregarHistorico() {
 
     console.log("📊 Carregando histórico do localStorage...");
     
-    // CORREÇÃO: No modo diário, carregar apenas os dados do dia específico
     let registrosFiltrados = [];
     
     if (currentView === 'diario') {
-        // Para modo diário, carrega apenas os dados do dia selecionado
         const { labels: labelsDoDia, niveis: niveisDoDia } = carregarHistoricoLocal(dataEscolhida);
         
         for (let i = 0; i < labelsDoDia.length; i++) {
@@ -865,7 +1143,6 @@ async function carregarHistorico() {
             });
         }
     } else {
-        // Para outros modos, carrega todos os dados e filtra
         const { labels: todasLabels, niveis: todosNiveis } = carregarHistoricoLocal();
         
         const dataInicioObj = new Date(dataInicio);
@@ -884,10 +1161,8 @@ async function carregarHistorico() {
         }
     }
 
-    // Processa dados de acordo com a view
     if (currentView === 'diario') {
-        // Para modo diário: mostra todas as leituras de 5 em 5 minutos do dia selecionado
-        historicoLabels = registrosFiltrados.map(r => r.label); // Já são apenas as horas
+        historicoLabels = registrosFiltrados.map(r => r.label);
         historicoNiveis = registrosFiltrados.map(r => r.nivel);
         
         labelsVela = historicoLabels;
@@ -932,6 +1207,9 @@ async function carregarHistorico() {
         
         chartLinha.update('none');
         chartVela.update('none');
+        
+        // Redimensionar após atualização
+        setTimeout(redimensionarGraficos, 100);
     }
 }
 
@@ -1106,8 +1384,10 @@ window.onload = function() {
 
         if (viewName === 'grafico') {
             carregarHistorico();
-            if(chartLinha) chartLinha.resize();
-            if(chartVela) chartVela.resize();
+            // Adicionar delay para garantir que o DOM esteja renderizado
+            setTimeout(() => {
+                redimensionarGraficos();
+            }, 300);
         } else if (viewName === 'config') {
             carregarConfiguracoes(); 
         }
@@ -1175,6 +1455,22 @@ window.onload = function() {
                 carregarHistorico();
             }
         });
+    });
+
+    // Adicionar listener para redimensionamento da tela
+    window.addEventListener('resize', function() {
+        if (document.getElementById('grafico-container').style.display !== 'none') {
+            redimensionarGraficos();
+        }
+    });
+
+    // Adicionar listener para orientação da tela (mobile)
+    window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+            if (document.getElementById('grafico-container').style.display !== 'none') {
+                redimensionarGraficos();
+            }
+        }, 300);
     });
 };
 
