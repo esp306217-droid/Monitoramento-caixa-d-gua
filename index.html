@@ -851,32 +851,43 @@ async function carregarHistorico() {
 
     console.log("📊 Carregando histórico do localStorage...");
     
-    const { labels: todasLabels, niveis: todosNiveis } = carregarHistoricoLocal();
+    // CORREÇÃO: No modo diário, carregar apenas os dados do dia específico
+    let registrosFiltrados = [];
     
-    const registrosFiltrados = [];
-    const dataInicioObj = new Date(dataInicio);
-    const dataFimObj = new Date(dataFim);
-    
-    for (let i = 0; i < todasLabels.length; i++) {
-        let registroData;
+    if (currentView === 'diario') {
+        // Para modo diário, carrega apenas os dados do dia selecionado
+        const { labels: labelsDoDia, niveis: niveisDoDia } = carregarHistoricoLocal(dataEscolhida);
         
-        if (currentView === 'diario') {
-            registroData = new Date(dataEscolhida + 'T00:00:00');
-        } else {
-            const labelParts = todasLabels[i].split(' ');
-            registroData = new Date(labelParts[0] + 'T00:00:00');
-        }
-        
-        if (registroData >= dataInicioObj && registroData <= dataFimObj) {
+        for (let i = 0; i < labelsDoDia.length; i++) {
             registrosFiltrados.push({
-                label: todasLabels[i],
-                nivel: todosNiveis[i]
+                label: labelsDoDia[i],
+                nivel: niveisDoDia[i]
             });
+        }
+    } else {
+        // Para outros modos, carrega todos os dados e filtra
+        const { labels: todasLabels, niveis: todosNiveis } = carregarHistoricoLocal();
+        
+        const dataInicioObj = new Date(dataInicio);
+        const dataFimObj = new Date(dataFim);
+        
+        for (let i = 0; i < todasLabels.length; i++) {
+            const labelParts = todasLabels[i].split(' ');
+            const registroData = new Date(labelParts[0] + 'T00:00:00');
+            
+            if (registroData >= dataInicioObj && registroData <= dataFimObj) {
+                registrosFiltrados.push({
+                    label: todasLabels[i],
+                    nivel: todosNiveis[i]
+                });
+            }
         }
     }
 
+    // Processa dados de acordo com a view
     if (currentView === 'diario') {
-        historicoLabels = registrosFiltrados.map(r => r.label.split(' ')[1]);
+        // Para modo diário: mostra todas as leituras de 5 em 5 minutos do dia selecionado
+        historicoLabels = registrosFiltrados.map(r => r.label); // Já são apenas as horas
         historicoNiveis = registrosFiltrados.map(r => r.nivel);
         
         labelsVela = historicoLabels;
