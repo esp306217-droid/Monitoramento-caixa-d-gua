@@ -8,81 +8,82 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 
 <style>
+/* SEU CSS PERMANECE INALTERADO PARA MANTER ESTILOS E RESPONSIVIDADE */
 :root {
-    --accent: #06b6d4;
-    --accent-dark: #0e7490;
-    --bg-color-light: #f0f7ff;
-    --header-bg: #ffffff;
+    --accent: #06b6d4;
+    --accent-dark: #0e7490;
+    --bg-color-light: #f0f7ff;
+    --header-bg: #ffffff;
 }
-* { 
-    box-sizing: border-box; 
-    -webkit-tap-highlight-color: transparent;
+* { 
+    box-sizing: border-box; 
+    -webkit-tap-highlight-color: transparent;
 }
 html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
 }
 body {
-    font-family: Arial, Helvetica, sans-serif; 
-    text-align: center;
-    background: #fff;
-    color: #334155; 
-    padding-bottom: 20px;
-    -webkit-text-size-adjust: 100%;
+    font-family: Arial, Helvetica, sans-serif; 
+    text-align: center;
+    background: #fff;
+    color: #334155; 
+    padding-bottom: 20px;
+    -webkit-text-size-adjust: 100%;
 }
 
 .main-header {
-    width: 100%;
-    padding: 10px 0;
-    background-color: var(--header-bg);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+    width: 100%;
+    padding: 10px 0;
+    background-color: var(--header-bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 #caixa-view, #grafico-container, #config-view {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 1rem;
-    overflow-y: auto;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 1rem;
+    overflow-y: auto;
 }
 
 .logo {
-    width: 160px;
-    margin-bottom: 20px;
-    opacity: 0.95;
-    z-index: 10;
-    position: relative;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
+    width: 160px;
+    margin-bottom: 20px;
+    opacity: 0.95;
+    z-index: 10;
+    position: relative;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .reservatorio-wrapper {
-    width: 350px;
-    height: 600px;
-    position: relative;
-    transform: scale(1.0);
-    margin-top: 0;
+    width: 350px;
+    height: 600px;
+    position: relative;
+    transform: scale(1.0);
+    margin-top: 0;
 }
 
 #reservatorio-svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(3px 3px 8px rgba(0,0,0,0.25));
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(3px 3px 8px rgba(0,0,0,0.25));
 }
 #reservatorio-svg .estrutura-solida { fill: url(#grad-metal); stroke: #555; stroke-width: 2.5; opacity: 0.7; }
 #reservatorio-svg .taca-solida { fill: url(#grad-metal); stroke: #000; stroke-width: 2.5; opacity: 0.25; }
@@ -93,18 +94,18 @@ body {
 
 .agua-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
 .agua {
-    position: absolute; bottom: 0; width: 100%; height: 0%;
-    background: linear-gradient(to top, #00ffcc, #1e90ff);
-    transition: height 0.6s ease;
-    overflow: hidden; color: white; font-weight: bold;
-    text-align: center; font-size: 1.2rem;
-    display: flex; align-items: center; justify-content: center;
-    font-family: Arial, Helvetica, sans-serif;
+    position: absolute; bottom: 0; width: 100%; height: 0%;
+    background: linear-gradient(to top, #00ffcc, #1e90ff);
+    transition: height 0.6s ease;
+    overflow: hidden; color: white; font-weight: bold;
+    text-align: center; font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+    font-family: Arial, Helvetica, sans-serif;
 }
 .agua::before, .agua::after {
-    content: ""; position: absolute; width: 200%; height: 20px;
-    top: -10px; left: -50%; border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
+    content: ""; position: absolute; width: 200%; height: 20px;
+    top: -10px; left: -50%; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
 }
 .agua::before { animation: onda1 3s infinite linear; }
 .agua::after { background: rgba(255,255,255,0.2); top: -8px; animation: onda2 5s infinite linear; }
@@ -112,173 +113,173 @@ body {
 @keyframes onda2 { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
 
 .modern-button {
-    background: var(--accent);
-    border: none;
-    color: #ffffff;
-    font-weight: 700; 
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 15px rgba(6,182,212,0.3);
-    transition: all 0.2s ease;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.05em; 
-    touch-action: manipulation;
+    background: var(--accent);
+    border: none;
+    color: #ffffff;
+    font-weight: 700; 
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 15px rgba(6,182,212,0.3);
+    transition: all 0.2s ease;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em; 
+    touch-action: manipulation;
 }
 .modern-button:hover {
-    background: var(--accent-dark); 
-    box-shadow: 0 2px 10px rgba(6,182,212,0.4);
-    transform: translateY(-1px);
+    background: var(--accent-dark); 
+    box-shadow: 0 2px 10px rgba(6,182,212,0.4);
+    transform: translateY(-1px);
 }
 .modern-button:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 5px rgba(6,182,212,0.4);
+    transform: translateY(0);
+    box-shadow: 0 1px 5px rgba(6,182,212,0.4);
 }
 
 #grafico-container header {
-    width: 100%; 
-    display: flex; flex-wrap: wrap;
-    justify-content: space-between; align-items: center; gap: 12px;
-    margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
+    width: 100%; 
+    display: flex; flex-wrap: wrap;
+    justify-content: space-between; align-items: center; gap: 12px;
+    margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
 }
-#grafico-container header h1 { 
-    margin: 0; 
-    font-family: Arial, Helvetica, sans-serif; 
-    font-size: 1.5rem; 
-    color: #1e3a8a; 
-    width: 100%;
-    text-align: center;
+#grafico-container header h1 { 
+    margin: 0; 
+    font-family: Arial, Helvetica, sans-serif; 
+    font-size: 1.5rem; 
+    color: #1e3a8a; 
+    width: 100%;
+    text-align: center;
 }
-.header-right { 
-    display: flex; 
-    flex-wrap: wrap; 
-    align-items: center; 
-    gap: 20px; 
-    justify-content: center; 
-    flex-grow: 1;
-    width: 100%;
+.header-right { 
+    display: flex; 
+    flex-wrap: wrap; 
+    align-items: center; 
+    gap: 20px; 
+    justify-content: center; 
+    flex-grow: 1;
+    width: 100%;
 }
-.controls { 
-    display: flex; 
-    gap: 10px; 
-    align-items: center; 
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
+.controls { 
+    display: flex; 
+    gap: 10px; 
+    align-items: center; 
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
 }
-input[type="date"], input[type="month"] { 
-    background: #f0f0f0; 
-    color: #333; 
-    border: 1px solid #ccc; 
-    border-radius: 6px; 
-    padding: 8px 12px;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.9rem;
-    min-width: 120px;
+input[type="date"], input[type="month"] { 
+    background: #f0f0f0; 
+    color: #333; 
+    border: 1px solid #ccc; 
+    border-radius: 6px; 
+    padding: 8px 12px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
+    min-width: 120px;
 }
 #intervalo-picker span { color: #666; font-size: 0.9rem; }
 
-.board { 
-    width: 100%; 
-    background: #ffffff;
-    border-radius: 12px; 
-    padding: 18px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-    border: 1px solid #eee;
-    margin: 0 auto; 
+.board { 
+    width: 100%; 
+    background: #ffffff;
+    border-radius: 12px; 
+    padding: 18px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    border: 1px solid #eee;
+    margin: 0 auto; 
 }
-.charts { 
-    display: grid; 
-    grid-template-columns: 1fr; 
-    gap: 22px; 
-    width: 100%;
+.charts { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    gap: 22px; 
+    width: 100%;
 }
 
-.chart-card { 
-    background: var(--bg-color-light);
-    padding: 14px; 
-    border-radius: 10px; 
-    border: 1px solid #b0cce3;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    width: 100%;
-    overflow: hidden;
+.chart-card { 
+    background: var(--bg-color-light);
+    padding: 14px; 
+    border-radius: 10px; 
+    border: 1px solid #b0cce3;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    width: 100%;
+    overflow: hidden;
 }
-.chart-card strong { 
-    font-family: Arial, Helvetica, sans-serif; 
-    color: #1e3a8a; 
-    font-size: 1.1rem;
-    display: block;
-    margin-bottom: 10px;
+.chart-card strong { 
+    font-family: Arial, Helvetica, sans-serif; 
+    color: #1e3a8a; 
+    font-size: 1.1rem;
+    display: block;
+    margin-bottom: 10px;
 }
 
 .chart-container {
-    width: 100%;
-    position: relative;
-    height: 400px;
-    min-height: 300px;
+    width: 100%;
+    position: relative;
+    height: 400px;
+    min-height: 300px;
 }
 
-canvas { 
-    width: 100% !important; 
-    height: 100% !important;
-    display: block; 
+canvas { 
+    width: 100% !important; 
+    height: 100% !important;
+    display: block; 
 }
 .small { font-size: .9rem; color: #666; margin-top: 4px; }
 
-.view-selector { 
-    display: flex; 
-    gap: 5px; 
-    background: #e2e8f0; 
-    padding: 4px; 
-    border-radius: 8px; 
-    flex-wrap: wrap;
-    justify-content: center;
+.view-selector { 
+    display: flex; 
+    gap: 5px; 
+    background: #e2e8f0; 
+    padding: 4px; 
+    border-radius: 8px; 
+    flex-wrap: wrap;
+    justify-content: center;
 }
-.view-btn { 
-    padding: 8px 14px; 
-    border: none; 
-    border-radius: 6px; 
-    cursor: pointer; 
-    background: transparent; 
-    color: #334155; 
-    font-weight: 700; 
-    font-family: Arial, Helvetica, sans-serif; 
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    transition: all 0.2s ease;
-    letter-spacing: 0.03em;
-    width: auto;
-    text-align: center;
-    touch-action: manipulation;
+.view-btn { 
+    padding: 8px 14px; 
+    border: none; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    background: transparent; 
+    color: #334155; 
+    font-weight: 700; 
+    font-family: Arial, Helvetica, sans-serif; 
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    letter-spacing: 0.03em;
+    width: auto;
+    text-align: center;
+    touch-action: manipulation;
 }
-.view-btn.active { 
-    background: var(--accent); 
-    color: #ffffff; 
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+.view-btn.active { 
+    background: var(--accent); 
+    color: #ffffff; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
 }
 .view-btn:hover:not(.active) {
-    background: #d0dae6;
-    color: #1e3a8a;
+    background: #d0dae6;
+    color: #1e3a8a;
 }
 
 .nav-button {
-    width: auto; 
-    text-align: center; 
-    padding-left: 14px;
-    padding-right: 14px;
-    font-size: 0.9rem;
-    touch-action: manipulation;
+    width: auto; 
+    text-align: center; 
+    padding-left: 14px;
+    padding-right: 14px;
+    font-size: 0.9rem;
+    touch-action: manipulation;
 }
 .nav-button.active {
-    border-left: none; 
-    box-shadow: 0 2px 8px rgba(6,182,212,0.3);
+    border-left: none; 
+    box-shadow: 0 2px 8px rgba(6,182,212,0.3);
 }
 .nav-button.active:hover {
-    background: var(--accent-dark);
-    transform: none;
+    background: var(--accent-dark);
+    transform: none;
 }
 
 @keyframes pisca { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -289,441 +290,441 @@ canvas {
 .led-base.aceso.verde { fill: #33ff33; filter: drop-shadow(0 0 5px #33ff33) drop-shadow(0 0 10px #33ff33); animation: pisca 1.2s infinite; }
 
 #config-view h1 { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; }
-.config-board { 
-    display: grid; 
-    grid-template-columns: 1fr; 
-    gap: 20px; 
-    width: 100%; 
-    max-width: 900px; 
+.config-board { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    gap: 20px; 
+    width: 100%; 
+    max-width: 900px; 
 }
-.config-card { 
-    background: #ffffff;
-    padding: 20px; 
-    border-radius: 12px; 
-    border: 1px solid #eee; 
-    text-align: left;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    width: 100%;
+.config-card { 
+    background: #ffffff;
+    padding: 20px; 
+    border-radius: 12px; 
+    border: 1px solid #eee; 
+    text-align: left;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    width: 100%;
 }
-.config-card h2 { 
-    margin-top: 0; 
-    font-family: Arial, Helvetica, sans-serif; 
-    color: #1e3a8a; 
-    font-size: 1.25rem;
+.config-card h2 { 
+    margin-top: 0; 
+    font-family: Arial, Helvetica, sans-serif; 
+    color: #1e3a8a; 
+    font-size: 1.25rem;
 }
-.form-group { 
-    display: flex; 
-    gap: 10px; 
-    margin-bottom: 15px; 
-    flex-wrap: wrap;
+.form-group { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 15px; 
+    flex-wrap: wrap;
 }
-.form-group input, .form-group select { 
-    flex-grow: 1; 
-    padding: 8px; 
-    border: 1px solid #ccc; 
-    border-radius: 6px; 
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.9rem;
-    color: #333;
-    min-width: 150px;
+.form-group input, .form-group select { 
+    flex-grow: 1; 
+    padding: 8px; 
+    border: 1px solid #ccc; 
+    border-radius: 6px; 
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
+    color: #333;
+    min-width: 150px;
 }
 #lista-emails { list-style: none; padding: 0; margin: 0; }
-.email-item { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: 10px; 
-    border-bottom: 1px solid #eee; 
-    flex-wrap: wrap;
+.email-item { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 10px; 
+    border-bottom: 1px solid #eee; 
+    flex-wrap: wrap;
 }
-.email-item span { 
-    font-weight: bold; 
-    color: #333; 
-    word-break: break-all; 
-    flex: 1;
-    margin-right: 10px;
+.email-item span { 
+    font-weight: bold; 
+    color: #333; 
+    word-break: break-all; 
+    flex: 1;
+    margin-right: 10px;
 }
-.email-item button { 
-    background: #ef4444; 
-    color: white; 
-    font-size: 0.8rem;
-    padding: 6px 10px; 
-    border-radius: 6px; 
-    border: none; 
-    cursor: pointer;
-    text-transform: uppercase;
-    font-weight: 700;
-    font-family: Arial, Helvetica, sans-serif;
-    flex-shrink: 0; 
-    margin-left: 10px;
-    touch-action: manipulation;
+.email-item button { 
+    background: #ef4444; 
+    color: white; 
+    font-size: 0.8rem;
+    padding: 6px 10px; 
+    border-radius: 6px; 
+    border: none; 
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-family: Arial, Helvetica, sans-serif;
+    flex-shrink: 0; 
+    margin-left: 10px;
+    touch-action: manipulation;
 }
 .email-item button:hover { background: #dc2626; }
 .card-emails {
-    grid-column: 1 / -1;
+    grid-column: 1 / -1;
 }
 
 .leitura-atual {
-    position: fixed;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: linear-gradient(135deg, #06b6d4, #0e7490);
-    color: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(6,182,212,0.3);
-    min-width: 150px;
-    text-align: center;
-    z-index: 100;
-    border: 2px solid white;
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #06b6d4, #0e7490);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(6,182,212,0.3);
+    min-width: 150px;
+    text-align: center;
+    z-index: 100;
+    border: 2px solid white;
 }
 
 .leitura-atual h3 {
-    margin: 0 0 10px 0;
-    font-size: 1rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .leitura-valor {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .leitura-hora {
-    font-size: 0.8rem;
-    margin: 5px 0 0 0;
-    opacity: 0.9;
+    font-size: 0.8rem;
+    margin: 5px 0 0 0;
+    opacity: 0.9;
 }
 
 /* --- CORREÇÕES PARA MOBILE --- */
 @media (max-width: 800px) {
-    body {
-        padding-left: 0; 
-        padding-bottom: 20px; 
-        padding-top: 60px;
-        font-size: 14px;
-    }
+    body {
+        padding-left: 0; 
+        padding-bottom: 20px; 
+        padding-top: 60px;
+        font-size: 14px;
+    }
 
-    .main-header {
-        position: fixed;
-        top: 0;
-        left: 0;
-        gap: 8px;
-        padding: 8px 0;
-        margin-bottom: 10px;
-        width: 100%;
-    }
+    .main-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        gap: 8px;
+        padding: 8px 0;
+        margin-bottom: 10px;
+        width: 100%;
+    }
 
-    .nav-button {
-        padding: 8px 10px;
-        font-size: 0.8rem;
-        flex: 1;
-        min-width: 0;
-    }
-    
-    #caixa-view, #grafico-container, #config-view { 
-        padding: 0.5rem; 
-        width: 100%;
-    }
-    
-    .reservatorio-wrapper { 
-        width: 95%; 
-        max-width: 300px;
-        height: 50vh; 
-        min-height: 400px;
-    }
-    
-    .logo { 
-        margin-top: 10px;
-        margin-bottom: 15px; 
-        width: 140px;
-    } 
-    
-    #grafico-container header, .header-right { 
-        flex-direction: column; 
-        align-items: stretch; 
-        gap: 10px; 
-    } 
-    
-    .controls { 
-        flex-direction: column; 
-        align-items: stretch;
-        gap: 8px;
-    } 
-    
-    .view-selector { 
-        justify-content: center;
-        width: 100%;
-    } 
-    
-    .config-board { 
-        grid-template-columns: 1fr; 
-        gap: 15px;
-    }
-    
-    .chart-card {
-        padding: 10px;
-        margin: 0 5px;
-    }
+    .nav-button {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    #caixa-view, #grafico-container, #config-view { 
+        padding: 0.5rem; 
+        width: 100%;
+    }
+    
+    .reservatorio-wrapper { 
+        width: 95%; 
+        max-width: 300px;
+        height: 50vh; 
+        min-height: 400px;
+    }
+    
+    .logo { 
+        margin-top: 10px;
+        margin-bottom: 15px; 
+        width: 140px;
+    } 
+    
+    #grafico-container header, .header-right { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    } 
+    
+    .controls { 
+        flex-direction: column; 
+        align-items: stretch;
+        gap: 8px;
+    } 
+    
+    .view-selector { 
+        justify-content: center;
+        width: 100%;
+    } 
+    
+    .config-board { 
+        grid-template-columns: 1fr; 
+        gap: 15px;
+    }
+    
+    .chart-card {
+        padding: 10px;
+        margin: 0 5px;
+    }
 
-    .chart-container {
-        height: 300px !important;
-        min-height: 250px;
-    }
+    .chart-container {
+        height: 300px !important;
+        min-height: 250px;
+    }
 
-    canvas {
-        height: 300px !important;
-        max-height: 300px;
-    }
+    canvas {
+        height: 300px !important;
+        max-height: 300px;
+    }
 
-    .leitura-atual {
-        position: relative;
-        right: auto;
-        top: auto;
-        transform: none;
-        margin: 20px auto;
-        width: 90%;
-        max-width: 200px;
-    }
+    .leitura-atual {
+        position: relative;
+        right: auto;
+        top: auto;
+        transform: none;
+        margin: 20px auto;
+        width: 90%;
+        max-width: 200px;
+    }
 
-    input[type="date"], input[type="month"] {
-        width: 100%;
-        font-size: 16px; /* Prevent zoom on iOS */
-    }
+    input[type="date"], input[type="month"] {
+        width: 100%;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
 
-    .form-group {
-        flex-direction: column;
-    }
+    .form-group {
+        flex-direction: column;
+    }
 
-    .form-group input, .form-group select {
-        width: 100%;
-    }
+    .form-group input, .form-group select {
+        width: 100%;
+    }
 
-    #grafico-container header h1 {
-        font-size: 1.3rem;
-    }
+    #grafico-container header h1 {
+        font-size: 1.3rem;
+    }
 
-    .modern-button {
-        padding: 12px 16px;
-        font-size: 0.85rem;
-    }
+    .modern-button {
+        padding: 12px 16px;
+        font-size: 0.85rem;
+    }
 }
 
 @media (max-width: 480px) {
-    .chart-container {
-        height: 250px !important;
-        min-height: 200px;
-    }
+    .chart-container {
+        height: 250px !important;
+        min-height: 200px;
+    }
 
-    canvas {
-        height: 250px !important;
-    }
+    canvas {
+        height: 250px !important;
+    }
 
-    .reservatorio-wrapper {
-        height: 45vh;
-        min-height: 350px;
-    }
+    .reservatorio-wrapper {
+        height: 45vh;
+        min-height: 350px;
+    }
 
-    .main-header {
-        gap: 5px;
-    }
+    .main-header {
+        gap: 5px;
+    }
 
-    .nav-button {
-        padding: 6px 8px;
-        font-size: 0.75rem;
-    }
+    .nav-button {
+        padding: 6px 8px;
+        font-size: 0.75rem;
+    }
 
-    .view-btn {
-        padding: 6px 10px;
-        font-size: 0.75rem;
-    }
+    .view-btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
 }
 
 .erro-conexao {
-    background: #fee2e2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin: 10px 0;
-    font-weight: bold;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-weight: bold;
 }
 
 /* Prevenir zoom em inputs no iOS */
 @media screen and (-webkit-min-device-pixel-ratio:0) {
-    select,
-    textarea,
-    input {
-        font-size: 16px;
-    }
+    select,
+    textarea,
+    input {
+        font-size: 16px;
+    }
 }
 
 /* Melhorar o comportamento responsivo dos gráficos */
 #grafico-container {
-    backface-visibility: hidden;
-    perspective: 1000;
+    backface-visibility: hidden;
+    perspective: 1000;
 }
 
 .chart-container canvas {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }
 
 /* Garantir que os gráficos sejam visíveis no WebView */
 .chart-container {
-    background: white;
+    background: white;
 }
 
 /* Forçar hardware acceleration */
 .chart-card {
-    transform: translateZ(0);
+    transform: translateZ(0);
 }
 </style>
 </head>
 <body>
 
 <div class="main-header">
-    <button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
-    <button id="btn-view-grafico" class="nav-button view-btn">Gráfico</button>
-    <button id="btn-view-config" class="nav-button view-btn">Configurações</button>
+    <button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
+    <button id="btn-view-grafico" class="nav-button view-btn">Gráfico</button>
+    <button id="btn-view-config" class="nav-button view-btn">Configurações</button>
 </div>
 
 <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
 
 <div class="leitura-atual" id="leitura-atual">
-    <h3>Leitura Atual</h3>
-    <div class="leitura-valor" id="leitura-valor">0%</div>
-    <div class="leitura-hora" id="leitura-hora">--:--</div>
+    <h3>Leitura Atual</h3>
+    <div class="leitura-valor" id="leitura-valor">0%</div>
+    <div class="leitura-hora" id="leitura-hora">--:--</div>
 </div>
 
 <div id="caixa-view">
-    <div class="reservatorio-wrapper" id="caixa-container">
-        <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
-            <defs>
-                <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#DADADA"/><stop offset="50%" stop-color="#FAFAFA"/><stop offset="100%" stop-color="#CFCFCF"/>
-                </linearGradient>
-                <clipPath id="mascara-agua">
-                    <path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
-                </clipPath>
-            </defs>
-            <foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
-                <div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
-                    <div class="agua" id="agua">0%</div>
-                </div>
-            </foreignObject>
-            <g id="estrutura-reservatorio">
-                <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
-                <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
-                <g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
-                <g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
-            </g>
-        </svg>
-    </div>
-    <div id="status-alerta-caixa" class="small" style="font-weight:bold; font-size: 1rem; margin-top: 15px; min-height: 1.2rem;"></div>
+    <div class="reservatorio-wrapper" id="caixa-container">
+        <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
+            <defs>
+                <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#DADADA"/><stop offset="50%" stop-color="#FAFAFA"/><stop offset="100%" stop-color="#CFCFCF"/>
+                </linearGradient>
+                <clipPath id="mascara-agua">
+                    <path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
+                </clipPath>
+            </defs>
+            <foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
+                    <div class="agua" id="agua">0%</div>
+                </div>
+            </foreignObject>
+            <g id="estrutura-reservatorio">
+                <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
+                <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
+                <g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
+                <g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
+            </g>
+        </svg>
+    </div>
+    <div id="status-alerta-caixa" class="small" style="font-weight:bold; font-size: 1rem; margin-top: 15px; min-height: 1.2rem;"></div>
 </div>
 
 <div id="grafico-container" style="display:none;">
-    <header>
-        <div class="header-right">
-            <h1>Histórico de Monitoramento</h1>
-            <div class="view-selector">
-                <button class="view-btn active" data-view="diario">Diário</button>
-                <button class="view-btn" data-view="mensal">Mensal</button>
-                <button class="view-btn" data-view="intervalo">Intervalo</button>
-            </div>
-            <div class="controls">
-                <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
-                <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
-                <div id="intervalo-picker" style="display:none;">
-                    <input type="month" id="mesInicio" placeholder="Mês inicial">
-                    <span>até</span>
-                    <input type="month" id="mesFim" placeholder="Mês final">
-                </div>
-                <button id="btnAtualizar" class="modern-button">Carregar</button>
-            </div>
-        </div>
-    </header>
-    <div class="board">
-        <div class="charts">
-            <div class="chart-card">
-                <strong>Gráfico de Linha — Nível (%)</strong>
-                <div class="chart-container">
-                    <canvas id="chartLinha"></canvas>
-                </div>
-                <div class="small" id="info-linha">Exibe o histórico de nível ao longo do período selecionado.</div>
-            </div>
-            <div class="chart-card">
-                <strong>Gráfico de Barras — Variação</strong>
-                <div class="chart-container">
-                    <canvas id="chartVela"></canvas>
-                </div>
-                <div class="small" id="info-vela">Mostra a variação do nível por período.</div>
-            </div>
-        </div>
-    </div>
+    <header>
+        <div class="header-right">
+            <h1>Histórico de Monitoramento</h1>
+            <div class="view-selector">
+                <button class="view-btn active" data-view="diario">Diário</button>
+                <button class="view-btn" data-view="mensal">Mensal</button>
+                <button class="view-btn" data-view="intervalo">Intervalo</button>
+            </div>
+            <div class="controls">
+                <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
+                <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
+                <div id="intervalo-picker" style="display:none;">
+                    <input type="month" id="mesInicio" placeholder="Mês inicial">
+                    <span>até</span>
+                    <input type="month" id="mesFim" placeholder="Mês final">
+                </div>
+                <button id="btnAtualizar" class="modern-button">Carregar</button>
+            </div>
+        </div>
+    </header>
+    <div class="board">
+        <div class="charts">
+            <div class="chart-card">
+                <strong>Gráfico de Linha — Nível (%)</strong>
+                <div class="chart-container">
+                    <canvas id="chartLinha"></canvas>
+                </div>
+                <div class="small" id="info-linha">Exibe o histórico de nível ao longo do período selecionado.</div>
+            </div>
+            <div class="chart-card">
+                <strong>Gráfico de Barras — Variação</strong>
+                <div class="chart-container">
+                    <canvas id="chartVela"></canvas>
+                </div>
+                <div class="small" id="info-vela">Mostra a variação do nível por período.</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div id="config-view" style="display:none;">
-    <h1>Configurações de Notificação</h1>
-    <p class="small" style="max-width: 600px; margin: -10px auto 20px auto;">
-        As configurações salvas aqui serão lidas automaticamente pelo ESP32 em campo.
-    </p>
-    <div class="config-board">
-        
-        <div class="config-card">
-            <h2>Definir Nível de Alerta (%)</h2>
-            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
-                Define a porcentagem que dispara o alerta de nível baixo.
-            </p>
-            <div class="form-group">
-                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
-                <button id="btn-salvar-nivel-alerta" class="modern-button">Salvar</button>
-            </div>
-            <div id="status-alerta" class="small" style="font-weight:bold;"></div>
-        </div>
+    <h1>Configurações de Notificação</h1>
+    <p class="small" style="max-width: 600px; margin: -10px auto 20px auto;">
+        As configurações salvas aqui serão lidas automaticamente pelo ESP32 em campo.
+    </p>
+    <div class="config-board">
+        
+        <div class="config-card">
+            <h2>Definir Nível de Alerta (%)</h2>
+            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
+                Define a porcentagem que dispara o alerta de nível baixo.
+            </p>
+            <div class="form-group">
+                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
+                <button id="btn-salvar-nivel-alerta" class="modern-button">Salvar</button>
+            </div>
+            <div id="status-alerta" class="small" style="font-weight:bold;"></div>
+        </div>
 
-        <div class="config-card">
-            <h2>Definir Chat ID do Telegram</h2>
-            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
-                ID numérico do usuário ou grupo do Telegram.
-            </p>
-            <div class="form-group">
-                <input type="text" id="telegram-id-valor" placeholder="Ex: -100123...">
-                <button id="btn-salvar-telegram-id" class="modern-button">Salvar</button>
-            </div>
-            <div id="status-telegram" class="small" style="font-weight:bold;"></div>
-        </div>
-        
-        <div class="config-card card-emails">
-            <h2>Gerenciar E-mails de Alerta</h2>
-            <div class="form-group">
-                <input type="email" id="email-valor" placeholder="novo.email@provedor.com">
-                <button id="btn-add-email" class="modern-button">Adicionar</button>
-            </div>
-            <div id="status-email" class="small" style="font-weight:bold; margin-bottom: 15px;"></div>
-            
-            <h3 style="margin-bottom: 10px; color: #555;">E-mails Salvos:</h3>
-            <ul id="lista-emails">
-            </ul>
-        </div>
+        <div class="config-card">
+            <h2>Definir Chat ID do Telegram</h2>
+            <p class="small" style="margin-top:-10px; margin-bottom:15px;">
+                ID numérico do usuário ou grupo do Telegram.
+            </p>
+            <div class="form-group">
+                <input type="text" id="telegram-id-valor" placeholder="Ex: -100123...">
+                <button id="btn-salvar-telegram-id" class="modern-button">Salvar</button>
+            </div>
+            <div id="status-telegram" class="small" style="font-weight:bold;"></div>
+        </div>
+        
+        <div class="config-card card-emails">
+            <h2>Gerenciar E-mails de Alerta</h2>
+            <div class="form-group">
+                <input type="email" id="email-valor" placeholder="novo.email@provedor.com">
+                <button id="btn-add-email" class="modern-button">Adicionar</button>
+            </div>
+            <div id="status-email" class="small" style="font-weight:bold; margin-bottom: 15px;"></div>
+            
+            <h3 style="margin-bottom: 10px; color: #555;">E-mails Salvos:</h3>
+            <ul id="lista-emails">
+            </ul>
+        </div>
 
-    </div>
+    </div>
 </div>
 
 <script>
 // --- CONSTANTES DO FIREBASE ---
 const DB_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/";
-const URL_NIVEL_ATUAL = `${DB_URL}/nivel_atual.json`;       
-const URL_NIVEL_LEGADO_PP7 = `${DB_URL}/PP7/nivel_pct.json`; 
-const URL_HISTORICO_NOVO = `${DB_URL}/PP7_historico`; 
-const URL_HISTORICO_ANTIGO = `${DB_URL}/leituras.json`; 
-const URL_CONFIG_NIVEL = `${DB_URL}/config/nivel_minimo.json`; 
+const URL_NIVEL_ATUAL = `${DB_URL}/nivel_atual.json`;       
+const URL_NIVEL_LEGADO_PP7 = `${DB_URL}/PP7/nivel_pct.json`; 
+const URL_HISTORICO_NOVO = `${DB_URL}/PP7_historico`; 
+const URL_HISTORICO_ANTIGO = `${DB_URL}/leituras.json`; 
+const URL_CONFIG_NIVEL = `${DB_URL}/config/nivel_minimo.json`; 
 const URL_CONFIG_TELEGRAM = `${DB_URL}/config/telegram.json`;
 const URL_CONFIG_EMAILS = `${DB_URL}/config/emails.json`;
 
@@ -735,7 +736,7 @@ let ultimoRegistroHistorico = 0;
 let currentView = 'diario';
 let nivelAtual = 1;
 let nivelAlertaConfigurado = 30;
-let authErrorNotified = false; 
+let authErrorNotified = false; 
 let fetchRetryCount = 0;
 const MAX_FETCH_FAILURES = 5;
 let loopIntervalo;
@@ -748,1070 +749,1071 @@ let isMitAppInventor = false;
 
 // --- DETECTAR SE ESTÁ NO MIT APP INVENTOR ---
 function detectarAmbiente() {
-    // Verifica se está em um WebView (MIT App Inventor)
-    if (window.navigator.userAgent.includes('WebView') || 
-        window.navigator.userAgent.includes('AppInventor') ||
-        !window.chrome) {
-        isMitAppInventor = true;
-        console.log("🚀 Ambiente detectado: MIT App Inventor WebView");
-        
-        // Aplicar correções específicas para MIT App Inventor
-        aplicarCorrecoesMitAppInventor();
-    }
+    // Verifica se está em um WebView (MIT App Inventor)
+    if (window.navigator.userAgent.includes('WebView') || 
+        window.navigator.userAgent.includes('AppInventor') ||
+        !window.chrome) {
+        isMitAppInventor = true;
+        console.log("🚀 Ambiente detectado: MIT App Inventor WebView");
+        
+        // Aplicar correções específicas para MIT App Inventor
+        aplicarCorrecoesMitAppInventor();
+    }
 }
 
 // --- CORREÇÕES ESPECÍFICAS PARA MIT APP INVENTOR ---
 function aplicarCorrecoesMitAppInventor() {
-    console.log("🔧 Aplicando correções para MIT App Inventor...");
-    
-    // Forçar redimensionamento inicial
-    setTimeout(() => {
-        if (chartLinha) chartLinha.resize();
-        if (chartVela) chartVela.resize();
-    }, 1000);
-    
-    // Adicionar mais listeners para garantir funcionamento
-    document.addEventListener('visibilitychange', function() {
-        setTimeout(redimensionarGraficos, 300);
-    });
-    
-    // Forçar atualização periódica dos gráficos
-    setInterval(() => {
-        if (document.getElementById('grafico-container').style.display !== 'none') {
-            redimensionarGraficos();
-        }
-    }, 5000);
+    console.log("🔧 Aplicando correções para MIT App Inventor...");
+    
+    // Forçar redimensionamento inicial
+    setTimeout(() => {
+        if (chartLinha) chartLinha.resize();
+        if (chartVela) chartVela.resize();
+    }, 1000);
+    
+    // Adicionar mais listeners para garantir funcionamento
+    document.addEventListener('visibilitychange', function() {
+        setTimeout(redimensionarGraficos, 300);
+    });
+    
+    // Forçar atualização periódica dos gráficos
+    setInterval(() => {
+        if (document.getElementById('grafico-container').style.display !== 'none') {
+            redimensionarGraficos();
+        }
+    }, 5000);
 }
 
 // --- FUNÇÕES DE HISTÓRICO ---
 function obterTimestampAtual() {
-    return Date.now();
+    return Date.now();
 }
 
 function formatarHoraParaHistorico(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false
-    });
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false
+    });
 }
 
 function formatarDataParaHistorico(timestamp) {
-    const date = new Date(timestamp);
-    return date.toISOString().split('T')[0];
+    const date = new Date(timestamp);
+    return date.toISOString().split('T')[0];
 }
 
 function salvarHistoricoLocal(nivel) {
-    try {
-        const timestamp = obterTimestampAtual();
-        const data = formatarDataParaHistorico(timestamp);
-        const hora = formatarHoraParaHistorico(timestamp);
-        
-        const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
-        
-        if (!historicoLocal[data]) {
-            historicoLocal[data] = {};
-        }
-        
-        historicoLocal[data][hora] = {
-            nivel: nivel,
-            timestamp: timestamp
-        };
-        
-        const datas = Object.keys(historicoLocal).sort();
-        if (datas.length > 90) {
-            const datasParaRemover = datas.slice(0, datas.length - 90);
-            datasParaRemover.forEach(dataParaRemover => {
-                delete historicoLocal[dataParaRemover];
-            });
-        }
-        
-        Object.keys(historicoLocal).forEach(dataKey => {
-            const registrosDoDia = historicoLocal[dataKey];
-            const horas = Object.keys(registrosDoDia).sort();
-            
-            if (horas.length > 288) {
-                const horasParaRemover = horas.slice(0, horas.length - 288);
-                horasParaRemover.forEach(horaParaRemover => {
-                    delete registrosDoDia[horaParaRemover];
-                });
-            }
-        });
-        
-        localStorage.setItem('historicoCaixaAgua', JSON.stringify(historicoLocal));
-        console.log(`✅ Histórico salvo: ${data} ${hora} - ${nivel}%`);
-        
-        return true;
-    } catch (e) {
-        console.error('❌ Erro ao salvar histórico local:', e);
-        return false;
-    }
+    try {
+        const timestamp = obterTimestampAtual();
+        const data = formatarDataParaHistorico(timestamp);
+        const hora = formatarHoraParaHistorico(timestamp);
+        
+        const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
+        
+        if (!historicoLocal[data]) {
+            historicoLocal[data] = {};
+        }
+        
+        historicoLocal[data][hora] = {
+            nivel: nivel,
+            timestamp: timestamp
+        };
+        
+        const datas = Object.keys(historicoLocal).sort();
+        if (datas.length > 90) {
+            const datasParaRemover = datas.slice(0, datas.length - 90);
+            datasParaRemover.forEach(dataParaRemover => {
+                delete historicoLocal[dataParaRemover];
+            });
+        }
+        
+        Object.keys(historicoLocal).forEach(dataKey => {
+            const registrosDoDia = historicoLocal[dataKey];
+            const horas = Object.keys(registrosDoDia).sort();
+            
+            if (horas.length > 288) {
+                const horasParaRemover = horas.slice(0, horas.length - 288);
+                horasParaRemover.forEach(horaParaRemover => {
+                    delete registrosDoDia[horaParaRemover];
+                });
+            }
+        });
+        
+        localStorage.setItem('historicoCaixaAgua', JSON.stringify(historicoLocal));
+        console.log(`✅ Histórico salvo: ${data} ${hora} - ${nivel}%`);
+        
+        return true;
+    } catch (e) {
+        console.error('❌ Erro ao salvar histórico local:', e);
+        return false;
+    }
 }
 
 function carregarHistoricoLocal(dataFiltro = null) {
-    try {
-        const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
-        const registros = [];
-        
-        Object.keys(historicoLocal).forEach(data => {
-            Object.keys(historicoLocal[data]).forEach(hora => {
-                const registro = historicoLocal[data][hora];
-                registros.push({
-                    data: data,
-                    hora: hora,
-                    nivel: registro.nivel,
-                    timestamp: registro.timestamp
-                });
-            });
-        });
-        
-        registros.sort((a, b) => a.timestamp - b.timestamp);
-        
-        const registrosFiltrados = dataFiltro 
-            ? registros.filter(r => r.data === dataFiltro)
-            : registros;
-        
-        const labels = registrosFiltrados.map(r => 
-            dataFiltro ? r.hora : `${r.data} ${r.hora}`
-        );
-        const niveis = registrosFiltrados.map(r => r.nivel);
-        
-        return { labels, niveis };
-    } catch (e) {
-        console.error('Erro ao carregar histórico local:', e);
-        return { labels: [], niveis: [] };
-    }
+    try {
+        const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
+        const registros = [];
+        
+        Object.keys(historicoLocal).forEach(data => {
+            Object.keys(historicoLocal[data]).forEach(hora => {
+                const registro = historicoLocal[data][hora];
+                registros.push({
+                    data: data,
+                    hora: hora,
+                    nivel: registro.nivel,
+                    timestamp: registro.timestamp
+                });
+            });
+        });
+        
+        registros.sort((a, b) => a.timestamp - b.timestamp);
+        
+        const registrosFiltrados = dataFiltro 
+            ? registros.filter(r => r.data === dataFiltro)
+            : registros;
+        
+        const labels = registrosFiltrados.map(r => 
+            dataFiltro ? r.hora : `${r.data} ${r.hora}`
+        );
+        const niveis = registrosFiltrados.map(r => r.nivel);
+        
+        return { labels, niveis };
+    } catch (e) {
+        console.error('Erro ao carregar histórico local:', e);
+        return { labels: [], niveis: [] };
+    }
 }
 
 function deveSalvarHistorico() {
-    const agora = obterTimestampAtual();
-    return (agora - ultimoRegistroHistorico) >= INTERVALO_SALVAMENTO;
+    const agora = obterTimestampAtual();
+    return (agora - ultimoRegistroHistorico) >= INTERVALO_SALVAMENTO;
 }
 
 // --- FUNÇÕES DO GRÁFICO - OTIMIZADAS PARA WEBVIEW ---
 function criarGraficos() {
-    console.log("📊 Inicializando gráficos...");
-    
-    // Destruir gráficos existentes se houver
-    if (chartLinha) {
-        chartLinha.destroy();
-    }
-    if (chartVela) {
-        chartVela.destroy();
-    }
+    console.log("📊 Inicializando gráficos...");
+    
+    // Destruir gráficos existentes se houver
+    if (chartLinha) {
+        chartLinha.destroy();
+    }
+    if (chartVela) {
+        chartVela.destroy();
+    }
 
-    const ctxL = document.getElementById('chartLinha').getContext('2d');
-    const grad = ctxL.createLinearGradient(0, 0, 0, 300);
-    grad.addColorStop(0, 'rgba(6,182,212,0.28)');
-    grad.addColorStop(1, 'rgba(6,182,212,0.03)');
-    
-    chartLinha = new Chart(ctxL, {
-        type: 'line',
-        data: { 
-            labels: [], 
-            datasets: [{ 
-                label: 'Nível (%)', 
-                data: [], 
-                fill: true, 
-                backgroundColor: grad, 
-                borderColor: 'rgba(6,182,212,0.95)', 
-                tension: 0.25, 
-                pointRadius: isMitAppInventor ? 3 : 2,
-                borderWidth: 2,
-                pointBackgroundColor: 'rgba(6,182,212,1)',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 1,
-                pointHoverRadius: 4
-            }] 
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            resizeDelay: isMitAppInventor ? 300 : 200,
-            animation: {
-                duration: isMitAppInventor ? 500 : 0,
-                onComplete: function() {
-                    // Callback para garantir que o gráfico foi renderizado
-                    if (isMitAppInventor) {
-                        setTimeout(redimensionarGraficos, 200);
-                    }
-                }
-            },
-            plugins: { 
-                legend: { 
-                    display: true,
-                    labels: {
-                        color: '#666',
-                        font: {
-                            family: 'Arial, Helvetica, sans-serif',
-                            size: window.innerWidth < 480 ? 10 : 12
-                        }
-                    }
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: 'rgba(0,0,0,0.7)',
-                    titleFont: {
-                        size: window.innerWidth < 480 ? 10 : 12
-                    },
-                    bodyFont: {
-                        size: window.innerWidth < 480 ? 10 : 12
-                    }
-                }
-            }, 
-            scales: { 
-                x: { 
-                    ticks: { 
-                        color: '#666',
-                        maxRotation: 45,
-                        minRotation: 45,
-                        font: {
-                            size: window.innerWidth < 480 ? 8 : 10
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)'
-                    }
-                }, 
-                y: { 
-                    ticks: { 
-                        color: '#666',
-                        font: {
-                            size: window.innerWidth < 480 ? 8 : 10
-                        }
-                    }, 
-                    min: 0, 
-                    max: 100,
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)'
-                    }
-                } 
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            },
-            elements: {
-                point: {
-                    radius: window.innerWidth < 480 ? 2 : 3
-                }
-            }
-        }
-    });
+    const ctxL = document.getElementById('chartLinha').getContext('2d');
+    const grad = ctxL.createLinearGradient(0, 0, 0, 300);
+    grad.addColorStop(0, 'rgba(6,182,212,0.28)');
+    grad.addColorStop(1, 'rgba(6,182,212,0.03)');
+    
+    chartLinha = new Chart(ctxL, {
+        type: 'line',
+        data: { 
+            labels: [], 
+            datasets: [{ 
+                label: 'Nível (%)', 
+                data: [], 
+                fill: true, 
+                backgroundColor: grad, 
+                borderColor: 'rgba(6,182,212,0.95)', 
+                tension: 0.25, 
+                pointRadius: isMitAppInventor ? 3 : 2,
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(6,182,212,1)',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1,
+                pointHoverRadius: 4
+            }] 
+        },
+        options: { 
+            responsive: true,
+            maintainAspectRatio: false,
+            resizeDelay: isMitAppInventor ? 300 : 200,
+            animation: {
+                duration: isMitAppInventor ? 500 : 0,
+                onComplete: function() {
+                    // Callback para garantir que o gráfico foi renderizado
+                    if (isMitAppInventor) {
+                        setTimeout(redimensionarGraficos, 200);
+                    }
+                }
+            },
+            plugins: { 
+                legend: { 
+                    display: true,
+                    labels: {
+                        color: '#666',
+                        font: {
+                            family: 'Arial, Helvetica, sans-serif',
+                            size: window.innerWidth < 480 ? 10 : 12
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    titleFont: {
+                        size: window.innerWidth < 480 ? 10 : 12
+                    },
+                    bodyFont: {
+                        size: window.innerWidth < 480 ? 10 : 12
+                    }
+                }
+            }, 
+            scales: { 
+                x: { 
+                    ticks: { 
+                        color: '#666',
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: {
+                            size: window.innerWidth < 480 ? 8 : 10
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                }, 
+                y: { 
+                    ticks: { 
+                        color: '#666',
+                        font: {
+                            size: window.innerWidth < 480 ? 8 : 10
+                        }
+                    }, 
+                    min: 0, 
+                    max: 100,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                } 
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            elements: {
+                point: {
+                    radius: window.innerWidth < 480 ? 2 : 3
+                }
+            }
+        }
+    });
 
-    const ctxV = document.getElementById('chartVela').getContext('2d');
-    
-    chartVela = new Chart(ctxV, {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Nível (%)',
-                data: [],
-                backgroundColor: 'rgba(6, 182, 212, 0.8)',
-                borderColor: 'rgba(6, 182, 212, 1)',
-                borderWidth: 1,
-                borderRadius: 4,
-                borderSkipped: false,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            resizeDelay: isMitAppInventor ? 300 : 200,
-            animation: {
-                duration: isMitAppInventor ? 500 : 0,
-                onComplete: function() {
-                    if (isMitAppInventor) {
-                        setTimeout(redimensionarGraficos, 200);
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        color: '#666',
-                        font: {
-                            family: 'Arial, Helvetica, sans-serif',
-                            size: window.innerWidth < 480 ? 10 : 12
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.7)',
-                    titleFont: {
-                        size: window.innerWidth < 480 ? 10 : 12
-                    },
-                    bodyFont: {
-                        size: window.innerWidth < 480 ? 10 : 12
-                    },
-                    callbacks: {
-                        label: function(context) {
-                            return `Nível: ${context.parsed.y}%`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: { 
-                        color: '#666',
-                        font: {
-                            size: window.innerWidth < 480 ? 8 : 10
-                        }
-                    },
-                    grid: { 
-                        color: 'rgba(0,0,0,0.05)',
-                        display: false
-                    }
-                },
-                y: {
-                    ticks: { 
-                        color: '#666',
-                        font: {
-                            size: window.innerWidth < 480 ? 8 : 10
-                        }
-                    },
-                    min: 0,
-                    max: 100,
-                    grid: { color: 'rgba(0,0,0,0.05)' }
-                }
-            }
-        }
-    });
-    
-    console.log("✅ Gráficos inicializados com sucesso");
+    const ctxV = document.getElementById('chartVela').getContext('2d');
+    
+    chartVela = new Chart(ctxV, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Nível (%)',
+                data: [],
+                backgroundColor: 'rgba(6, 182, 212, 0.8)',
+                borderColor: 'rgba(6, 182, 212, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            resizeDelay: isMitAppInventor ? 300 : 200,
+            animation: {
+                duration: isMitAppInventor ? 500 : 0,
+                onComplete: function() {
+                    if (isMitAppInventor) {
+                        setTimeout(redimensionarGraficos, 200);
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#666',
+                        font: {
+                            family: 'Arial, Helvetica, sans-serif',
+                            size: window.innerWidth < 480 ? 10 : 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    titleFont: {
+                        size: window.innerWidth < 480 ? 10 : 12
+                    },
+                    bodyFont: {
+                        size: window.innerWidth < 480 ? 10 : 12
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return `Nível: ${context.parsed.y}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { 
+                        color: '#666',
+                        font: {
+                            size: window.innerWidth < 480 ? 8 : 10
+                        }
+                    },
+                    grid: { 
+                        color: 'rgba(0,0,0,0.05)',
+                        display: false
+                    }
+                },
+                y: {
+                    ticks: { 
+                        color: '#666',
+                        font: {
+                            size: window.innerWidth < 480 ? 8 : 10
+                        }
+                    },
+                    min: 0,
+                    max: 100,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                }
+            }
+        }
+    });
+    
+    console.log("✅ Gráficos inicializados com sucesso");
 }
 
 // --- FUNÇÃO PARA REDIMENSIONAR GRÁFICOS ---
 function redimensionarGraficos() {
-    if (isMitAppInventor) {
-        console.log("🔄 Redimensionando gráficos para MIT App Inventor...");
-    }
-    
-    // Forçar um recálculo do layout
-    if (chartLinha && chartLinha.canvas) {
-        const canvasLinha = chartLinha.canvas;
-        const containerLinha = canvasLinha.parentElement;
-        if (containerLinha) {
-            containerLinha.style.height = containerLinha.offsetHeight + 'px';
-            try {
-                chartLinha.resize();
-                chartLinha.update('none');
-            } catch (e) {
-                console.warn("Erro ao redimensionar gráfico de linha:", e);
-            }
-        }
-    }
-    
-    if (chartVela && chartVela.canvas) {
-        const canvasVela = chartVela.canvas;
-        const containerVela = canvasVela.parentElement;
-        if (containerVela) {
-            containerVela.style.height = containerVela.offsetHeight + 'px';
-            try {
-                chartVela.resize();
-                chartVela.update('none');
-            } catch (e) {
-                console.warn("Erro ao redimensionar gráfico de barras:", e);
-            }
-        }
-    }
+    if (isMitAppInventor) {
+        console.log("🔄 Redimensionando gráficos para MIT App Inventor...");
+    }
+    
+    // Forçar um recálculo do layout
+    if (chartLinha && chartLinha.canvas) {
+        const canvasLinha = chartLinha.canvas;
+        const containerLinha = canvasLinha.parentElement;
+        if (containerLinha) {
+            containerLinha.style.height = containerLinha.offsetHeight + 'px';
+            try {
+                chartLinha.resize();
+                chartLinha.update('none');
+            } catch (e) {
+                console.warn("Erro ao redimensionar gráfico de linha:", e);
+            }
+        }
+    }
+    
+    if (chartVela && chartVela.canvas) {
+        const canvasVela = chartVela.canvas;
+        const containerVela = canvasVela.parentElement;
+        if (containerVela) {
+            containerVela.style.height = containerVela.offsetHeight + 'px';
+            try {
+                chartVela.resize();
+                chartVela.update('none');
+            } catch (e) {
+                console.warn("Erro ao redimensionar gráfico de barras:", e);
+            }
+        }
+    }
 }
 
 function agruparPorDias(dados) {
-    const diasAgrupados = {};
-    
-    dados.forEach(registro => {
-        if (!diasAgrupados[registro.data]) {
-            diasAgrupados[registro.data] = [];
-        }
-        diasAgrupados[registro.data].push(registro.nivel);
-    });
-    
-    const resultado = {};
-    Object.keys(diasAgrupados).forEach(dia => {
-        const niveis = diasAgrupados[dia];
-        resultado[dia] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
-    });
-    
-    return resultado;
+    const diasAgrupados = {};
+    
+    dados.forEach(registro => {
+        if (!diasAgrupados[registro.data]) {
+            diasAgrupados[registro.data] = [];
+        }
+        diasAgrupados[registro.data].push(registro.nivel);
+    });
+    
+    const resultado = {};
+    Object.keys(diasAgrupados).forEach(dia => {
+        const niveis = diasAgrupados[dia];
+        resultado[dia] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
+    });
+    
+    return resultado;
 }
 
 function agruparPorSemanas(dados) {
-    const semanas = {};
-    
-    dados.forEach(registro => {
-        const date = new Date(registro.data + 'T00:00:00');
-        const semanaAno = getWeekNumber(date);
-        const chaveSemana = `Semana ${semanaAno.semana}/${semanaAno.ano}`;
-        
-        if (!semanas[chaveSemana]) {
-            semanas[chaveSemana] = [];
-        }
-        semanas[chaveSemana].push(registro.nivel);
-    });
-    
-    const resultado = {};
-    Object.keys(semanas).forEach(semana => {
-        const niveis = semanas[semana];
-        resultado[semana] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
-    });
-    
-    return resultado;
+    const semanas = {};
+    
+    dados.forEach(registro => {
+        const date = new Date(registro.data + 'T00:00:00');
+        const semanaAno = getWeekNumber(date);
+        const chaveSemana = `Semana ${semanaAno.semana}/${semanaAno.ano}`;
+        
+        if (!semanas[chaveSemana]) {
+            semanas[chaveSemana] = [];
+        }
+        semanas[chaveSemana].push(registro.nivel);
+    });
+    
+    const resultado = {};
+    Object.keys(semanas).forEach(semana => {
+        const niveis = semanas[semana];
+        resultado[semana] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
+    });
+    
+    return resultado;
 }
 
 function agruparPorMeses(dados) {
-    const meses = {};
-    
-    dados.forEach(registro => {
-        const [ano, mes] = registro.data.split('-');
-        const chaveMes = `${mes}/${ano}`;
-        
-        if (!meses[chaveMes]) {
-            meses[chaveMes] = [];
-        }
-        meses[chaveMes].push(registro.nivel);
-    });
-    
-    const resultado = {};
-    Object.keys(meses).forEach(mes => {
-        const niveis = meses[mes];
-        resultado[mes] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
-    });
-    
-    return resultado;
+    const meses = {};
+    
+    dados.forEach(registro => {
+        const [ano, mes] = registro.data.split('-');
+        const chaveMes = `${mes}/${ano}`;
+        
+        if (!meses[chaveMes]) {
+            meses[chaveMes] = [];
+        }
+        meses[chaveMes].push(registro.nivel);
+    });
+    
+    const resultado = {};
+    Object.keys(meses).forEach(mes => {
+        const niveis = meses[mes];
+        resultado[mes] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
+    });
+    
+    return resultado;
 }
 
 function getWeekNumber(date) {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-    return {
-        semana: Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7),
-        ano: date.getFullYear()
-    };
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+    return {
+        semana: Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7),
+        ano: date.getFullYear()
+    };
 }
 
 // --- FUNÇÃO PRINCIPAL DE CARREGAMENTO DE HISTÓRICO ---
 async function carregarHistorico() {
-    const infoLinha = document.getElementById('info-linha');
-    const infoVela = document.getElementById('info-vela');
-    let dataInicio, dataFim;
-    let dataEscolhida;
+    const infoLinha = document.getElementById('info-linha');
+    const infoVela = document.getElementById('info-vela');
+    let dataInicio, dataFim;
+    let dataEscolhida;
 
-    if (currentView === 'diario') {
-        dataEscolhida = document.getElementById('dataEscolhida').value;
-        if (!dataEscolhida) return;
-        dataInicio = `${dataEscolhida}T00:00:00`;
-        dataFim = `${dataEscolhida}T23:59:59`;
-        infoLinha.textContent = `Exibe o histórico de nível ao longo do dia ${dataEscolhida}.`;
-        infoVela.textContent = `Mostra o nível por hora no dia ${dataEscolhida}.`;
-    } else if (currentView === 'mensal') {
-        const mesAno = document.getElementById('mesEscolhido').value;
-        if (!mesAno) return;
-        const [ano, mes] = mesAno.split('-');
-        dataInicio = `${mesAno}-01T00:00:00`;
-        const ultimoDia = new Date(ano, mes, 0).getDate();
-        dataFim = `${mesAno}-${ultimoDia}T23:59:59`;
-        infoLinha.textContent = `Exibe o histórico de nível por semanas do mês ${mes}/${ano}.`;
-        infoVela.textContent = `Mostra o nível por dia no mês ${mes}/${ano}.`;
-    } else {
-        const mesInicio = document.getElementById('mesInicio').value;
-        const mesFim = document.getElementById('mesFim').value;
-        if (!mesInicio || !mesFim) return;
-        
-        const [anoInicio, mesInicioNum] = mesInicio.split('-');
-        const [anoFim, mesFimNum] = mesFim.split('-');
-        
-        dataInicio = `${mesInicio}-01T00:00:00`;
-        const ultimoDiaFim = new Date(anoFim, mesFimNum, 0).getDate();
-        dataFim = `${mesFim}-${ultimoDiaFim}T23:59:59`;
-        
-        infoLinha.textContent = `Exibe o histórico de nível por meses de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
-        infoVela.textContent = `Mostra o nível por mês de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
-    }
+    if (currentView === 'diario') {
+        dataEscolhida = document.getElementById('dataEscolhida').value;
+        if (!dataEscolhida) return;
+        dataInicio = `${dataEscolhida}T00:00:00`;
+        dataFim = `${dataEscolhida}T23:59:59`;
+        infoLinha.textContent = `Exibe o histórico de nível ao longo do dia ${dataEscolhida}.`;
+        infoVela.textContent = `Mostra o nível por hora no dia ${dataEscolhida}.`;
+    } else if (currentView === 'mensal') {
+        const mesAno = document.getElementById('mesEscolhido').value;
+        if (!mesAno) return;
+        const [ano, mes] = mesAno.split('-');
+        dataInicio = `${mesAno}-01T00:00:00`;
+        const ultimoDia = new Date(ano, mes, 0).getDate();
+        dataFim = `${mesAno}-${ultimoDia}T23:59:59`;
+        infoLinha.textContent = `Exibe o histórico de nível por semanas do mês ${mes}/${ano}.`;
+        infoVela.textContent = `Mostra o nível por dia no mês ${mes}/${ano}.`;
+    } else {
+        const mesInicio = document.getElementById('mesInicio').value;
+        const mesFim = document.getElementById('mesFim').value;
+        if (!mesInicio || !mesFim) return;
+        
+        const [anoInicio, mesInicioNum] = mesInicio.split('-');
+        const [anoFim, mesFimNum] = mesFim.split('-');
+        
+        dataInicio = `${mesInicio}-01T00:00:00`;
+        const ultimoDiaFim = new Date(anoFim, mesFimNum, 0).getDate();
+        dataFim = `${mesFim}-${ultimoDiaFim}T23:59:59`;
+        
+        infoLinha.textContent = `Exibe o histórico de nível por meses de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
+        infoVela.textContent = `Mostra o nível por mês de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
+    }
 
-    console.log("📊 Carregando histórico do localStorage...");
-    
-    let registrosFiltrados = [];
-    
-    if (currentView === 'diario') {
-        const { labels: labelsDoDia, niveis: niveisDoDia } = carregarHistoricoLocal(dataEscolhida);
-        
-        for (let i = 0; i < labelsDoDia.length; i++) {
-            registrosFiltrados.push({
-                label: labelsDoDia[i],
-                nivel: niveisDoDia[i]
-            });
-        }
-    } else {
-        const { labels: todasLabels, niveis: todosNiveis } = carregarHistoricoLocal();
-        
-        const dataInicioObj = new Date(dataInicio);
-        const dataFimObj = new Date(dataFim);
-        
-        for (let i = 0; i < todasLabels.length; i++) {
-            const labelParts = todasLabels[i].split(' ');
-            const registroData = new Date(labelParts[0] + 'T00:00:00');
-            
-            if (registroData >= dataInicioObj && registroData <= dataFimObj) {
-                registrosFiltrados.push({
-                    label: todasLabels[i],
-                    nivel: todosNiveis[i]
-                });
-            }
-        }
-    }
+    console.log("📊 Carregando histórico do localStorage...");
+    
+    let registrosFiltrados = [];
+    
+    if (currentView === 'diario') {
+        const { labels: labelsDoDia, niveis: niveisDoDia } = carregarHistoricoLocal(dataEscolhida);
+        
+        for (let i = 0; i < labelsDoDia.length; i++) {
+            registrosFiltrados.push({
+                label: labelsDoDia[i],
+                nivel: niveisDoDia[i]
+            });
+        }
+    } else {
+        const { labels: todasLabels, niveis: todosNiveis } = carregarHistoricoLocal();
+        
+        const dataInicioObj = new Date(dataInicio);
+        const dataFimObj = new Date(dataFim);
+        
+        for (let i = 0; i < todasLabels.length; i++) {
+            const labelParts = todasLabels[i].split(' ');
+            const registroData = new Date(labelParts[0] + 'T00:00:00');
+            
+            if (registroData >= dataInicioObj && registroData <= dataFimObj) {
+                registrosFiltrados.push({
+                    label: todasLabels[i],
+                    nivel: todosNiveis[i]
+                });
+            }
+        }
+    }
 
-    if (currentView === 'diario') {
-        historicoLabels = registrosFiltrados.map(r => r.label);
-        historicoNiveis = registrosFiltrados.map(r => r.nivel);
-        
-        labelsVela = historicoLabels;
-        dadosVela = historicoNiveis;
-        
-    } else if (currentView === 'mensal') {
-        const registrosComData = registrosFiltrados.map(r => ({
-            data: r.label.split(' ')[0],
-            nivel: r.nivel
-        }));
-        
-        const semanas = agruparPorSemanas(registrosComData);
-        historicoLabels = Object.keys(semanas);
-        historicoNiveis = Object.values(semanas);
-        
-        const dias = agruparPorDias(registrosComData);
-        labelsVela = Object.keys(dias);
-        dadosVela = Object.values(dias);
-        
-    } else {
-        const registrosComData = registrosFiltrados.map(r => ({
-            data: r.label.split(' ')[0],
-            nivel: r.nivel
-        }));
-        
-        const meses = agruparPorMeses(registrosComData);
-        historicoLabels = Object.keys(meses);
-        historicoNiveis = Object.values(meses);
-        
-        labelsVela = historicoLabels;
-        dadosVela = historicoNiveis;
-    }
+    if (currentView === 'diario') {
+        historicoLabels = registrosFiltrados.map(r => r.label);
+        historicoNiveis = registrosFiltrados.map(r => r.nivel);
+        
+        labelsVela = historicoLabels;
+        dadosVela = historicoNiveis;
+        
+    } else if (currentView === 'mensal') {
+        const registrosComData = registrosFiltrados.map(r => ({
+            data: r.label.split(' ')[0],
+            nivel: r.nivel
+        }));
+        
+        const semanas = agruparPorSemanas(registrosComData);
+        historicoLabels = Object.keys(semanas);
+        historicoNiveis = Object.values(semanas);
+        
+        const dias = agruparPorDias(registrosComData);
+        labelsVela = Object.keys(dias);
+        dadosVela = Object.values(dias);
+        
+    } else {
+        const registrosComData = registrosFiltrados.map(r => ({
+            data: r.label.split(' ')[0],
+            nivel: r.nivel
+        }));
+        
+        const meses = agruparPorMeses(registrosComData);
+        historicoLabels = Object.keys(meses);
+        historicoNiveis = Object.values(meses);
+        
+        labelsVela = historicoLabels;
+        dadosVela = historicoNiveis;
+    }
 
-    console.log(`📈 Carregados ${historicoLabels.length} registros para o gráfico`);
-    
-    if (chartLinha && chartVela) {
-        chartLinha.data.labels = historicoLabels;
-        chartLinha.data.datasets[0].data = historicoNiveis;
-        
-        chartVela.data.labels = labelsVela;
-        chartVela.data.datasets[0].data = dadosVela;
-        
-        chartLinha.update('none');
-        chartVela.update('none');
-        
-        // Redimensionar após atualização
-        setTimeout(() => {
-            redimensionarGraficos();
-            if (isMitAppInventor) {
-                // Tentativas extras para MIT App Inventor
-                setTimeout(redimensionarGraficos, 500);
-                setTimeout(redimensionarGraficos, 1000);
-            }
-        }, 100);
-    }
+    console.log(`📈 Carregados ${historicoLabels.length} registros para o gráfico`);
+    
+    if (chartLinha && chartVela) {
+        chartLinha.data.labels = historicoLabels;
+        chartLinha.data.datasets[0].data = historicoNiveis;
+        
+        chartVela.data.labels = labelsVela;
+        chartVela.data.datasets[0].data = dadosVela;
+        
+        chartLinha.update('none');
+        chartVela.update('none');
+        
+        // CORREÇÃO: Redimensionar após atualização
+        setTimeout(() => {
+            redimensionarGraficos();
+            if (isMitAppInventor) {
+                // Tentativas extras para MIT App Inventor
+                setTimeout(redimensionarGraficos, 500);
+                setTimeout(redimensionarGraficos, 1000);
+            }
+        }, 100);
+    }
 }
 
 // --- FUNÇÕES DE ATUALIZAÇÃO ---
 function atualizarCaixaDOM(nivel) {
-    const aguaDiv = document.getElementById('agua');
-    aguaDiv.style.height = nivel + '%';
-    aguaDiv.innerText = nivel + '%';
+    const aguaDiv = document.getElementById('agua');
+    aguaDiv.style.height = nivel + '%';
+    aguaDiv.innerText = nivel + '%';
 
-    const nivelAlerta = nivelAlertaConfigurado || 30;
+    const nivelAlerta = nivelAlertaConfigurado || 30;
 
-    if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
-    else if (nivel > nivelAlerta) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
-    else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+    if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
+    else if (nivel > nivelAlerta) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+    else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
 
-    const ledVermelho = document.getElementById('led-vermelho');
-    const ledAmarelo = document.getElementById('led-amarelo');
-    const ledVerde = document.getElementById('led-verde');
-    ledVermelho.classList.remove('aceso');
-    ledAmarelo.classList.remove('aceso');
-    ledVerde.classList.remove('aceso');
+    const ledVermelho = document.getElementById('led-vermelho');
+    const ledAmarelo = document.getElementById('led-amarelo');
+    const ledVerde = document.getElementById('led-verde');
+    ledVermelho.classList.remove('aceso');
+    ledAmarelo.classList.remove('aceso');
+    ledVerde.classList.remove('aceso');
 
-    if (nivel > 60) ledVerde.classList.add('aceso');
-    else if (nivel > nivelAlerta) ledAmarelo.classList.add('aceso');
-    else ledVermelho.classList.add('aceso');
+    if (nivel > 60) ledVerde.classList.add('aceso');
+    else if (nivel > nivelAlerta) ledAmarelo.classList.add('aceso');
+    else ledVermelho.classList.add('aceso');
 
-    atualizarLeituraAtual(nivel);
+    atualizarLeituraAtual(nivel);
 
-    const statusDiv = document.getElementById('status-alerta-caixa');
-    statusDiv.innerText = '';
+    const statusDiv = document.getElementById('status-alerta-caixa');
+    statusDiv.innerText = '';
 }
 
 function atualizarLeituraAtual(nivel) {
-    const leituraValor = document.getElementById('leitura-valor');
-    const leituraHora = document.getElementById('leitura-hora');
-    
-    leituraValor.textContent = nivel + '%';
-    leituraHora.textContent = new Date().toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
-    });
+    const leituraValor = document.getElementById('leitura-valor');
+    const leituraHora = document.getElementById('leitura-hora');
+    
+    leituraValor.textContent = nivel + '%';
+    leituraHora.textContent = new Date().toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+    });
 
-    if (nivel > 60) {
-        leituraValor.style.color = '#33ff33';
-    } else if (nivel > nivelAlertaConfigurado) {
-        leituraValor.style.color = '#ffff33';
-    } else {
-        leituraValor.style.color = '#ff3333';
-    }
+    if (nivel > 60) {
+        leituraValor.style.color = '#33ff33';
+    } else if (nivel > nivelAlertaConfigurado) {
+        leituraValor.style.color = '#ffff33';
+    } else {
+        leituraValor.style.color = '#ff3333';
+    }
 }
 
 // --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
-    
-    if (fetchRetryCount >= MAX_FETCH_FAILURES) {
-        if (loopIntervalo) clearInterval(loopIntervalo);
-        console.error("Muitas falhas de conexão com o Firebase. Loop interrompido.");
-        const statusDiv = document.getElementById('status-alerta-caixa');
-        statusDiv.style.color = '#ef4444';
-        statusDiv.innerText = 'ERRO DE CONEXÃO. Verifique as Regras do Firebase ou a rede.';
-        return;
-    }
-    
-    let configNivelOk = false;
-    try {
-        const rConfig = await fetch(URL_CONFIG_NIVEL);
-        if (!rConfig.ok) throw new Error(`Falha ao buscar config: ${rConfig.status}`);
-        const config = await rConfig.json();
-        if (config !== null) {
-            nivelAlertaConfigurado = parseInt(config) || 30;
-        }
-        configNivelOk = true;
-    } catch (e) {
-        console.error("Erro ao buscar nível de alerta:", e);
-        fetchRetryCount++;
-    }
-    
-    let nivelEncontrado = null; 
-    let nivelOk = false;
-    try {
-        const rNivel = await fetch(URL_NIVEL_ATUAL);
-        if (!rNivel.ok) throw new Error(`Falha ao buscar /nivel_atual: ${rNivel.status}`);
-        const nivelNovo = await rNivel.json();
-        
-        if (nivelNovo !== null) {
-            nivelEncontrado = Number(nivelNovo);
-        } else {
-            const rNivelLegado = await fetch(URL_NIVEL_LEGADO_PP7);
-            if (!rNivelLegado.ok) throw new Error(`Falha ao buscar /PP7/nivel_pct: ${rNivelLegado.status}`);
-            const nivelLegado = await rNivelLegado.json();
-            if (nivelLegado !== null) {
-                nivelEncontrado = Number(nivelLegado);
-            }
-        }
-        
-        if (nivelEncontrado !== null && nivelEncontrado > 0) {
-            nivelAtual = nivelEncontrado;
-            console.log(`🔄 Nível atualizado: ${nivelAtual}%`);
-        } else if (nivelEncontrado === 0 || nivelEncontrado === null) {
-            if (nivelAtual > 0) {
-                console.log(`⚡ Nível lido: ${nivelEncontrado}% - Mantendo último valor válido: ${nivelAtual}%`);
-            } else {
-                nivelAtual = 1;
-                console.log(`⚡ Nível lido: ${nivelEncontrado}% - Usando fallback: ${nivelAtual}%`);
-            }
-        }
-        
-        nivelOk = true;
-        
-    } catch(e) {
-        console.error("Falha ao ler nível:", e.message);
-        fetchRetryCount++;
-        
-        if (nivelAtual <= 0) {
-            nivelAtual = 1;
-        }
-        
-        const statusDiv = document.getElementById('status-alerta-caixa');
-        statusDiv.style.color = '#ef4444';
-        statusDiv.innerText = 'Falha ao carregar nível (Sem conexão).';
-    }
+    
+    if (fetchRetryCount >= MAX_FETCH_FAILURES) {
+        if (loopIntervalo) clearInterval(loopIntervalo);
+        console.error("Muitas falhas de conexão com o Firebase. Loop interrompido.");
+        const statusDiv = document.getElementById('status-alerta-caixa');
+        statusDiv.style.color = '#ef4444';
+        statusDiv.innerText = 'ERRO DE CONEXÃO. Verifique as Regras do Firebase ou a rede.';
+        return;
+    }
+    
+    let configNivelOk = false;
+    try {
+        const rConfig = await fetch(URL_CONFIG_NIVEL);
+        if (!rConfig.ok) throw new Error(`Falha ao buscar config: ${rConfig.status}`);
+        const config = await rConfig.json();
+        if (config !== null) {
+            nivelAlertaConfigurado = parseInt(config) || 30;
+        }
+        configNivelOk = true;
+    } catch (e) {
+        console.error("Erro ao buscar nível de alerta:", e);
+        fetchRetryCount++;
+    }
+    
+    let nivelEncontrado = null; 
+    let nivelOk = false;
+    try {
+        const rNivel = await fetch(URL_NIVEL_ATUAL);
+        if (!rNivel.ok) throw new Error(`Falha ao buscar /nivel_atual: ${rNivel.status}`);
+        const nivelNovo = await rNivel.json();
+        
+        if (nivelNovo !== null) {
+            nivelEncontrado = Number(nivelNovo);
+        } else {
+            const rNivelLegado = await fetch(URL_NIVEL_LEGADO_PP7);
+            if (!rNivelLegado.ok) throw new Error(`Falha ao buscar /PP7/nivel_pct: ${rNivelLegado.status}`);
+            const nivelLegado = await rNivelLegado.json();
+            if (nivelLegado !== null) {
+                nivelEncontrado = Number(nivelLegado);
+            }
+        }
+        
+        if (nivelEncontrado !== null && nivelEncontrado > 0) {
+            nivelAtual = nivelEncontrado;
+            console.log(`🔄 Nível atualizado: ${nivelAtual}%`);
+        } else if (nivelEncontrado === 0 || nivelEncontrado === null) {
+            if (nivelAtual > 0) {
+                console.log(`⚡ Nível lido: ${nivelEncontrado}% - Mantendo último valor válido: ${nivelAtual}%`);
+            } else {
+                nivelAtual = 1;
+                console.log(`⚡ Nível lido: ${nivelEncontrado}% - Usando fallback: ${nivelAtual}%`);
+            }
+        }
+        
+        nivelOk = true;
+        
+    } catch(e) {
+        console.error("Falha ao ler nível:", e.message);
+        fetchRetryCount++;
+        
+        if (nivelAtual <= 0) {
+            nivelAtual = 1;
+        }
+        
+        const statusDiv = document.getElementById('status-alerta-caixa');
+        statusDiv.style.color = '#ef4444';
+        statusDiv.innerText = 'Falha ao carregar nível (Sem conexão).';
+    }
 
-    if (nivelAtual <= 0) {
-        nivelAtual = 1;
-    }
+    if (nivelAtual <= 0) {
+        nivelAtual = 1;
+    }
 
-    atualizarCaixaDOM(nivelAtual); 
-    
-    if (deveSalvarHistorico()) {
-        const sucesso = salvarHistoricoLocal(nivelAtual);
-        if (sucesso) {
-            ultimoRegistroHistorico = obterTimestampAtual();
-            console.log(`💾 Registro salvo no histórico: ${nivelAtual}%`);
-            
-            if (document.getElementById('grafico-container').style.display !== 'none') {
-                carregarHistorico();
-            }
-        }
-    }
-    
-    if (configNivelOk && nivelOk) {
-        fetchRetryCount = 0;
-    }
+    atualizarCaixaDOM(nivelAtual); 
+    
+    if (deveSalvarHistorico()) {
+        const sucesso = salvarHistoricoLocal(nivelAtual);
+        if (sucesso) {
+            ultimoRegistroHistorico = obterTimestampAtual();
+            console.log(`💾 Registro salvo no histórico: ${nivelAtual}%`);
+            
+            // CORREÇÃO: Chama a atualização do gráfico imediatamente após salvar o novo ponto
+            if (document.getElementById('grafico-container').style.display !== 'none') {
+                await carregarHistorico();
+            }
+        }
+    }
+    
+    if (configNivelOk && nivelOk) {
+        fetchRetryCount = 0;
+    }
 }
 
 // --- INICIALIZAÇÃO ---
 window.onload = function() {
-    // Detectar ambiente primeiro
-    detectarAmbiente();
-    
-    const views = {
-        caixa: document.getElementById('caixa-view'),
-        grafico: document.getElementById('grafico-container'),
-        config: document.getElementById('config-view')
-    };
-    const btns = {
-        caixa: document.getElementById('btn-view-caixa'),
-        grafico: document.getElementById('btn-view-grafico'),
-        config: document.getElementById('btn-view-config')
-    };
+    // Detectar ambiente primeiro
+    detectarAmbiente();
+    
+    const views = {
+        caixa: document.getElementById('caixa-view'),
+        grafico: document.getElementById('grafico-container'),
+        config: document.getElementById('config-view')
+    };
+    const btns = {
+        caixa: document.getElementById('btn-view-caixa'),
+        grafico: document.getElementById('btn-view-grafico'),
+        config: document.getElementById('btn-view-config')
+    };
 
-    function switchView(viewName) {
-        for (const key in views) {
-            views[key].style.display = 'none';
-        }
-        if (views[viewName]) {
-            views[viewName].style.display = 'flex';
-        }
+    function switchView(viewName) {
+        for (const key in views) {
+            views[key].style.display = 'none';
+        }
+        if (views[viewName]) {
+            views[viewName].style.display = 'flex';
+        }
 
-        document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
-        if (btns[viewName]) {
-            btns[viewName].classList.add('active');
-        }
+        document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
+        if (btns[viewName]) {
+            btns[viewName].classList.add('active');
+        }
 
-        if (viewName === 'grafico') {
-            // Forçar um redesenho do layout
-            setTimeout(() => {
-                carregarHistorico();
-                // Múltiplas tentativas de redimensionamento
-                setTimeout(() => {
-                    redimensionarGraficos();
-                    setTimeout(redimensionarGraficos, 300);
-                    if (isMitAppInventor) {
-                        setTimeout(redimensionarGraficos, 600);
-                        setTimeout(redimensionarGraficos, 900);
-                    }
-                }, 200);
-            }, 100);
-        } else if (viewName === 'config') {
-            carregarConfiguracoes(); 
-        }
-    }
+        if (viewName === 'grafico') {
+            // Forçar um redesenho do layout
+            setTimeout(() => {
+                carregarHistorico();
+                // Múltiplas tentativas de redimensionamento (Correção para WebView)
+                setTimeout(() => {
+                    redimensionarGraficos();
+                    setTimeout(redimensionarGraficos, 300);
+                    if (isMitAppInventor) {
+                        setTimeout(redimensionarGraficos, 600);
+                        setTimeout(redimensionarGraficos, 900);
+                    }
+                }, 200);
+            }, 100);
+        } else if (viewName === 'config') {
+            carregarConfiguracoes(); 
+        }
+    }
 
-    btns.caixa.addEventListener('click', () => switchView('caixa'));
-    btns.grafico.addEventListener('click', () => switchView('grafico'));
-    btns.config.addEventListener('click', () => switchView('config'));
-    
-    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', salvarNivelAlerta);
-    document.getElementById('btn-salvar-telegram-id').addEventListener('click', salvarTelegramId);
-    document.getElementById('btn-add-email').addEventListener('click', adicionarEmail);
-    document.getElementById('lista-emails').addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON' && e.target.dataset.email) {
-            const emailParaRemover = e.target.dataset.email;
-            removerEmail(emailParaRemover);
-        }
-    });
+    btns.caixa.addEventListener('click', () => switchView('caixa'));
+    btns.grafico.addEventListener('click', () => switchView('grafico'));
+    btns.config.addEventListener('click', () => switchView('config'));
+    
+    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', salvarNivelAlerta);
+    document.getElementById('btn-salvar-telegram-id').addEventListener('click', salvarTelegramId);
+    document.getElementById('btn-add-email').addEventListener('click', adicionarEmail);
+    document.getElementById('lista-emails').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON' && e.target.dataset.email) {
+            const emailParaRemover = e.target.dataset.email;
+            removerEmail(emailParaRemover);
+        }
+    });
 
-    criarGraficos();
-    const hoje = new Date();
-    const dataFimPadrao = hoje.toISOString().split('T')[0];
-    const mesFimPadrao = hoje.toISOString().substring(0, 7);
-    
-    const mesInicio = new Date();
-    mesInicio.setMonth(mesInicio.getMonth() - 3);
-    const mesInicioPadrao = mesInicio.toISOString().substring(0, 7);
-    
-    document.getElementById('dataEscolhida').value = dataFimPadrao;
-    document.getElementById('mesEscolhido').value = mesFimPadrao;
-    document.getElementById('mesInicio').value = mesInicioPadrao;
-    document.getElementById('mesFim').value = mesFimPadrao;
-    
-    switchView('caixa');
-    
-    nivelAtual = 1;
-    
-    console.log("🚀 Inicializando sistema de monitoramento...");
-    carregarHistorico().then(() => {
-        console.log("✅ Histórico carregado do localStorage");
-        loopDeAtualizacao();
-        loopIntervalo = setInterval(loopDeAtualizacao, 2000);
-    });
+    criarGraficos();
+    const hoje = new Date();
+    const dataFimPadrao = hoje.toISOString().split('T')[0];
+    const mesFimPadrao = hoje.toISOString().substring(0, 7);
+    
+    const mesInicio = new Date();
+    mesInicio.setMonth(mesInicio.getMonth() - 3);
+    const mesInicioPadrao = mesInicio.toISOString().substring(0, 7);
+    
+    document.getElementById('dataEscolhida').value = dataFimPadrao;
+    document.getElementById('mesEscolhido').value = mesFimPadrao;
+    document.getElementById('mesInicio').value = mesInicioPadrao;
+    document.getElementById('mesFim').value = mesFimPadrao;
+    
+    switchView('caixa');
+    
+    nivelAtual = 1;
+    
+    console.log("🚀 Inicializando sistema de monitoramento...");
+    carregarHistorico().then(() => {
+        console.log("✅ Histórico carregado do localStorage");
+        loopDeAtualizacao();
+        loopIntervalo = setInterval(loopDeAtualizacao, 2000);
+    });
 
-    document.getElementById('btnAtualizar').onclick = carregarHistorico;
-    
-    document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const parent = e.target.parentElement;
-            parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            
-            if (e.target.dataset.view) {
-                currentView = e.target.dataset.view;
-                const pickers = {
-                    diario: document.getElementById('diario-picker'),
-                    mensal: document.getElementById('mensal-picker'),
-                    intervalo: document.getElementById('intervalo-picker')
-                };
-                for(const key in pickers) {
-                    pickers[key].style.display = 'none';
-                }
-                if (pickers[currentView]) pickers[currentView].style.display = 'flex';
-                
-                carregarHistorico();
-            }
-        });
-    });
+    document.getElementById('btnAtualizar').onclick = carregarHistorico;
+    
+    document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const parent = e.target.parentElement;
+            parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            if (e.target.dataset.view) {
+                currentView = e.target.dataset.view;
+                const pickers = {
+                    diario: document.getElementById('diario-picker'),
+                    mensal: document.getElementById('mensal-picker'),
+                    intervalo: document.getElementById('intervalo-picker')
+                };
+                for(const key in pickers) {
+                    pickers[key].style.display = 'none';
+                }
+                if (pickers[currentView]) pickers[currentView].style.display = 'flex';
+                
+                carregarHistorico();
+            }
+        });
+    });
 
-    // Adicionar listener para redimensionamento da tela
-    window.addEventListener('resize', function() {
-        if (document.getElementById('grafico-container').style.display !== 'none') {
-            setTimeout(redimensionarGraficos, 150);
-        }
-    });
+    // Adicionar listener para redimensionamento da tela
+    window.addEventListener('resize', function() {
+        if (document.getElementById('grafico-container').style.display !== 'none') {
+            setTimeout(redimensionarGraficos, 150);
+        }
+    });
 
-    // Tratar mudança de orientação em dispositivos móveis
-    window.addEventListener('orientationchange', function() {
-        setTimeout(() => {
-            if (document.getElementById('grafico-container').style.display !== 'none') {
-                redimensionarGraficos();
-                setTimeout(redimensionarGraficos, 500);
-                if (isMitAppInventor) {
-                    setTimeout(redimensionarGraficos, 1000);
-                }
-            }
-        }, 300);
-    });
+    // Tratar mudança de orientação em dispositivos móveis
+    window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+            if (document.getElementById('grafico-container').style.display !== 'none') {
+                redimensionarGraficos();
+                setTimeout(redimensionarGraficos, 500);
+                if (isMitAppInventor) {
+                    setTimeout(redimensionarGraficos, 1000);
+                }
+            }
+        }, 300);
+    });
 
-    // Forçar redimensionamento inicial quando a página carrega
-    window.addEventListener('load', function() {
-        setTimeout(() => {
-            if (document.getElementById('grafico-container').style.display !== 'none') {
-                redimensionarGraficos();
-            }
-        }, 1000);
-    });
+    // Forçar redimensionamento inicial quando a página carrega
+    window.addEventListener('load', function() {
+        setTimeout(() => {
+            if (document.getElementById('grafico-container').style.display !== 'none') {
+                redimensionarGraficos();
+            }
+        }, 1000);
+    });
 };
 
 // --- FUNÇÕES DE CONFIGURAÇÃO ---
 function setStatus(elementId, message, color = 'green', timeout = 3000) {
-    const statusDiv = document.getElementById(elementId);
-    if (statusDiv) {
-        statusDiv.style.color = color;
-        statusDiv.innerText = message;
-        if (timeout > 0) {
-            setTimeout(() => { statusDiv.innerText = ''; }, timeout);
-        }
-    }
+    const statusDiv = document.getElementById(elementId);
+    if (statusDiv) {
+        statusDiv.style.color = color;
+        statusDiv.innerText = message;
+        if (timeout > 0) {
+            setTimeout(() => { statusDiv.innerText = ''; }, timeout);
+        }
+    }
 }
 
 async function carregarConfiguracoes() {
-    try {
-        const r = await fetch(URL_CONFIG_NIVEL);
-        if (!r.ok) throw new Error(`Status: ${r.status}`);
-        const nivel = await r.json();
-        if (nivel !== null) {
-            document.getElementById('nivel-alerta-valor').value = nivel;
-            nivelAlertaConfigurado = parseInt(nivel);
-        } else {
-            document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado;
-        }
-    } catch (e) {
-        console.error("Erro ao carregar nível de alerta:", e);
-        setStatus('status-alerta', 'Erro ao carregar nível.', '#ef4444');
-    }
+    try {
+        const r = await fetch(URL_CONFIG_NIVEL);
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        const nivel = await r.json();
+        if (nivel !== null) {
+            document.getElementById('nivel-alerta-valor').value = nivel;
+            nivelAlertaConfigurado = parseInt(nivel);
+        } else {
+            document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado;
+        }
+    } catch (e) {
+        console.error("Erro ao carregar nível de alerta:", e);
+        setStatus('status-alerta', 'Erro ao carregar nível.', '#ef4444');
+    }
 
-    try {
-        const r = await fetch(URL_CONFIG_TELEGRAM);
-        if (!r.ok) throw new Error(`Status: ${r.status}`);
-        const id = await r.json();
-        if (id !== null) {
-            document.getElementById('telegram-id-valor').value = id;
-        }
-    } catch (e) {
-        console.error("Erro ao carregar ID Telegram:", e);
-        setStatus('status-telegram', 'Erro ao carregar ID.', '#ef4444');
-    }
+    try {
+        const r = await fetch(URL_CONFIG_TELEGRAM);
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        const id = await r.json();
+        if (id !== null) {
+            document.getElementById('telegram-id-valor').value = id;
+        }
+    } catch (e) {
+        console.error("Erro ao carregar ID Telegram:", e);
+        setStatus('status-telegram', 'Erro ao carregar ID.', '#ef4444');
+    }
 
-    await carregarListaEmails();
+    await carregarListaEmails();
 }
 
 async function salvarNivelAlerta() {
-    const nivel = document.getElementById('nivel-alerta-valor').value;
-    const statusDiv = document.getElementById('status-alerta');
-    
-    if (!nivel || nivel < 1 || nivel > 99) {
-        setStatus('status-alerta', 'Valor inválido (1-99).', '#ef4444');
-        return;
-    }
-    
-    setStatus('status-alerta', 'Salvando...', '#eab308', 0);
-    try {
-        const r = await fetch(URL_CONFIG_NIVEL, {
-            method: 'PUT',
-            body: JSON.stringify(parseInt(nivel))
-        });
-        if (!r.ok) throw new Error(`Status: ${r.status}`);
-        nivelAlertaConfigurado = parseInt(nivel);
-        setStatus('status-alerta', 'Nível de alerta salvo!');
-    } catch (e) {
-        console.error("Erro ao salvar nível:", e);
-        setStatus('status-alerta', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
-    }
+    const nivel = document.getElementById('nivel-alerta-valor').value;
+    const statusDiv = document.getElementById('status-alerta');
+    
+    if (!nivel || nivel < 1 || nivel > 99) {
+        setStatus('status-alerta', 'Valor inválido (1-99).', '#ef4444');
+        return;
+    }
+    
+    setStatus('status-alerta', 'Salvando...', '#eab308', 0);
+    try {
+        const r = await fetch(URL_CONFIG_NIVEL, {
+            method: 'PUT',
+            body: JSON.stringify(parseInt(nivel))
+        });
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        nivelAlertaConfigurado = parseInt(nivel);
+        setStatus('status-alerta', 'Nível de alerta salvo!');
+    } catch (e) {
+        console.error("Erro ao salvar nível:", e);
+        setStatus('status-alerta', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
+    }
 }
 
 async function salvarTelegramId() {
-    const id = document.getElementById('telegram-id-valor').value;
-    if (!id) {
-        setStatus('status-telegram', 'ID não pode ser vazio.', '#ef4444');
-        return;
-    }
+    const id = document.getElementById('telegram-id-valor').value;
+    if (!id) {
+        setStatus('status-telegram', 'ID não pode ser vazio.', '#ef4444');
+        return;
+    }
 
-    setStatus('status-telegram', 'Salvando...', '#eab308', 0);
-    try {
-        const r = await fetch(URL_CONFIG_TELEGRAM, {
-            method: 'PUT',
-            body: JSON.stringify(id)
-        });
-        if (!r.ok) throw new Error(`Status: ${r.status}`);
-        setStatus('status-telegram', 'ID do Telegram salvo!');
-    } catch (e) {
-        console.error("Erro ao salvar ID Telegram:", e);
-        setStatus('status-telegram', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
-    }
+    setStatus('status-telegram', 'Salvando...', '#eab308', 0);
+    try {
+        const r = await fetch(URL_CONFIG_TELEGRAM, {
+            method: 'PUT',
+            body: JSON.stringify(id)
+        });
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        setStatus('status-telegram', 'ID do Telegram salvo!');
+    } catch (e) {
+        console.error("Erro ao salvar ID Telegram:", e);
+        setStatus('status-telegram', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
+    }
 }
 
 async function carregarListaEmails() {
-    const listaUL = document.getElementById('lista-emails');
-    listaUL.innerHTML = '<li>Carregando...</li>';
-    
-    try {
-        const r = await fetch(URL_CONFIG_EMAILS);
-        if (!r.ok) throw new Error(`Status: ${r.status}`);
-        const emails = await r.json();
-        
-        listaUL.innerHTML = '';
-        if (emails && Array.isArray(emails)) {
-            emails.forEach((email, index) => {
-                if (email) {
-                    const li = document.createElement('li');
-                    li.className = 'email-item';
-                    li.innerHTML = `
-                        <span>${email}</span>
-                        <button data-email="${email}">Remover</button>
-                    `;
-                    listaUL.appendChild(li);
-                }
-            });
-        }
-        if (listaUL.innerHTML === '') {
-            listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum e-mail salvo.</li>';
-        }
-    } catch (e) {
-        console.error("Erro ao carregar e-mails:", e);
-        listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar e-mails (Verifique Regras do Firebase).</li>';
-    }
+    const listaUL = document.getElementById('lista-emails');
+    listaUL.innerHTML = '<li>Carregando...</li>';
+    
+    try {
+        const r = await fetch(URL_CONFIG_EMAILS);
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        const emails = await r.json();
+        
+        listaUL.innerHTML = '';
+        if (emails && Array.isArray(emails)) {
+            emails.forEach((email, index) => {
+                if (email) {
+                    const li = document.createElement('li');
+                    li.className = 'email-item';
+                    li.innerHTML = `
+                        <span>${email}</span>
+                        <button data-email="${email}">Remover</button>
+                    `;
+                    listaUL.appendChild(li);
+                }
+            });
+        }
+        if (listaUL.innerHTML === '') {
+            listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum e-mail salvo.</li>';
+        }
+    } catch (e) {
+        console.error("Erro ao carregar e-mails:", e);
+        listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar e-mails (Verifique Regras do Firebase).</li>';
+    }
 }
 
 async function adicionarEmail() {
-    const input = document.getElementById('email-valor');
-    const email = input.value;
-    
-    if (!email || !email.includes('@')) {
-        setStatus('status-email', 'Por favor, insira um e-mail válido.', '#ef4444');
-        return;
-    }
+    const input = document.getElementById('email-valor');
+    const email = input.value;
+    
+    if (!email || !email.includes('@')) {
+        setStatus('status-email', 'Por favor, insira um e-mail válido.', '#ef4444');
+        return;
+    }
 
-    setStatus('status-email', 'Adicionando...', '#eab308', 0);
+    setStatus('status-email', 'Adicionando...', '#eab308', 0);
 
-    let listaAtual = [];
-    try {
-        const r = await fetch(URL_CONFIG_EMAILS);
-        if (r.ok) { 
-            const emails = await r.json();
-            if (emails && Array.isArray(emails)) {
-                listaAtual = emails.filter(Boolean);
-            }
-        }
-    } catch (e) {
-        console.warn("Erro ao buscar lista de emails (pode ser o primeiro email):", e);
-    }
+    let listaAtual = [];
+    try {
+        const r = await fetch(URL_CONFIG_EMAILS);
+        if (r.ok) { 
+            const emails = await r.json();
+            if (emails && Array.isArray(emails)) {
+                listaAtual = emails.filter(Boolean);
+            }
+        }
+    } catch (e) {
+        console.warn("Erro ao buscar lista de emails (pode ser o primeiro email):", e);
+    }
 
-    if (listaAtual.includes(email)) {
-        setStatus('status-email', 'E-mail já está na lista.', '#eab308');
-        input.value = '';
-        return;
-    }
+    if (listaAtual.includes(email)) {
+        setStatus('status-email', 'E-mail já está na lista.', '#eab308');
+        input.value = '';
+        return;
+    }
 
-    listaAtual.push(email);
-    
-    try {
-        const r = await fetch(URL_CONFIG_EMAILS, {
-            method: 'PUT',
-            body: JSON.stringify(listaAtual)
-        });
-        if (!r.ok) throw new Error(`Status: ${r.status}`);
-        setStatus('status-email', 'E-mail adicionado!');
-        input.value = '';
-        await carregarListaEmails();
-    } catch (e) {
-        console.error("Erro ao adicionar e-mail:", e);
-        setStatus('status-email', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
-    }
+    listaAtual.push(email);
+    
+    try {
+        const r = await fetch(URL_CONFIG_EMAILS, {
+            method: 'PUT',
+            body: JSON.stringify(listaAtual)
+        });
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        setStatus('status-email', 'E-mail adicionado!');
+        input.value = '';
+        await carregarListaEmails();
+    } catch (e) {
+        console.error("Erro ao adicionar e-mail:", e);
+        setStatus('status-email', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
+    }
 }
 
 async function removerEmail(emailParaRemover) {
-    setStatus('status-email', 'Removendo...', '#eab308', 0);
+    setStatus('status-email', 'Removendo...', '#eab308', 0);
 
-    let listaAtual = [];
-    try {
-        const r = await fetch(URL_CONFIG_EMAILS);
-        if (!r.ok) throw new Error(`Status: ${r.status}`);
-        const emails = await r.json();
-        if (emails && Array.isArray(emails)) {
-            listaAtual = emails.filter(Boolean);
-        } else {
-             setStatus('status-email', 'Lista de e-mails não encontrada.', '#ef4444');
-             return;
-        }
-    } catch (e) {
-         setStatus('status-email', 'Erro ao carregar lista para remoção.', '#ef4444');
-         return;
-    }
+    let listaAtual = [];
+    try {
+        const r = await fetch(URL_CONFIG_EMAILS);
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        const emails = await r.json();
+        if (emails && Array.isArray(emails)) {
+            listaAtual = emails.filter(Boolean);
+        } else {
+            setStatus('status-email', 'Lista de e-mails não encontrada.', '#ef4444');
+            return;
+        }
+    } catch (e) {
+         setStatus('status-email', 'Erro ao carregar lista para remoção.', '#ef4444');
+         return;
+    }
 
-    const novaLista = listaAtual.filter(email => email !== emailParaRemover);
+    const novaLista = listaAtual.filter(email => email !== emailParaRemover);
 
-    try {
-        const r = await fetch(URL_CONFIG_EMAILS, {
-            method: 'PUT',
-            body: JSON.stringify(novaLista)
-        });
-        if (!r.ok) throw new Error(`Status: ${r.status}`);
-        setStatus('status-email', 'E-mail removido!');
-        await carregarListaEmails();
-    } catch (e) {
-        console.error("Erro ao remover e-mail:", e);
-        setStatus('status-email', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
-    }
+    try {
+        const r = await fetch(URL_CONFIG_EMAILS, {
+            method: 'PUT',
+            body: JSON.stringify(novaLista)
+        });
+        if (!r.ok) throw new Error(`Status: ${r.status}`);
+        setStatus('status-email', 'E-mail removido!');
+        await carregarListaEmails();
+    } catch (e) {
+        console.error("Erro ao remover e-mail:", e);
+        setStatus('status-email', 'Erro ao salvar (Verifique Regras do Firebase).', '#ef4444');
+    }
 }
 
 </script>
