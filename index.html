@@ -573,6 +573,16 @@ canvas {
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
 }
+
+/* Garantir que os gráficos sejam visíveis no WebView */
+.chart-container {
+    background: white;
+}
+
+/* Forçar hardware acceleration */
+.chart-card {
+    transform: translateZ(0);
+}
 </style>
 </head>
 <body>
@@ -733,6 +743,46 @@ let loopIntervalo;
 // --- CONFIGURAÇÃO DE HISTÓRICO ---
 const INTERVALO_SALVAMENTO = 5 * 60 * 1000; // 5 minutos
 
+// --- FLAG PARA MIT APP INVENTOR ---
+let isMitAppInventor = false;
+
+// --- DETECTAR SE ESTÁ NO MIT APP INVENTOR ---
+function detectarAmbiente() {
+    // Verifica se está em um WebView (MIT App Inventor)
+    if (window.navigator.userAgent.includes('WebView') || 
+        window.navigator.userAgent.includes('AppInventor') ||
+        !window.chrome) {
+        isMitAppInventor = true;
+        console.log("🚀 Ambiente detectado: MIT App Inventor WebView");
+        
+        // Aplicar correções específicas para MIT App Inventor
+        aplicarCorrecoesMitAppInventor();
+    }
+}
+
+// --- CORREÇÕES ESPECÍFICAS PARA MIT APP INVENTOR ---
+function aplicarCorrecoesMitAppInventor() {
+    console.log("🔧 Aplicando correções para MIT App Inventor...");
+    
+    // Forçar redimensionamento inicial
+    setTimeout(() => {
+        if (chartLinha) chartLinha.resize();
+        if (chartVela) chartVela.resize();
+    }, 1000);
+    
+    // Adicionar mais listeners para garantir funcionamento
+    document.addEventListener('visibilitychange', function() {
+        setTimeout(redimensionarGraficos, 300);
+    });
+    
+    // Forçar atualização periódica dos gráficos
+    setInterval(() => {
+        if (document.getElementById('grafico-container').style.display !== 'none') {
+            redimensionarGraficos();
+        }
+    }, 5000);
+}
+
 // --- FUNÇÕES DE HISTÓRICO ---
 function obterTimestampAtual() {
     return Date.now();
@@ -839,8 +889,10 @@ function deveSalvarHistorico() {
     return (agora - ultimoRegistroHistorico) >= INTERVALO_SALVAMENTO;
 }
 
-// --- FUNÇÕES DO GRÁFICO - CORRIGIDAS PARA MOBILE ---
+// --- FUNÇÕES DO GRÁFICO - OTIMIZADAS PARA WEBVIEW ---
 function criarGraficos() {
+    console.log("📊 Inicializando gráficos...");
+    
     // Destruir gráficos existentes se houver
     if (chartLinha) {
         chartLinha.destroy();
@@ -865,7 +917,7 @@ function criarGraficos() {
                 backgroundColor: grad, 
                 borderColor: 'rgba(6,182,212,0.95)', 
                 tension: 0.25, 
-                pointRadius: 2, // Menor para mobile
+                pointRadius: isMitAppInventor ? 3 : 2,
                 borderWidth: 2,
                 pointBackgroundColor: 'rgba(6,182,212,1)',
                 pointBorderColor: '#ffffff',
@@ -876,9 +928,15 @@ function criarGraficos() {
         options: { 
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 200,
+            resizeDelay: isMitAppInventor ? 300 : 200,
             animation: {
-                duration: 0
+                duration: isMitAppInventor ? 500 : 0,
+                onComplete: function() {
+                    // Callback para garantir que o gráfico foi renderizado
+                    if (isMitAppInventor) {
+                        setTimeout(redimensionarGraficos, 200);
+                    }
+                }
             },
             plugins: { 
                 legend: { 
@@ -956,16 +1014,21 @@ function criarGraficos() {
                 backgroundColor: 'rgba(6, 182, 212, 0.8)',
                 borderColor: 'rgba(6, 182, 212, 1)',
                 borderWidth: 1,
-                borderRadius: 4, // Menor para mobile
+                borderRadius: 4,
                 borderSkipped: false,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            resizeDelay: 200,
+            resizeDelay: isMitAppInventor ? 300 : 200,
             animation: {
-                duration: 0
+                duration: isMitAppInventor ? 500 : 0,
+                onComplete: function() {
+                    if (isMitAppInventor) {
+                        setTimeout(redimensionarGraficos, 200);
+                    }
+                }
             },
             plugins: {
                 legend: {
@@ -1021,32 +1084,44 @@ function criarGraficos() {
             }
         }
     });
+    
+    console.log("✅ Gráficos inicializados com sucesso");
 }
 
 // --- FUNÇÃO PARA REDIMENSIONAR GRÁFICOS ---
 function redimensionarGraficos() {
-    console.log("🔄 Redimensionando gráficos...");
+    if (isMitAppInventor) {
+        console.log("🔄 Redimensionando gráficos para MIT App Inventor...");
+    }
     
     // Forçar um recálculo do layout
-    if (chartLinha) {
+    if (chartLinha && chartLinha.canvas) {
         const canvasLinha = chartLinha.canvas;
         const containerLinha = canvasLinha.parentElement;
-        containerLinha.style.height = containerLinha.offsetHeight + 'px';
-        
-        chartLinha.resize();
-        chartLinha.update('none');
+        if (containerLinha) {
+            containerLinha.style.height = containerLinha.offsetHeight + 'px';
+            try {
+                chartLinha.resize();
+                chartLinha.update('none');
+            } catch (e) {
+                console.warn("Erro ao redimensionar gráfico de linha:", e);
+            }
+        }
     }
     
-    if (chartVela) {
+    if (chartVela && chartVela.canvas) {
         const canvasVela = chartVela.canvas;
         const containerVela = canvasVela.parentElement;
-        containerVela.style.height = containerVela.offsetHeight + 'px';
-        
-        chartVela.resize();
-        chartVela.update('none');
+        if (containerVela) {
+            containerVela.style.height = containerVela.offsetHeight + 'px';
+            try {
+                chartVela.resize();
+                chartVela.update('none');
+            } catch (e) {
+                console.warn("Erro ao redimensionar gráfico de barras:", e);
+            }
+        }
     }
-    
-    console.log("✅ Redimensionamento concluído");
 }
 
 function agruparPorDias(dados) {
@@ -1240,11 +1315,14 @@ async function carregarHistorico() {
         chartLinha.update('none');
         chartVela.update('none');
         
-        // Redimensionar após atualização com múltiplas tentativas
+        // Redimensionar após atualização
         setTimeout(() => {
             redimensionarGraficos();
-            // Segunda tentativa para garantir
-            setTimeout(redimensionarGraficos, 200);
+            if (isMitAppInventor) {
+                // Tentativas extras para MIT App Inventor
+                setTimeout(redimensionarGraficos, 500);
+                setTimeout(redimensionarGraficos, 1000);
+            }
         }, 100);
     }
 }
@@ -1394,6 +1472,9 @@ async function loopDeAtualizacao() {
 
 // --- INICIALIZAÇÃO ---
 window.onload = function() {
+    // Detectar ambiente primeiro
+    detectarAmbiente();
+    
     const views = {
         caixa: document.getElementById('caixa-view'),
         grafico: document.getElementById('grafico-container'),
@@ -1426,6 +1507,10 @@ window.onload = function() {
                 setTimeout(() => {
                     redimensionarGraficos();
                     setTimeout(redimensionarGraficos, 300);
+                    if (isMitAppInventor) {
+                        setTimeout(redimensionarGraficos, 600);
+                        setTimeout(redimensionarGraficos, 900);
+                    }
                 }, 200);
             }, 100);
         } else if (viewName === 'config') {
@@ -1510,6 +1595,9 @@ window.onload = function() {
             if (document.getElementById('grafico-container').style.display !== 'none') {
                 redimensionarGraficos();
                 setTimeout(redimensionarGraficos, 500);
+                if (isMitAppInventor) {
+                    setTimeout(redimensionarGraficos, 1000);
+                }
             }
         }, 300);
     });
