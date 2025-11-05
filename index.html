@@ -877,7 +877,7 @@ function salvarHistoricoLocal() {
 }
 
 // =============================================
-// FUNÇÃO PARA CARREGAR HISTÓRICO NOS GRÁFICOS (CORRIGIDA)
+// FUNÇÃO PARA CARREGAR HISTÓRICO NOS GRÁFICOS (CORRIGIDA - SEM DADOS FIXOS)
 // =============================================
 function carregarHistorico() {
     try {
@@ -978,11 +978,11 @@ function carregarHistorico() {
             niveis = mesesOrdenados.map(mes => mediasMensais[mes]);
         }
         
-        // ⭐⭐ ATUALIZA OS GRÁFICOS APENAS SE HOUVER DADOS ⭐⭐
+        // ⭐⭐ ATUALIZA OS GRÁFICOS APENAS SE HOUVER DADOS REAIS ⭐⭐
         if (labels.length > 0 && niveis.length > 0) {
             atualizarGraficosComDados(labels, niveis);
         } else {
-            // ⭐⭐ REMOVE DADOS FIXOS - APENAS HISTÓRICO REAL ⭐⭐
+            // ⭐⭐ GRAFICOS VAZIOS - SEM DADOS FIXOS ⭐⭐
             chartLinha.data.labels = [];
             chartLinha.data.datasets[0].data = [];
             chartLinha.update('none');
@@ -994,7 +994,7 @@ function carregarHistorico() {
         
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
-        // ⭐⭐ REMOVE COMPLETAMENTE OS DADOS FIXOS ⭐⭐
+        // ⭐⭐ EM CASO DE ERRO, GRAFICOS FICAM VAZIOS - SEM DADOS FIXOS ⭐⭐
         chartLinha.data.labels = [];
         chartLinha.data.datasets[0].data = [];
         chartLinha.update('none');
