@@ -551,9 +551,7 @@ let nivelAtual = 25;
 let nivelAlertaConfigurado = 30;
 let loopIntervalo;
 let usandoDadosReais = false;
-let historicoLabels = [];
-let historicoNiveis = [];
-let currentView = 'diario';
+let ultimoTimestampSalvo = 0;
 
 // =============================================
 // FUNÇÃO PRINCIPAL DE TESTE DE CONEXÃO
@@ -636,11 +634,6 @@ async function atualizarDados() {
         
         nivelAtual = Math.max(1, Math.min(100, Math.round(nivelAtual)));
         atualizarInterface();
-        
-        // ⭐⭐ ATUALIZA GRÁFICOS SE ESTIVER NA VIEW DE GRÁFICO ⭐⭐
-        if (document.getElementById('grafico-container').style.display !== 'none') {
-            atualizarGraficosEmTempoReal();
-        }
         
     } catch (error) {
         console.error("Erro na atualização:", error);
@@ -725,10 +718,10 @@ function criarGraficos() {
     chartLinha = new Chart(ctxL, {
         type: 'line',
         data: { 
-            labels: historicoLabels, 
+            labels: [], 
             datasets: [{ 
                 label: 'Nível (%)', 
-                data: historicoNiveis, 
+                data: [], 
                 fill: true, 
                 backgroundColor: 'rgba(6,182,212,0.1)', 
                 borderColor: 'rgba(6,182,212,0.95)', 
@@ -773,10 +766,10 @@ function criarGraficos() {
     chartVela = new Chart(ctxV, {
         type: 'bar',
         data: {
-            labels: historicoLabels,
+            labels: [],
             datasets: [{
                 label: 'Nível (%)',
-                data: historicoNiveis,
+                data: [],
                 backgroundColor: 'rgba(6, 182, 212, 0.7)',
                 borderColor: 'rgba(6, 182, 212, 1)',
                 borderWidth: 1
@@ -820,65 +813,22 @@ function criarGraficos() {
 }
 
 // =============================================
-// FUNÇÃO PARA ATUALIZAR GRÁFICOS EM TEMPO REAL
-// =============================================
-function atualizarGraficosEmTempoReal() {
-    if (!chartLinha || !chartVela) return;
-    
-    // Para view diária, adiciona o ponto atual
-    if (currentView === 'diario') {
-        const hoje = new Date().toISOString().split('T')[0];
-        const dataEscolhida = document.getElementById('dataEscolhida').value;
-        
-        if (dataEscolhida === hoje) {
-            const horaAtual = new Date().toLocaleTimeString('pt-BR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-            
-            // Atualiza gráfico de linha
-            if (chartLinha.data.labels[chartLinha.data.labels.length - 1] !== horaAtual) {
-                chartLinha.data.labels.push(horaAtual);
-                chartLinha.data.datasets[0].data.push(nivelAtual);
-                
-                // Mantém apenas os últimos 20 pontos para performance
-                if (chartLinha.data.labels.length > 20) {
-                    chartLinha.data.labels.shift();
-                    chartLinha.data.datasets[0].data.shift();
-                }
-                
-                chartLinha.update('none');
-            } else {
-                // Atualiza apenas o último valor
-                chartLinha.data.datasets[0].data[chartLinha.data.datasets[0].data.length - 1] = nivelAtual;
-                chartLinha.update('none');
-            }
-            
-            // Atualiza gráfico de barras
-            const cores = chartVela.data.datasets[0].data.map((v, i, arr) => {
-                if (i === 0) return 'rgba(6,182,212,0.85)';
-                return v >= arr[i - 1] ? 'rgba(34,197,94,0.85)' : 'rgba(239,68,68,0.85)';
-            });
-            
-            chartVela.data.labels = [...chartLinha.data.labels];
-            chartVela.data.datasets[0].data = [...chartLinha.data.datasets[0].data];
-            chartVela.data.datasets[0].backgroundColor = cores;
-            chartVela.update('none');
-        }
-    }
-}
-
-// =============================================
-// FUNÇÃO PARA SALVAR HISTÓRICO LOCAL (MODIFICADA PARA MIT)
+// FUNÇÃO PARA SALVAR HISTÓRICO LOCAL (CORRIGIDA)
 // =============================================
 function salvarHistoricoLocal() {
     try {
         const agora = new Date();
+        const agoraTimestamp = agora.getTime();
         const data = agora.toISOString().split('T')[0];
         const hora = agora.toLocaleTimeString('pt-BR', { 
             hour: '2-digit', 
             minute: '2-digit' 
         });
+        
+        // ⭐⭐ SALVA A CADA 5 MINUTOS APENAS ⭐⭐
+        if (agoraTimestamp - ultimoTimestampSalvo < 5 * 60 * 1000) {
+            return; // Ainda não passaram 5 minutos
+        }
         
         // ⭐⭐ NÃO APAGA DADOS ANTIGOS - apenas adiciona novos ⭐⭐
         const historicoLocal = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '{}');
@@ -888,20 +838,17 @@ function salvarHistoricoLocal() {
             historicoLocal[data] = {};
         }
         
-        // Salva apenas a cada 5 minutos para não lotar o storage
-        const ultimoRegistro = Object.values(historicoLocal[data]).pop();
-        const agoraTimestamp = Date.now();
+        // Salva o registro
+        historicoLocal[data][hora] = { 
+            nivel: nivelAtual, 
+            timestamp: agoraTimestamp,
+            real: usandoDadosReais
+        };
         
-        if (!ultimoRegistro || (agoraTimestamp - ultimoRegistro.timestamp) >= 5 * 60 * 1000) {
-            historicoLocal[data][hora] = { 
-                nivel: nivelAtual, 
-                timestamp: agoraTimestamp,
-                real: usandoDadosReais
-            };
-            
-            localStorage.setItem('historicoCaixaAgua', JSON.stringify(historicoLocal));
-            console.log(`✅ Histórico salvo: ${data} ${hora} - ${nivelAtual}%`);
-        }
+        localStorage.setItem('historicoCaixaAgua', JSON.stringify(historicoLocal));
+        ultimoTimestampSalvo = agoraTimestamp;
+        
+        console.log(`✅ Histórico salvo: ${data} ${hora} - ${nivelAtual}%`);
         
     } catch (e) {
         console.error('Erro ao salvar histórico local:', e);
@@ -909,7 +856,7 @@ function salvarHistoricoLocal() {
 }
 
 // =============================================
-// FUNÇÃO PARA CARREGAR HISTÓRICO NOS GRÁFICOS (MODIFICADA PARA MIT)
+// FUNÇÃO PARA CARREGAR HISTÓRICO NOS GRÁFICOS (CORRIGIDA)
 // =============================================
 function carregarHistorico() {
     try {
@@ -917,22 +864,21 @@ function carregarHistorico() {
         const hoje = new Date().toISOString().split('T')[0];
         
         // Determina qual view está ativa
-        currentView = document.querySelector('.view-selector .view-btn.active').dataset.view;
+        const viewAtiva = document.querySelector('.view-selector .view-btn.active').dataset.view;
         
         let labels = [];
         let niveis = [];
         
-        if (currentView === 'diario') {
+        if (viewAtiva === 'diario') {
             const dataEscolhida = document.getElementById('dataEscolhida').value || hoje;
             
             if (historicoLocal[dataEscolhida]) {
                 const dadosDoDia = historicoLocal[dataEscolhida];
-                // Ordena pelas chaves (horas) e pega os últimos 20 registros
+                // Ordena pelas chaves (horas)
                 const horas = Object.keys(dadosDoDia).sort();
-                const ultimasHoras = horas.slice(-20); // Limita a 20 pontos para performance
                 
-                labels = ultimasHoras;
-                niveis = ultimasHoras.map(hora => dadosDoDia[hora].nivel);
+                labels = horas;
+                niveis = horas.map(hora => dadosDoDia[hora].nivel);
             }
             
             // Para o dia atual, adiciona o ponto atual em tempo real
@@ -941,11 +887,20 @@ function carregarHistorico() {
                     hour: '2-digit', 
                     minute: '2-digit' 
                 });
-                labels.push(horaAtual);
-                niveis.push(nivelAtual);
+                
+                // Verifica se já existe um registro para esta hora
+                const indexHoraAtual = labels.indexOf(horaAtual);
+                if (indexHoraAtual !== -1) {
+                    // Atualiza o valor existente
+                    niveis[indexHoraAtual] = nivelAtual;
+                } else {
+                    // Adiciona novo registro
+                    labels.push(horaAtual);
+                    niveis.push(nivelAtual);
+                }
             }
             
-        } else if (currentView === 'mensal') {
+        } else if (viewAtiva === 'mensal') {
             const mesEscolhido = document.getElementById('mesEscolhido').value;
             
             // Agrupa por dia (média diária)
@@ -963,10 +918,10 @@ function carregarHistorico() {
             
             // Ordena as datas
             const datasOrdenadas = Object.keys(dadosMensais).sort();
-            labels = datasOrdenadas;
+            labels = datasOrdenadas.map(data => data.split('-')[2]); // Mostra apenas o dia
             niveis = datasOrdenadas.map(data => dadosMensais[data]);
             
-        } else if (currentView === 'intervalo') {
+        } else if (viewAtiva === 'intervalo') {
             const mesInicio = document.getElementById('mesInicio').value;
             const mesFim = document.getElementById('mesFim').value;
             
@@ -985,54 +940,54 @@ function carregarHistorico() {
             }
             
             // Calcula média mensal
+            const mediasMensais = {};
             for (const mes in dadosIntervalo) {
                 if (dadosIntervalo[mes].length > 0) {
                     const mediaMensal = dadosIntervalo[mes].reduce((a, b) => a + b) / dadosIntervalo[mes].length;
-                    dadosIntervalo[mes] = Math.round(mediaMensal);
+                    mediasMensais[mes] = Math.round(mediaMensal);
                 }
             }
             
             // Ordena os meses
-            const mesesOrdenados = Object.keys(dadosIntervalo).sort();
-            labels = mesesOrdenados;
-            niveis = mesesOrdenados.map(mes => dadosIntervalo[mes]);
+            const mesesOrdenados = Object.keys(mediasMensais).sort();
+            labels = mesesOrdenados.map(mes => {
+                const [ano, mesNum] = mes.split('-');
+                return `${mesNum}/${ano}`;
+            });
+            niveis = mesesOrdenados.map(mes => mediasMensais[mes]);
         }
         
-        // Atualiza as variáveis globais
-        historicoLabels = labels;
-        historicoNiveis = niveis;
-        
         // ⭐⭐ ATUALIZA OS GRÁFICOS COM OS DADOS PROCESSADOS ⭐⭐
-        atualizarGraficosComDados();
+        atualizarGraficosComDados(labels, niveis);
         
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
         // Fallback: dados de exemplo
-        historicoLabels = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
-        historicoNiveis = [30, 45, 60, 75, 80, 65, 50, 35];
-        atualizarGraficosComDados();
+        const horasExemplo = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+        const niveisExemplo = [30, 45, 60, 75, 80, 65, 50, 35];
+        atualizarGraficosComDados(horasExemplo, niveisExemplo);
     }
 }
 
 // =============================================
 // FUNÇÃO PARA ATUALIZAR GRÁFICOS COM DADOS
 // =============================================
-function atualizarGraficosComDados() {
+function atualizarGraficosComDados(labels, niveis) {
     if (!chartLinha || !chartVela) return;
     
     // Atualiza gráfico de linha
-    chartLinha.data.labels = historicoLabels;
-    chartLinha.data.datasets[0].data = historicoNiveis;
+    chartLinha.data.labels = labels;
+    chartLinha.data.datasets[0].data = niveis;
     chartLinha.update('none');
     
     // Atualiza gráfico de barras com cores baseadas na variação
-    const cores = historicoNiveis.map((v, i) => {
+    const cores = niveis.map((v, i) => {
         if (i === 0) return 'rgba(6,182,212,0.85)'; // Azul para o primeiro
-        return v >= historicoNiveis[i - 1] ? 'rgba(34,197,94,0.85)' : 'rgba(239,68,68,0.85)'; // Verde se subiu, vermelho se desceu
+        return v >= niveis[i - 1] ? 'rgba(34,197,94,0.85)' : 'rgba(239,68,68,0.85)'; // Verde se subiu, vermelho se desceu
     });
     
-    chartVela.data.labels = historicoLabels;
-    chartVela.data.datasets[0].data = historicoNiveis;
+    chartVela.data.labels = labels;
+    chartVela.data.datasets[0].data = niveis;
     chartVela.data.datasets[0].backgroundColor = cores;
     chartVela.update('none');
 }
