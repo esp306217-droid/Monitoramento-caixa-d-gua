@@ -635,6 +635,11 @@ async function atualizarDados() {
         nivelAtual = Math.max(1, Math.min(100, Math.round(nivelAtual)));
         atualizarInterface();
         
+        // Atualiza gráficos se estiver na view de gráficos
+        if (document.getElementById('grafico-container').style.display !== 'none') {
+            atualizarGraficosEmTempoReal();
+        }
+        
     } catch (error) {
         console.error("Erro na atualização:", error);
         
@@ -813,6 +818,22 @@ function criarGraficos() {
 }
 
 // =============================================
+// FUNÇÃO PARA ATUALIZAR GRÁFICOS EM TEMPO REAL
+// =============================================
+function atualizarGraficosEmTempoReal() {
+    if (!chartLinha || !chartVela) return;
+    
+    const hoje = new Date().toISOString().split('T')[0];
+    const dataEscolhida = document.getElementById('dataEscolhida').value;
+    const viewAtiva = document.querySelector('.view-selector .view-btn.active').dataset.view;
+    
+    // Só atualiza em tempo real para view diária do dia atual
+    if (viewAtiva === 'diario' && dataEscolhida === hoje) {
+        carregarHistorico(); // Recarrega o histórico completo
+    }
+}
+
+// =============================================
 // FUNÇÃO PARA SALVAR HISTÓRICO LOCAL (CORRIGIDA)
 // =============================================
 function salvarHistoricoLocal() {
@@ -826,7 +847,7 @@ function salvarHistoricoLocal() {
         });
         
         // ⭐⭐ SALVA A CADA 5 MINUTOS APENAS ⭐⭐
-        if (agoraTimestamp - ultimoTimestampSalvo < 5 * 60 * 1000) {
+        if (agoraTimestamp - ultimoTimestampSalvo < 5 * 60 * 1000 && ultimoTimestampSalvo !== 0) {
             return; // Ainda não passaram 5 minutos
         }
         
@@ -957,15 +978,30 @@ function carregarHistorico() {
             niveis = mesesOrdenados.map(mes => mediasMensais[mes]);
         }
         
-        // ⭐⭐ ATUALIZA OS GRÁFICOS COM OS DADOS PROCESSADOS ⭐⭐
-        atualizarGraficosComDados(labels, niveis);
+        // ⭐⭐ ATUALIZA OS GRÁFICOS APENAS SE HOUVER DADOS ⭐⭐
+        if (labels.length > 0 && niveis.length > 0) {
+            atualizarGraficosComDados(labels, niveis);
+        } else {
+            // ⭐⭐ REMOVE DADOS FIXOS - APENAS HISTÓRICO REAL ⭐⭐
+            chartLinha.data.labels = [];
+            chartLinha.data.datasets[0].data = [];
+            chartLinha.update('none');
+            
+            chartVela.data.labels = [];
+            chartVela.data.datasets[0].data = [];
+            chartVela.update('none');
+        }
         
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
-        // Fallback: dados de exemplo
-        const horasExemplo = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
-        const niveisExemplo = [30, 45, 60, 75, 80, 65, 50, 35];
-        atualizarGraficosComDados(horasExemplo, niveisExemplo);
+        // ⭐⭐ REMOVE COMPLETAMENTE OS DADOS FIXOS ⭐⭐
+        chartLinha.data.labels = [];
+        chartLinha.data.datasets[0].data = [];
+        chartLinha.update('none');
+        
+        chartVela.data.labels = [];
+        chartVela.data.datasets[0].data = [];
+        chartVela.update('none');
     }
 }
 
