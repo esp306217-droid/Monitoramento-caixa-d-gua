@@ -214,10 +214,13 @@ input[type="date"], input[type="month"] {
     margin-bottom: 10px;
 }
 
+/* === AJUSTE CSS 16:9 === */
 .chart-container {
     width: 100%;
     position: relative;
-    height: 400px;
+    /* height: 400px; */ /* <- Removido */
+    aspect-ratio: 16 / 9;   /* <- Adicionado para 16:9 */
+    max-height: 50vh;       /* <- Adicionado para limitar altura em telas grandes */
 }
 
 canvas { 
@@ -470,14 +473,17 @@ canvas {
         margin: 0 5px;
     }
 
+    /* === AJUSTE CSS 16:9 (Mobile) === */
     .chart-container {
-        height: 300px !important;
+        /* height: 300px !important; */ /* <- Removido */
+        aspect-ratio: 16 / 10; /* Ajuste leve para mobile */
+        max-height: 350px;
     }
 
-    canvas {
-        height: 300px !important;
+    /* canvas {
+        height: 300px !important; <- Removido 
         max-height: 300px;
-    }
+    } */
 
     .leitura-atual {
         position: relative;
@@ -514,12 +520,14 @@ canvas {
 
 @media (max-width: 480px) {
     .chart-container {
-        height: 250px !important;
+        /* height: 250px !important; */ /* <- Removido */
+        aspect-ratio: 16 / 11; /* Ajuste leve para mobile pequeno */
+        max-height: 300px;
     }
 
-    canvas {
-        height: 250px !important;
-    }
+    /* canvas {
+        height: 250px !important; <- Removido
+    } */
 
     .reservatorio-wrapper {
         height: 45vh;
@@ -611,15 +619,14 @@ canvas {
             <div class="view-selector">
                 <button class="view-btn active" data-view="diario">Diário</button>
                 <button class="view-btn" data-view="mensal">Mensal</button>
-                <button class="view-btn" data-view="intervalo">Intervalo</button>
+                <button class="view-btn" data-view="intervalo">Trimestral (90d)</button>
             </div>
             <div class="controls">
                 <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
                 <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
                 <div id="intervalo-picker" style="display:none;">
-                    <input type="month" id="mesInicio" placeholder="Mês inicial">
-                    <span>até</span>
-                    <input type="month" id="mesFim" placeholder="Mês final">
+                    <!-- O intervalo agora é automático (90 dias), este picker fica escondido -->
+                    <span id="intervalo-info">Exibindo os últimos 90 dias.</span>
                 </div>
                 <button id="btnAtualizar" class="modern-button">Carregar</button>
             </div>
@@ -695,116 +702,46 @@ canvas {
 <script>
 // --- CONSTANTES DO FIREBASE ---
 const DB_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/";
-const URL_NIVEL_ATUAL = `${DB_URL}/nivel_atual.json`;       
-const URL_NIVEL_LEGADO_PP7 = `${DB_URL}/PP7/nivel_pct.json`; 
-const URL_CONFIG_NIVEL = `${DB_URL}/config/nivel_minimo.json`; 
-const URL_CONFIG_TELEGRAM = `${DB_URL}/config/telegram.json`;
-const URL_CONFIG_EMAILS = `${DB_URL}/config/emails.json`;
+// AJUSTADO: URLs de leitura de dados e configuração
+const URL_NIVEL_ATUAL = `${DB_URL}/PP7.json`; // Lendo o nó principal (PP7)
+const URL_HISTORICO_BASE = `${DB_URL}/PP7_historico.json`; // Lendo o histórico
+const URL_CONFIG_NIVEL = `${DB_URL}/config/nivel_minimo.json`; // Lendo config (igual)
+const URL_CONFIG_TELEGRAM = `${DB_URL}/config/telegram.json`; // Lendo config (igual)
+const URL_CONFIG_EMAILS = `${DB_URL}/config/emails.json`; // Lendo config (igual)
+
 
 // --- VARIÁVEIS GLOBAIS ---
 let chartLinha, chartVela;
-let historicoNiveis = [], historicoLabels = [];
-let dadosVela = [], labelsVela = [];
-let ultimoRegistroHistorico = 0;
+// AJUSTADO: Variáveis globais para armazenar os dados do Firebase
+let rawFirebaseHistory = null; // Armazena todos os dados dos 90 dias
+let historicoLabels = [], historicoNiveis = []; // Para o gráfico de linha
+let labelsVela = [], dadosVela = []; // Para o gráfico de barras
+
 let currentView = 'diario';
-let nivelAtual = 1;
+let nivelAtual = 1; // Inicia com 1 para evitar 0
 let nivelAlertaConfigurado = 30;
-let authErrorNotified = false; 
 let fetchRetryCount = 0;
 const MAX_FETCH_FAILURES = 5;
 let loopIntervalo;
 
-// --- CONFIGURAÇÃO DE HISTÓRICO ---
-const INTERVALO_SALVAMENTO = 5 * 60 * 1000; // 5 minutos
-
-// --- SISTEMA DE HISTÓRICO SIMPLIFICADO (baseado no seu código que funciona) ---
-function obterTimestampAtual() {
-    return Date.now();
-}
-
-function formatarHoraParaHistorico(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false
-    });
-}
-
-function formatarDataParaHistorico(timestamp) {
-    const date = new Date(timestamp);
+// --- FUNÇÕES DE FORMATAÇÃO DE DATA ---
+function formatarDataISO(date) {
     return date.toISOString().split('T')[0];
 }
 
-function salvarHistoricoLocal(nivel) {
-    try {
-        const timestamp = obterTimestampAtual();
-        const data = formatarDataParaHistorico(timestamp);
-        const hora = formatarHoraParaHistorico(timestamp);
-        
-        const registro = {
-            data: data,
-            hora: hora,
-            nivel: nivel,
-            timestamp: timestamp
-        };
-        
-        // Carregar histórico existente
-        let historico = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '[]');
-        
-        // Adicionar novo registro
-        historico.push(registro);
-        
-        // Manter apenas os últimos 1000 registros
-        if (historico.length > 1000) {
-            historico = historico.slice(-1000);
-        }
-        
-        // Salvar no localStorage
-        localStorage.setItem('historicoCaixaAgua', JSON.stringify(historico));
-        console.log(`✅ Histórico salvo: ${data} ${hora} - ${nivel}%`);
-        
-        return true;
-    } catch (e) {
-        console.error('❌ Erro ao salvar histórico local:', e);
-        return false;
-    }
-}
-
-function carregarHistoricoLocal(dataFiltro = null) {
-    try {
-        const historico = JSON.parse(localStorage.getItem('historicoCaixaAgua') || '[]');
-        
-        const registrosFiltrados = dataFiltro 
-            ? historico.filter(r => r.data === dataFiltro)
-            : historico;
-        
-        const labels = registrosFiltrados.map(r => 
-            dataFiltro ? r.hora : `${r.data} ${r.hora}`
-        );
-        const niveis = registrosFiltrados.map(r => r.nivel);
-        
-        return { labels, niveis };
-    } catch (e) {
-        console.error('Erro ao carregar histórico local:', e);
-        return { labels: [], niveis: [] };
-    }
-}
-
-function deveSalvarHistorico() {
-    const agora = obterTimestampAtual();
-    return (agora - ultimoRegistroHistorico) >= INTERVALO_SALVAMENTO;
+function getWeekNumber(date) {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+    return {
+        semana: Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7),
+        ano: date.getFullYear()
+    };
 }
 
 // --- FUNÇÕES DO GRÁFICO ---
 function criarGraficos() {
-    // Destruir gráficos existentes se houver
-    if (chartLinha) {
-        chartLinha.destroy();
-    }
-    if (chartVela) {
-        chartVela.destroy();
-    }
+    if (chartLinha) chartLinha.destroy();
+    if (chartVela) chartVela.destroy();
 
     const ctxL = document.getElementById('chartLinha').getContext('2d');
     const grad = ctxL.createLinearGradient(0, 0, 0, 300);
@@ -822,314 +759,185 @@ function criarGraficos() {
                 backgroundColor: grad, 
                 borderColor: 'rgba(6,182,212,0.95)', 
                 tension: 0.25, 
-                pointRadius: 2,
+                pointRadius: 2, 
                 borderWidth: 2,
-                pointBackgroundColor: 'rgba(6,182,212,1)',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 1,
-                pointHoverRadius: 4
+                // *** CORREÇÃO: Adicionado 'showLine: true' para garantir que a linha seja desenhada ***
+                showLine: true 
             }] 
         },
         options: { 
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 0
-            },
-            plugins: { 
-                legend: { 
-                    display: true,
-                    labels: {
-                        color: '#666',
-                        font: {
-                            family: 'Arial, Helvetica, sans-serif',
-                            size: 12
-                        }
-                    }
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    backgroundColor: 'rgba(0,0,0,0.7)'
-                }
-            }, 
+            animation: { duration: 0 },
+            plugins: { legend: { display: true }, tooltip: { mode: 'index', intersect: false } }, 
             scales: { 
-                x: { 
-                    ticks: { 
-                        color: '#666',
-                        maxRotation: 45,
-                        minRotation: 45
-                    },
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)'
-                    }
-                }, 
-                y: { 
-                    ticks: { 
-                        color: '#666'
-                    }, 
-                    min: 0, 
-                    max: 100,
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)'
-                    }
-                } 
+                x: { ticks: { color: '#666', maxRotation: 45, minRotation: 45 }, grid: { color: 'rgba(0,0,0,0.05)' } }, 
+                y: { ticks: { color: '#666' }, min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } } 
             },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            }
+            interaction: { mode: 'nearest', axis: 'x', intersect: false }
         }
     });
 
     const ctxV = document.getElementById('chartVela').getContext('2d');
-    
     chartVela = new Chart(ctxV, {
         type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Nível (%)',
-                data: [],
-                backgroundColor: 'rgba(6, 182, 212, 0.8)',
-                borderColor: 'rgba(6, 182, 212, 1)',
-                borderWidth: 1,
-                borderRadius: 4,
-                borderSkipped: false,
-            }]
-        },
+        data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], backgroundColor: 'rgba(6, 182, 212, 0.8)', borderColor: 'rgba(6, 182, 212, 1)', borderWidth: 1, borderRadius: 4 }] },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 0
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        color: '#666',
-                        font: {
-                            family: 'Arial, Helvetica, sans-serif',
-                            size: 12
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.7)',
-                    callbacks: {
-                        label: function(context) {
-                            return `Nível: ${context.parsed.y}%`;
-                        }
-                    }
-                }
-            },
+            animation: { duration: 0 },
+            plugins: { legend: { display: true }, tooltip: { callbacks: { label: (ctx) => `Nível: ${ctx.parsed.y}%` } } },
             scales: {
-                x: {
-                    ticks: { 
-                        color: '#666'
-                    },
-                    grid: { 
-                        color: 'rgba(0,0,0,0.05)',
-                        display: false
-                    }
-                },
-                y: {
-                    ticks: { 
-                        color: '#666'
-                    },
-                    min: 0,
-                    max: 100,
-                    grid: { color: 'rgba(0,0,0,0.05)' }
-                }
+                x: { ticks: { color: '#666' }, grid: { display: false } },
+                y: { ticks: { color: '#666' }, min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } }
             }
         }
     });
 }
 
-function agruparPorDias(dados) {
-    const diasAgrupados = {};
-    
-    dados.forEach(registro => {
-        if (!diasAgrupados[registro.data]) {
-            diasAgrupados[registro.data] = [];
-        }
-        diasAgrupados[registro.data].push(registro.nivel);
-    });
-    
-    const resultado = {};
-    Object.keys(diasAgrupados).forEach(dia => {
-        const niveis = diasAgrupados[dia];
-        resultado[dia] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
-    });
-    
-    return resultado;
-}
+// --- LÓGICA DE PROCESSAMENTO DE DADOS ---
+// Processa o objeto gigante do Firebase e o transforma em um array plano
+function processarDadosFirebase(data) {
+    const registros = [];
+    if (!data) return registros;
 
-function agruparPorSemanas(dados) {
-    const semanas = {};
-    
-    dados.forEach(registro => {
-        const date = new Date(registro.data + 'T00:00:00');
-        const semanaAno = getWeekNumber(date);
-        const chaveSemana = `Semana ${semanaAno.semana}/${semanaAno.ano}`;
+    // Itera sobre as datas (ex: "2025-11-01")
+    for (const dataKey in data) {
+        const leiturasDia = data[dataKey];
+        if (!leiturasDia) continue;
         
-        if (!semanas[chaveSemana]) {
-            semanas[chaveSemana] = [];
-        }
-        semanas[chaveSemana].push(registro.nivel);
-    });
-    
-    const resultado = {};
-    Object.keys(semanas).forEach(semana => {
-        const niveis = semanas[semana];
-        resultado[semana] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
-    });
-    
-    return resultado;
-}
-
-function agruparPorMeses(dados) {
-    const meses = {};
-    
-    dados.forEach(registro => {
-        const [ano, mes] = registro.data.split('-');
-        const chaveMes = `${mes}/${ano}`;
-        
-        if (!meses[chaveMes]) {
-            meses[chaveMes] = [];
-        }
-        meses[chaveMes].push(registro.nivel);
-    });
-    
-    const resultado = {};
-    Object.keys(meses).forEach(mes => {
-        const niveis = meses[mes];
-        resultado[mes] = niveis.reduce((a, b) => a + b, 0) / niveis.length;
-    });
-    
-    return resultado;
-}
-
-function getWeekNumber(date) {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-    return {
-        semana: Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7),
-        ano: date.getFullYear()
-    };
-}
-
-// --- FUNÇÃO PRINCIPAL DE CARREGAMENTO DE HISTÓRICO ---
-async function carregarHistorico() {
-    const infoLinha = document.getElementById('info-linha');
-    const infoVela = document.getElementById('info-vela');
-    let dataInicio, dataFim;
-    let dataEscolhida;
-
-    if (currentView === 'diario') {
-        dataEscolhida = document.getElementById('dataEscolhida').value;
-        if (!dataEscolhida) return;
-        dataInicio = `${dataEscolhida}T00:00:00`;
-        dataFim = `${dataEscolhida}T23:59:59`;
-        infoLinha.textContent = `Exibe o histórico de nível ao longo do dia ${dataEscolhida}.`;
-        infoVela.textContent = `Mostra o nível por hora no dia ${dataEscolhida}.`;
-    } else if (currentView === 'mensal') {
-        const mesAno = document.getElementById('mesEscolhido').value;
-        if (!mesAno) return;
-        const [ano, mes] = mesAno.split('-');
-        dataInicio = `${mesAno}-01T00:00:00`;
-        const ultimoDia = new Date(ano, mes, 0).getDate();
-        dataFim = `${mesAno}-${ultimoDia}T23:59:59`;
-        infoLinha.textContent = `Exibe o histórico de nível por semanas do mês ${mes}/${ano}.`;
-        infoVela.textContent = `Mostra o nível por dia no mês ${mes}/${ano}.`;
-    } else {
-        const mesInicio = document.getElementById('mesInicio').value;
-        const mesFim = document.getElementById('mesFim').value;
-        if (!mesInicio || !mesFim) return;
-        
-        const [anoInicio, mesInicioNum] = mesInicio.split('-');
-        const [anoFim, mesFimNum] = mesFim.split('-');
-        
-        dataInicio = `${mesInicio}-01T00:00:00`;
-        const ultimoDiaFim = new Date(anoFim, mesFimNum, 0).getDate();
-        dataFim = `${mesFim}-${ultimoDiaFim}T23:59:59`;
-        
-        infoLinha.textContent = `Exibe o histórico de nível por meses de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
-        infoVela.textContent = `Mostra o nível por mês de ${mesInicioNum}/${anoInicio} a ${mesFimNum}/${anoFim}.`;
-    }
-
-    console.log("📊 Carregando histórico do localStorage...");
-    
-    let registrosFiltrados = [];
-    
-    if (currentView === 'diario') {
-        const { labels: labelsDoDia, niveis: niveisDoDia } = carregarHistoricoLocal(dataEscolhida);
-        
-        for (let i = 0; i < labelsDoDia.length; i++) {
-            registrosFiltrados.push({
-                label: labelsDoDia[i],
-                nivel: niveisDoDia[i]
-            });
-        }
-    } else {
-        const { labels: todasLabels, niveis: todosNiveis } = carregarHistoricoLocal();
-        
-        const dataInicioObj = new Date(dataInicio);
-        const dataFimObj = new Date(dataFim);
-        
-        for (let i = 0; i < todasLabels.length; i++) {
-            const labelParts = todasLabels[i].split(' ');
-            const registroData = new Date(labelParts[0] + 'T00:00:00');
-            
-            if (registroData >= dataInicioObj && registroData <= dataFimObj) {
-                registrosFiltrados.push({
-                    label: todasLabels[i],
-                    nivel: todosNiveis[i]
+        // Itera sobre as horas (ex: "10-00", "10-05")
+        for (const horaKey in leiturasDia) {
+            const leitura = leiturasDia[horaKey];
+            if (leitura && typeof leitura.nivel_pct === 'number') {
+                registros.push({
+                    data: dataKey,
+                    hora: horaKey.replace('-', ':'), // Converte "10-05" para "10:05"
+                    nivel: leitura.nivel_pct
                 });
             }
         }
     }
+    return registros;
+}
 
-    if (currentView === 'diario') {
-        historicoLabels = registrosFiltrados.map(r => r.label);
-        historicoNiveis = registrosFiltrados.map(r => r.nivel);
-        
-        labelsVela = historicoLabels;
-        dadosVela = historicoNiveis;
-        
-    } else if (currentView === 'mensal') {
-        const registrosComData = registrosFiltrados.map(r => ({
-            data: r.label.split(' ')[0],
-            nivel: r.nivel
-        }));
-        
-        const semanas = agruparPorSemanas(registrosComData);
-        historicoLabels = Object.keys(semanas);
-        historicoNiveis = Object.values(semanas);
-        
-        const dias = agruparPorDias(registrosComData);
-        labelsVela = Object.keys(dias);
-        dadosVela = Object.values(dias);
-        
-    } else {
-        const registrosComData = registrosFiltrados.map(r => ({
-            data: r.label.split(' ')[0],
-            nivel: r.nivel
-        }));
-        
-        const meses = agruparPorMeses(registrosComData);
-        historicoLabels = Object.keys(meses);
-        historicoNiveis = Object.values(meses);
-        
-        labelsVela = historicoLabels;
-        dadosVela = historicoNiveis;
+// Filtra os dados brutos com base na visão atual
+function filtrarEProcessarHistorico() {
+    if (!rawFirebaseHistory) {
+        console.warn("Dados do Firebase ainda não carregados.");
+        return;
     }
 
-    console.log(`📈 Carregados ${historicoLabels.length} registros para o gráfico`);
+    const infoLinha = document.getElementById('info-linha');
+    const infoVela = document.getElementById('info-vela');
+    let dataInicio, dataFim;
+    let registrosFiltrados = [];
     
+    // Obter todos os registros processados
+    const todosRegistros = processarDadosFirebase(rawFirebaseHistory);
+
+    if (currentView === 'diario') {
+        dataInicio = document.getElementById('dataEscolhida').value;
+        registrosFiltrados = todosRegistros.filter(r => r.data === dataInicio);
+        
+        // --- INÍCIO DA MODIFICAÇÃO (Gráfico de Linha) ---
+        // O ESP32 já salva de 5 em 5 minutos, então apenas usamos os dados
+        historicoLabels = registrosFiltrados.map(r => r.hora);
+        historicoNiveis = registrosFiltrados.map(r => r.nivel);
+        infoLinha.textContent = `Exibe o histórico de nível (5 min) ao longo do dia ${dataInicio}.`;
+        // --- FIM DA MODIFICAÇÃO (Gráfico de Linha) ---
+
+
+        // --- INÍCIO DA MODIFICAÇÃO (Gráfico de Barras/Vela) ---
+        // Agrupar dados de 5 min em blocos de 1 hora
+        const leiturasPorHora = {};
+        registrosFiltrados.forEach(r => {
+            const hora = r.hora.split(':')[0]; // "10:05" -> "10"
+            if (!leiturasPorHora[hora]) {
+                leiturasPorHora[hora] = [];
+            }
+            leiturasPorHora[hora].push(r.nivel);
+        });
+
+        labelsVela = [];
+        dadosVela = [];
+
+        // Ordena as chaves (horas) e calcula a média
+        const horasOrdenadas = Object.keys(leiturasPorHora).sort((a, b) => a - b);
+        horasOrdenadas.forEach(hora => {
+            const niveisDaHora = leiturasPorHora[hora];
+            const soma = niveisDaHora.reduce((a, b) => a + b, 0);
+            const media = soma / niveisDaHora.length;
+            
+            labelsVela.push(`${hora}h`); // Adiciona "h" (ex: "10h")
+            dadosVela.push(media);
+        });
+
+        infoVela.textContent = `Mostra a média de nível por hora no dia ${dataInicio}.`;
+        // --- FIM DA MODIFICAÇÃO (Gráfico de Barras/Vela) ---
+
+
+    } else if (currentView === 'mensal') {
+        const mesAno = document.getElementById('mesEscolhido').value;
+        const [ano, mes] = mesAno.split('-');
+        registrosFiltrados = todosRegistros.filter(r => r.data.startsWith(mesAno));
+
+        // Agrupar para gráfico de linha (por semana)
+        const semanas = {};
+        registrosFiltrados.forEach(r => {
+            const date = new Date(r.data + 'T00:00:00'); // Ajuste de fuso
+            const semanaAno = getWeekNumber(date);
+            const chaveSemana = `S${semanaAno.semana}`;
+            if (!semanas[chaveSemana]) semanas[chaveSemana] = [];
+            semanas[chaveSemana].push(r.nivel);
+        });
+        historicoLabels = Object.keys(semanas);
+        historicoNiveis = Object.values(semanas).map(arr => arr.reduce((a, b) => a + b, 0) / arr.length);
+        
+        // Agrupar para gráfico de barras (por dia)
+        const dias = {};
+        registrosFiltrados.forEach(r => {
+            const dia = r.data.split('-')[2]; // Pega só o dia
+            if (!dias[dia]) dias[dia] = [];
+            dias[dia].push(r.nivel);
+        });
+        labelsVela = Object.keys(dias);
+        dadosVela = Object.values(dias).map(arr => arr.reduce((a, b) => a + b, 0) / arr.length);
+
+        infoLinha.textContent = `Exibe a média de nível por semana do mês ${mes}/${ano}.`;
+        infoVela.textContent = `Mostra a média de nível por dia no mês ${mes}/${ano}.`;
+        
+    } else { // Intervalo (90 dias)
+        // Os dados em rawFirebaseHistory já são os últimos 90 dias
+        registrosFiltrados = todosRegistros;
+
+        // Agrupar para gráfico de linha (por mês)
+        const meses = {};
+        registrosFiltrados.forEach(r => {
+            const chaveMes = r.data.substring(0, 7); // "YYYY-MM"
+            if (!meses[chaveMes]) meses[chaveMes] = [];
+            meses[chaveMes].push(r.nivel);
+        });
+        historicoLabels = Object.keys(meses);
+        historicoNiveis = Object.values(meses).map(arr => arr.reduce((a, b) => a + b, 0) / arr.length);
+
+        // Agrupar para gráfico de barras (por semana)
+        const semanas = {};
+        registrosFiltrados.forEach(r => {
+            const date = new Date(r.data + 'T00:00:00'); // Ajuste de fuso
+            const semanaAno = getWeekNumber(date);
+            const chaveSemana = `${semanaAno.ano}-S${semanaAno.semana}`;
+            if (!semanas[chaveSemana]) semanas[chaveSemana] = [];
+            semanas[chaveSemana].push(r.nivel);
+        });
+        labelsVela = Object.keys(semanas);
+        dadosVela = Object.values(semanas).map(arr => arr.reduce((a, b) => a + b, 0) / arr.length);
+
+        infoLinha.textContent = `Exibe a média de nível por mês (últimos 90 dias).`;
+        infoVela.textContent = `Mostra a média de nível por semana (últimos 90 dias).`;
+    }
+
+    // Atualizar os gráficos
     if (chartLinha && chartVela) {
         chartLinha.data.labels = historicoLabels;
         chartLinha.data.datasets[0].data = historicoNiveis;
@@ -1141,6 +949,50 @@ async function carregarHistorico() {
         chartVela.update('none');
     }
 }
+
+// --- FUNÇÃO PRINCIPAL DE CARREGAMENTO DE HISTÓRICO (DO FIREBASE) ---
+async function fetchFirebaseHistory() {
+    console.log("📊 Carregando histórico de 90 dias do Firebase...");
+    const btn = document.getElementById('btnAtualizar');
+    btn.disabled = true;
+    btn.textContent = "Carregando...";
+
+    // Calcula data de 90 dias atrás
+    const dataHoje = new Date();
+    const dataInicio = new Date(dataHoje.setDate(dataHoje.getDate() - 90));
+    const dataInicioStr = formatarDataISO(dataInicio);
+
+    // Constrói a URL de query do Firebase
+    const url = `${URL_HISTORICO_BASE}?orderBy="$key"&startAt="${dataInicioStr}"`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Falha ao buscar histórico: ${response.status}`);
+        }
+        rawFirebaseHistory = await response.json();
+        
+        if (rawFirebaseHistory) {
+            console.log("✅ Histórico do Firebase carregado com sucesso.");
+            // Após carregar, processa a visão atual (que é 'diario' por padrão)
+            filtrarEProcessarHistorico();
+        } else {
+            console.warn("Nenhum histórico encontrado para os últimos 90 dias.");
+            rawFirebaseHistory = {}; // Evita erros futuros
+            filtrarEProcessarHistorico(); // Limpa os gráficos se não houver dados
+        }
+        
+    } catch (e) {
+        console.error("❌ Erro ao carregar histórico do Firebase:", e);
+        const statusDiv = document.getElementById('status-alerta-caixa');
+        statusDiv.style.color = '#ef4444';
+        statusDiv.innerText = 'Erro ao carregar histórico (Verifique Regras/Conexão).';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Carregar";
+    }
+}
+
 
 // --- FUNÇÕES DE ATUALIZAÇÃO ---
 function atualizarCaixaDOM(nivel) {
@@ -1198,92 +1050,101 @@ async function loopDeAtualizacao() {
         if (loopIntervalo) clearInterval(loopIntervalo);
         console.error("Muitas falhas de conexão com o Firebase. Loop interrompido.");
         const statusDiv = document.getElementById('status-alerta-caixa');
-        statusDiv.style.color = '#ef4444';
-        statusDiv.innerText = 'ERRO DE CONEXÃO. Verifique as Regras do Firebase ou a rede.';
+        if (statusDiv) {
+            statusDiv.style.color = '#ef4444';
+            statusDiv.innerText = 'ERRO DE CONEXÃO. Verifique as Regras do Firebase ou a rede.';
+        }
         return;
     }
     
-    let configNivelOk = false;
+    // 1. Busca Nível de Alerta (menos frequente, mas necessário)
     try {
         const rConfig = await fetch(URL_CONFIG_NIVEL);
-        if (!rConfig.ok) throw new Error(`Falha ao buscar config: ${rConfig.status}`);
-        const config = await rConfig.json();
-        if (config !== null) {
-            nivelAlertaConfigurado = parseInt(config) || 30;
+        if (rConfig.ok) {
+            const config = await rConfig.json();
+            if (config !== null) {
+                nivelAlertaConfigurado = parseInt(config) || 30;
+            }
         }
-        configNivelOk = true;
     } catch (e) {
-        console.error("Erro ao buscar nível de alerta:", e);
-        fetchRetryCount++;
+        console.warn("Erro ao buscar nível de alerta:", e);
     }
     
+    // 2. Busca Nível Atual
     let nivelEncontrado = null; 
-    let nivelOk = false;
     try {
+        // O ESP32 salva em /PP7
         const rNivel = await fetch(URL_NIVEL_ATUAL);
-        if (!rNivel.ok) throw new Error(`Falha ao buscar /nivel_atual: ${rNivel.status}`);
-        const nivelNovo = await rNivel.json();
+        if (!rNivel.ok) throw new Error(`Falha ao buscar /PP7: ${rNivel.status}`);
         
-        if (nivelNovo !== null) {
-            nivelEncontrado = Number(nivelNovo);
+        const data = await rNivel.json();
+        
+        if (data && typeof data.nivel_pct === 'number') {
+            nivelEncontrado = Number(data.nivel_pct);
         } else {
-            const rNivelLegado = await fetch(URL_NIVEL_LEGADO_PP7);
-            if (!rNivelLegado.ok) throw new Error(`Falha ao buscar /PP7/nivel_pct: ${rNivelLegado.status}`);
-            const nivelLegado = await rNivelLegado.json();
-            if (nivelLegado !== null) {
-                nivelEncontrado = Number(nivelLegado);
+            // Fallback para o nó /nivel_atual se /PP7 falhar
+            const rNivelLegado = await fetch(`${DB_URL}/nivel_atual.json`);
+            if (rNivelLegado.ok) {
+                const nivelLegado = await rNivelLegado.json();
+                if (nivelLegado !== null) {
+                    nivelEncontrado = Number(nivelLegado);
+                }
             }
         }
         
-        if (nivelEncontrado !== null && nivelEncontrado > 0) {
+        if (nivelEncontrado !== null && nivelEncontrado >= 0) { // Permite 0
             nivelAtual = nivelEncontrado;
-            console.log(`🔄 Nível atualizado: ${nivelAtual}%`);
-        } else if (nivelEncontrado === 0 || nivelEncontrado === null) {
-            if (nivelAtual > 0) {
-                console.log(`⚡ Nível lido: ${nivelEncontrado}% - Mantendo último valor válido: ${nivelAtual}%`);
-            } else {
-                nivelAtual = 1;
-                console.log(`⚡ Nível lido: ${nivelEncontrado}% - Usando fallback: ${nivelAtual}%`);
-            }
+        } else if (nivelAtual <= 0) { // Se o nível atual ainda for 0 (inicial)
+            nivelAtual = 1; // Força 1 para evitar DOM inválido
         }
         
-        nivelOk = true;
+        fetchRetryCount = 0; // Reseta contador de falhas
         
     } catch(e) {
         console.error("Falha ao ler nível:", e.message);
         fetchRetryCount++;
-        
-        if (nivelAtual <= 0) {
-            nivelAtual = 1;
-        }
+        if (nivelAtual <= 0) nivelAtual = 1;
         
         const statusDiv = document.getElementById('status-alerta-caixa');
-        statusDiv.style.color = '#ef4444';
-        statusDiv.innerText = 'Falha ao carregar nível (Sem conexão).';
-    }
-
-    if (nivelAtual <= 0) {
-        nivelAtual = 1;
-    }
-
-    atualizarCaixaDOM(nivelAtual); 
-    
-    if (deveSalvarHistorico()) {
-        const sucesso = salvarHistoricoLocal(nivelAtual);
-        if (sucesso) {
-            ultimoRegistroHistorico = obterTimestampAtual();
-            console.log(`💾 Registro salvo no histórico: ${nivelAtual}%`);
-            
-            if (document.getElementById('grafico-container').style.display !== 'none') {
-                carregarHistorico();
-            }
+        if (statusDiv) {
+            statusDiv.style.color = '#ef4444';
+            statusDiv.innerText = 'Falha ao carregar nível (Sem conexão).';
         }
     }
+
+    // 3. Atualiza a UI
+    atualizarCaixaDOM(nivelAtual); 
     
-    if (configNivelOk && nivelOk) {
-        fetchRetryCount = 0;
+    // 4. Adiciona ao gráfico em tempo real (se estiver na tela 'diario' de 'hoje')
+    const dataEscolhida = document.getElementById('dataEscolhida').value;
+    const hoje = formatarDataISO(new Date());
+
+    if (currentView === 'diario' && dataEscolhida === hoje) {
+        const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        // Adiciona ao gráfico de linha
+        if (chartLinha && chartLinha.data.labels[chartLinha.data.labels.length - 1] !== horaAtual) {
+            chartLinha.data.labels.push(horaAtual);
+            chartLinha.data.datasets[0].data.push(nivelAtual);
+            
+            // Limita a 100 pontos no gráfico em tempo real
+            if (chartLinha.data.labels.length > 100) {
+                chartLinha.data.labels.shift();
+                chartLinha.data.datasets[0].data.shift();
+            }
+            chartLinha.update('none');
+        }
+        
+        // Adiciona ao gráfico de barras
+        if (chartVela && chartVela.data.labels[chartVela.data.labels.length - 1] !== horaAtual) {
+            // *** AJUSTE: O gráfico de barras não deve ser atualizado em tempo real ***
+            // A atualização dele ocorre apenas ao filtrar os dados.
+            // Se quiséssemos atualizar a barra da hora atual, a lógica seria mais complexa.
+            // Vamos manter o gráfico de barras (vela) apenas com dados históricos agregados.
+        }
     }
 }
+
 
 // --- INICIALIZAÇÃO ---
 window.onload = function() {
@@ -1299,8 +1160,11 @@ window.onload = function() {
     };
 
     function switchView(viewName) {
+        // *** CORREÇÃO: Adicionado 'const' para definir 'key' ***
         for (const key in views) {
-            views[key].style.display = 'none';
+            if (views.hasOwnProperty(key)) {
+                views[key].style.display = 'none';
+            }
         }
         if (views[viewName]) {
             views[viewName].style.display = 'flex';
@@ -1312,8 +1176,8 @@ window.onload = function() {
         }
 
         if (viewName === 'grafico') {
-            carregarHistorico();
-            // Redimensionar gráficos após um pequeno delay
+            // Processa os dados já carregados do Firebase
+            filtrarEProcessarHistorico(); 
             setTimeout(() => {
                 if (chartLinha) chartLinha.resize();
                 if (chartVela) chartVela.resize();
@@ -1339,30 +1203,31 @@ window.onload = function() {
 
     criarGraficos();
     const hoje = new Date();
-    const dataFimPadrao = hoje.toISOString().split('T')[0];
+    const dataFimPadrao = formatarDataISO(hoje);
     const mesFimPadrao = hoje.toISOString().substring(0, 7);
     
-    const mesInicio = new Date();
-    mesInicio.setMonth(mesInicio.getMonth() - 3);
-    const mesInicioPadrao = mesInicio.toISOString().substring(0, 7);
+    // Define o padrão do intervalo para 90 dias
+    const dataInicio90d = new Date(hoje.setDate(hoje.getDate() - 90));
+    const mesInicioPadrao = dataInicio90d.toISOString().substring(0, 7);
     
     document.getElementById('dataEscolhida').value = dataFimPadrao;
     document.getElementById('mesEscolhido').value = mesFimPadrao;
-    document.getElementById('mesInicio').value = mesInicioPadrao;
-    document.getElementById('mesFim').value = mesFimPadrao;
+    // (Os pickers de intervalo estão ocultos, mas poderiam ser setados aqui)
     
     switchView('caixa');
-    
     nivelAtual = 1;
     
     console.log("🚀 Inicializando sistema de monitoramento...");
-    carregarHistorico().then(() => {
-        console.log("✅ Histórico carregado do localStorage");
-        loopDeAtualizacao();
-        loopIntervalo = setInterval(loopDeAtualizacao, 2000);
-    });
+    
+    // 1. Inicia o loop de atualização em tempo real
+    loopDeAtualizacao();
+    loopIntervalo = setInterval(loopDeAtualizacao, 2000); // 2 segundos
+    
+    // 2. Busca o histórico completo de 90 dias do Firebase
+    fetchFirebaseHistory();
 
-    document.getElementById('btnAtualizar').onclick = carregarHistorico;
+    // AJUSTADO: O botão de "Carregar" agora filtra os dados, não busca no Firebase
+    document.getElementById('btnAtualizar').onclick = filtrarEProcessarHistorico; 
     
     document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -1380,14 +1245,19 @@ window.onload = function() {
                 for(const key in pickers) {
                     pickers[key].style.display = 'none';
                 }
-                if (pickers[currentView]) pickers[currentView].style.display = 'flex';
                 
-                carregarHistorico();
+                // AJUSTADO: Renomeei o botão de intervalo para 'Trimestral (90d)'
+                // e ajustei a exibição dos pickers.
+                if (currentView === 'diario') pickers.diario.style.display = 'flex';
+                else if (currentView === 'mensal') pickers.mensal.style.display = 'flex';
+                else pickers.intervalo.style.display = 'flex'; // Mostra o texto "Exibindo os últimos 90 dias."
+                
+                // Processa os dados já carregados, não busca novamente
+                filtrarEProcessarHistorico();
             }
         });
     });
 
-    // Adicionar listener para redimensionamento da tela
     window.addEventListener('resize', function() {
         if (document.getElementById('grafico-container').style.display !== 'none') {
             setTimeout(() => {
