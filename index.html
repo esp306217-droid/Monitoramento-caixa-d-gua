@@ -631,7 +631,7 @@ canvas {
     </header>
 	<div class="board">
 		<div class="charts">
-			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Intervalos de 5 min)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível (HH:mm) ao longo do dia selecionado.</div></div>
+			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Intervalos de 30 min)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível (HH:mm) ao longo do dia selecionado.</div></div>
 			<!-- REQ 3: Descrição do Gráfico de Blocos atualizada -->
             <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Média de 60 min)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe a média do nível a cada 60 minutos.</div></div>
 		</div>
@@ -783,7 +783,7 @@ let activeTab = 'caixa'; // REQ 4: Vista da aplicação (caixa, grafico, etc.)
 let nivelAtual = 0;
 let ultimoNivelValido = 0; // REQ 3: Filtro para 0%
 let nivelAlertaConfigurado = 30; // Valor padrão
-let alertaEmailEnviado = false; 
+let alertaEmailEnviadoTimestamp = 0; // FIX: Cooldown para spam de email
 let emailJsInicializado = false; 
 let alertaModalMostrado = false; // REQ 2: Flag para modal
 
@@ -1074,7 +1074,15 @@ async function salvarLeituraNoFirebase(nivel, timestamp) {
     }
 
     const d = new Date(timestamp);
-    const data = d.toISOString().split('T')[0];
+    // FIX: Problema de fuso horário (UTC)
+    // const data = d.toISOString().split('T')[0]; // ISSO GERA O DIA SEGUINTE APÓS AS 21:00 (GMT-3)
+    
+    // CORREÇÃO: Usar data local
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0'); // Mês é 0-11
+    const dia = String(d.getDate()).padStart(2, '0');
+    const data = `${ano}-${mes}-${dia}`; // Formato YYYY-MM-DD local
+
     const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     const path = `PP7_config/historico/${data}/${hora}.json`;
@@ -1383,32 +1391,41 @@ async function loopDeAtualizacao() {
         const statusDisplay = document.getElementById('status-display');
         statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
 
+        // FIX: Adicionado cooldown de 10 minutos para EmailJS
+        const agora = Date.now(); // Definido mais cedo para usar no alerta
+        const DEZ_MINUTOS = 10 * 60 * 1000; // 10 minutos de cooldown
+
 		if (nivelAtual <= nivelAlertaConfigurado) {
             statusDisplay.classList.add('level-danger');
-			if (!alertaEmailEnviado) {
-				console.log(`Disparando alerta! Nível ${nivelAtual}% <= ${nivelAlertaConfigurado}%`);
-				alertaEmailEnviado = true; 
-				enviarEmailAlerta(nivelAtual).then(success => {
-					if (!success) {
-						console.log("Falha no envio, re-armando o gatilho.");
-						alertaEmailEnviado = false;	
-					}
-				});
-			}
+
+            // Verifica se já passou o cooldown de 10 minutos
+            if (agora - alertaEmailEnviadoTimestamp > DEZ_MINUTOS) {
+                console.log(`Disparando alerta! Nível ${nivelAtual}% <= ${nivelAlertaConfigurado}%`);
+                alertaEmailEnviadoTimestamp = agora; // Define o timestamp da *tentativa*
+                
+                enviarEmailAlerta(nivelAtual).then(success => {
+                    if (!success) {
+                        console.log("Falha no envio. Próxima tentativa em 10 minutos.");
+                        // Não reseta o timestamp, espera o cooldown
+                    }
+                });
+            }
             if (!alertaModalMostrado) {
                 mostrarAlertaModal();
                 alertaModalMostrado = true;
             }
 		} else if (nivelAtual <= 60) {
             statusDisplay.classList.add('level-warn');
-            if (alertaEmailEnviado) alertaEmailEnviado = false;
+            // Reseta o timestamp se o nível voltar ao normal (mas ainda em alerta amarelo)
+            if (alertaEmailEnviadoTimestamp !== 0) alertaEmailEnviadoTimestamp = 0;
             if (alertaModalMostrado) {
                 fecharAlertaModal();
                 alertaModalMostrado = false;
             }
         } else {
             statusDisplay.classList.add('level-ok');
-            if (alertaEmailEnviado) alertaEmailEnviado = false;
+            // Reseta o timestamp se o nível estiver OK
+            if (alertaEmailEnviadoTimestamp !== 0) alertaEmailEnviadoTimestamp = 0;
             if (alertaModalMostrado) {
                 fecharAlertaModal();
                 alertaModalMostrado = false;
@@ -1432,12 +1449,12 @@ async function loopDeAtualizacao() {
 			atualizarGraficosHistorico({ labels: historicoLabels, niveis: historicoNiveis });
 		}
 		
-		const agora = Date.now();
-		const cincoMinutos = 5 * 60 * 1000;
+		// const agora = Date.now(); // FIX: Movido para cima
+		const trintaMinutos = 30 * 60 * 1000; // REQ: Alterado de 5 para 30 min
 		const datePicker = document.getElementById('dataEscolhida');
 		const hoje = new Date().toISOString().split('T')[0];
 
-		if (agora - ultimaAtualizacaoGrafico > cincoMinutos) {
+		if (agora - ultimaAtualizacaoGrafico > trintaMinutos) { // REQ: Alterado de 5 para 30 min
             ultimaAtualizacaoGrafico = agora; 
 
 			if (currentView === 'diario' && datePicker.value === hoje) {
