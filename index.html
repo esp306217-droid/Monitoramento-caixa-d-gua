@@ -668,7 +668,7 @@ canvas {
         <!-- Novo Gráfico de Intensidade -->
         <div class="charts" style="width: 100%;">
             <div class="chart-card" id="abastecimento-chart-card" style="display:none;">
-                <strong>Gráfico de Abastecimento Diário (Litros)</strong>
+                <strong>Gráfico de Abastecimento (Litros)</strong>
                 <canvas id="chartAbastecimento"></canvas>
                 <div class="small">Exibe o total de litros abastecidos por dia. Aparece nas vistas "Semanal" e "Mensal".</div>
             </div>
@@ -793,19 +793,6 @@ const LITROS_POR_PERCENTO = 7000 / 85; // Aprox. 82.35 L por %
 
 // --- 2. ADICIONADO: INICIALIZAÇÃO E FUNÇÃO DE ENVIO EMAILJS ---
 // REMOVIDO: Toda a função enviarEmailAlerta e constantes. O ESP32 trata disso.
-/*
-const SERVICE_ID = "service_txwft9l";
-const TEMPLATE_ID = "template_c5l1j8r";
-
-async function enviarEmailAlerta(nivel) {
-	if (!emailJsInicializado) {
-		console.warn("EmailJS não foi inicializado. Abortando envio de e-mail. Verifique sua Public Key.");
-		return false; 
-	}
-// ... (código de envio de e-mail removido)
-}
-*/
-// --- FIM DA SEÇÃO EMAILJS ---
 
 // --- REQ 2: FUNÇÕES DO MODAL DE ALERTA ---
 function mostrarAlertaModal() {
@@ -1070,6 +1057,21 @@ async function salvarLeituraNoFirebase(nivel, timestamp) {
     }
 }
 
+// CORREÇÃO: Salvar "memória de emergência" (último valor válido) no Firebase
+async function salvarUltimoValorValido(nivel) {
+    if (nivel <= 0) return; // Não salvar 0
+    // Usamos PUT para substituir o valor antigo
+    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_valor_valido.json`;
+    try {
+        await fetch(url, {
+            method: 'PUT',
+            body: JSON.stringify({ nivel_pct: nivel })
+        });
+    } catch (e) {
+        console.warn("Não foi possível salvar o último valor válido:", e);
+    }
+}
+
 
 // REQ 2: Função de carregamento principal (Histórico e Consumo)
 async function carregarHistoricoEConsumo() {
@@ -1185,6 +1187,7 @@ async function carregarHistoricoEConsumo() {
 				const firebaseLabels = result.labels || [];
 				const firebaseNiveis = result.niveis || [];
 				
+                // Combina dados da sessão (em memória) com os do Firebase
 				const sessionOnlyLabels = historicoLabels.filter(label => !firebaseLabels.includes(label));
 				const sessionOnlyNiveis = sessionOnlyLabels.map(label => historicoNiveis[historicoLabels.indexOf(label)]);
 				
@@ -1217,7 +1220,7 @@ async function carregarDadosAbastecimento() {
         const hoje = new Date();
         const fim = new Date(hoje);
         // Define 'inicio' para 6 dias atrás (para incluir hoje como o 7º dia)
-        const inicio = new Date(hoje.setDate(hoje.getDate() - 6)); 
+        const inicio = new Date(new Date().setDate(hoje.getDate() - 6)); 
 
         dataInicio = inicio.toISOString().split('T')[0];
         dataFim = fim.toISOString().split('T')[0];
@@ -1316,46 +1319,119 @@ async function carregarDadosAbastecimento() {
     }
 }
 
-// +++ CORREÇÃO: Função de busca inicial para o filtro 0% +++
+// CORREÇÃO: Lógica de "Backup Profundo" para o carregamento inicial
+async function buscarBackupHistorico() {
+    console.warn("Modo de backup: Buscando último valor no histórico dos 7 dias.");
+    try {
+        // Pega os últimos 7 dias
+        const hoje = new Date();
+        const fim = hoje.toISOString().split('T')[0];
+        const inicio = new Date(new Date().setDate(hoje.getDate() - 7)).toISOString().split('T')[0];
+        
+        const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${inicio}"&endAt="${fim}"`;
+        
+        const r = await fetch(url);
+        const dados = await r.json();
+
+        if (!dados) return 0; // Nenhum histórico
+
+        // Pega a última data disponível
+        const ultimasDatas = Object.keys(dados).sort();
+        const ultimaDataKey = ultimasDatas[ultimasDatas.length - 1];
+        const leiturasDoDia = dados[ultimaDataKey];
+        
+        if (!leiturasDoDia) return 0;
+
+        // Pega a última hora disponível
+        const ultimasHoras = Object.keys(leiturasDoDia).sort();
+        const ultimaHoraKey = ultimasHoras[ultimasHoras.length - 1];
+        const ultimaLeitura = leiturasDoDia[ultimaHoraKey];
+
+        if (ultimaLeitura && ultimaLeitura.nivel_pct > 0) {
+            console.log(`Backup do histórico encontrou: ${ultimaLeitura.nivel_pct}%`);
+            return parseFloat(ultimaLeitura.nivel_pct);
+        }
+        return 0; // Não encontrou nada válido
+
+    } catch (e) {
+        console.error("Erro ao buscar backup no histórico:", e);
+        return 0;
+    }
+}
+
+
 async function primeiraBuscaDeNivel() {
     console.log("Buscando nível inicial...");
     const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
-    try {
-        const r = await fetch(dataUrl);
-        const j = await r.json();
-        
-        let nivelRecebidoRaw = j.nivel_pct || j.nivel;
-        let nivelRecebidoNum = parseFloat(nivelRecebidoRaw);
+    const ultimoValidoUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_valor_valido.json';
 
-        if (!isNaN(nivelRecebidoNum) && nivelRecebidoNum > 0) {
-            console.log(`Nível inicial válido encontrado: ${nivelRecebidoNum}%`);
-            nivelAtual = nivelRecebidoNum;
-            ultimoNivelValido = nivelRecebidoNum;
-        } else {
-            console.log("Nível inicial é 0 ou inválido. Tentando buscar no histórico...");
-            // Se o nível atual for 0, tenta pegar o último do histórico.
-            // Pega o histórico de hoje.
-            const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
-            const hoje = hojeLocal.toISOString().split('T')[0];
-            const urlHist = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${hoje}.json?orderBy="$key"&limitToLast=1`;
-            const rHist = await fetch(urlHist);
-            const dHist = await rHist.json();
-            
-            if (dHist) {
-                const lastKey = Object.keys(dHist)[0];
-                const lastReading = dHist[lastKey].nivel_pct;
-                if (lastReading > 0) {
-                    console.log(`Nível inicial pego do histórico: ${lastReading}%`);
-                    nivelAtual = lastReading;
-                    ultimoNivelValido = lastReading;
-                }
-            } else {
-                console.log("Nenhum histórico encontrado para hoje.");
+    let nivelSensorNum = 0;
+    let nivelMemoria = 0;
+
+    try {
+        const results = await Promise.allSettled([
+            fetch(dataUrl),
+            fetch(ultimoValidoUrl)
+        ]);
+
+        // Processar resultado do Sensor (índice 0)
+        if (results[0].status === 'fulfilled') {
+            const jSensor = await results[0].value.json();
+            if (jSensor) {
+                let nivelSensorRaw = jSensor.nivel_pct || jSensor.nivel;
+                nivelSensorNum = parseFloat(nivelSensorRaw);
+                if (isNaN(nivelSensorNum)) nivelSensorNum = 0;
             }
+        } else {
+            console.warn("Fetch do sensor falhou no carregamento:", results[0].reason);
         }
+        
+        // Processar resultado da Memória (índice 1)
+        if (results[1].status === 'fulfilled') {
+            const jUltimoValido = await results[1].value.json();
+            if (jUltimoValido && jUltimoValido.nivel_pct) {
+                nivelMemoria = parseFloat(jUltimoValido.nivel_pct);
+                if (isNaN(nivelMemoria)) nivelMemoria = 0;
+            }
+        } else {
+            console.warn("Fetch do ultimo_valor_valido falhou no carregamento:", results[1].reason);
+        }
+
+        // Se o sensor estiver a funcionar (valor > 0), usa-o.
+        if (nivelSensorNum > 0) {
+            console.log(`Nível inicial válido do sensor: ${nivelSensorNum}%`);
+            nivelAtual = nivelSensorNum;
+            ultimoNivelValido = nivelSensorNum;
+            if (nivelSensorNum !== nivelMemoria) {
+                salvarUltimoValorValido(nivelSensorNum);
+            }
+        } 
+        // Se o sensor falhar (0 ou NaN), mas tivermos um valor na memória...
+        else if (nivelMemoria > 0) {
+            console.log(`Sensor falhou (lido ${nivelSensorNum}). Usando nível da memória: ${nivelMemoria}%`);
+            nivelAtual = nivelMemoria;
+            ultimoNivelValido = nivelMemoria;
+        } 
+        // Se ambos falharem, tenta o "Backup Profundo"
+        else {
+             console.log("Sensor e Memória falharam. Tentando backup profundo no histórico...");
+             const nivelHistorico = await buscarBackupHistorico();
+             if (nivelHistorico > 0) {
+                nivelAtual = nivelHistorico;
+                ultimoNivelValido = nivelHistorico;
+             } else {
+                console.log("Nenhum nível válido encontrado (sensor, memória, histórico). Iniciando em 0.");
+             }
+        }
+
     } catch(e) {
-        console.error("Erro na busca de nível inicial:", e);
-        // Continua mesmo assim, mas o nível será 0 se o sensor falhar
+        console.error("Erro crítico na busca de nível inicial:", e);
+        // Fallback final se tudo falhar
+        const nivelHistorico = await buscarBackupHistorico();
+        if (nivelHistorico > 0) {
+            nivelAtual = nivelHistorico;
+            ultimoNivelValido = nivelHistorico;
+        }
     }
 }
 
@@ -1386,14 +1462,18 @@ async function loopDeAtualizacao() {
 			config = await rConfig.json();
 		}
 		
-        // +++ CORREÇÃO: Lógica de filtro 0% (Tentativa 5) +++
+        // CORREÇÃO: Lógica de filtro 0% (baseada na memória do Firebase)
         let nivelRecebidoRaw = j.nivel_pct || j.nivel;
         let nivelRecebidoNum = parseFloat(nivelRecebidoRaw);
 
         // SÓ atualizamos o nível (global) se a leitura for um número válido e > 0
         if (!isNaN(nivelRecebidoNum) && nivelRecebidoNum > 0) {
             nivelAtual = nivelRecebidoNum;
-            ultimoNivelValido = nivelRecebidoNum; // Guarda o último bom
+            // Se o novo valor for diferente do último, salva na "memória"
+            if (nivelRecebidoNum !== ultimoNivelValido) {
+                ultimoNivelValido = nivelRecebidoNum; 
+                salvarUltimoValorValido(nivelRecebidoNum);
+            }
         } 
         // Se a leitura for inválida (0, NaN, null), e já temos um valor bom...
         else if (ultimoNivelValido > 0) {
@@ -1412,26 +1492,12 @@ async function loopDeAtualizacao() {
 
         // REMOVIDA: Lógica de cooldown e envio de e-mail.
         // const agora = Date.now(); // FIX: Movido para o topo do loop
-        // const COOLDOWN_ALERTA = 7 * 24 * 60 * 60 * 1000; // 7 Dias
 
 		if (nivelAtual <= nivelAlertaConfigurado) {
             statusDisplay.classList.add('level-danger');
 
             // REMOVIDO: Bloco de envio de e-mail
-            /*
-            // Verifica se já passou o cooldown de 7 dias
-            if (agora - alertaEmailEnviadoTimestamp > COOLDOWN_ALERTA) {
-                console.log(`Disparando alerta! Nível ${nivelAtual}% <= ${nivelAlertaConfigurado}%`);
-                alertaEmailEnviadoTimestamp = agora; // Define o timestamp da *tentativa*
-                
-                enviarEmailAlerta(nivelAtual).then(success => {
-                    if (!success) {
-                        console.log("Falha no envio. Próxima tentativa em 7 dias.");
-                        // Não reseta o timestamp, espera o cooldown
-                    }
-                });
-            }
-            */
+            
             // MANTIDO: Lógica do Modal Visual
             if (!alertaModalMostrado) {
                 mostrarAlertaModal();
@@ -1440,7 +1506,6 @@ async function loopDeAtualizacao() {
 		} else if (nivelAtual <= 60) {
             statusDisplay.classList.add('level-warn');
             // REMOVIDO: Reset de timestamp de e-mail
-            // if (alertaEmailEnviadoTimestamp !== 0) alertaEmailEnviadoTimestamp = 0;
             if (alertaModalMostrado) {
                 fecharAlertaModal();
                 alertaModalMostrado = false;
@@ -1448,7 +1513,6 @@ async function loopDeAtualizacao() {
         } else {
             statusDisplay.classList.add('level-ok');
             // REMOVIDO: Reset de timestamp de e-mail
-            // if (alertaEmailEnviadoTimestamp !== 0) alertaEmailEnviadoTimestamp = 0;
             if (alertaModalMostrado) {
                 fecharAlertaModal();
                 alertaModalMostrado = false;
@@ -1487,7 +1551,7 @@ async function loopDeAtualizacao() {
 				const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 				
                 if (historicoLabels[historicoLabels.length - 1] !== hora) {
-                    if (nivelAtual > 0) {
+                    if (nivelAtual > 0) { // Só salva e bota no gráfico se for > 0
 					    historicoNiveis.push(Number(nivelAtual));
 					    historicoLabels.push(hora);
                         salvarLeituraNoFirebase(Number(nivelAtual), agora);
@@ -1503,24 +1567,7 @@ window.onload = function() {
 	
 	// --- INICIALIZAÇÃO EMAILJS ---
 	// REMOVIDO: Bloco de inicialização do EmailJS.
-	/*
-	(function() {
-		const PUBLIC_KEY = "xwk898VhH0VS-PSg9";	
-		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") {
-			console.error("ERRO DE CONFIGURAÇÃO EMAILJS: A 'Public Key' não foi definida.");
-			emailJsInicializado = false; 
-			return; 
-		}
-		try {
-			emailjs.init(PUBLIC_KEY);	
-			emailJsInicializado = true; 
-			console.log("EmailJS inicializado. Pronto para enviar alertas.");
-		} catch(e) {
-			console.error("ERRO CRÍTICO AO INICIALIZAR EMAILJS:", e);
-			emailJsInicializado = false;
-		}
-	})();
-	*/
+
 	// --- FIM DA INICIALIZAÇÃO EMAILJS ---
 
     // REQ 2: Referências de Views e Botões atualizadas
@@ -1697,9 +1744,10 @@ window.onload = function() {
 
     // REQ 1: Event listener para apagar histórico de abastecimento
 	document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-abastecimento-btn')) {
-			const id = e.target.dataset.id;
-			const btn = e.target;
+        // Assegura que estamos a clicar no botão (ou no 'X' dentro dele)
+        const btn = e.target.closest('.delete-abastecimento-btn');
+        if (btn) {
+			const id = btn.dataset.id;
 			
 			if (btn.dataset.confirming) {
 				removerAbastecimento(id);
@@ -1752,7 +1800,7 @@ window.onload = function() {
         }
     };
     
-    // +++ CORREÇÃO: Carregamento inicial com filtro 0% +++
+    // CORREÇÃO: Carregamento inicial com filtro 0% (memória do Firebase)
 	carregarHistoricoEConsumo().then(() => {
         // Fazer uma primeira busca SÓ para inicializar o nível
         primeiraBuscaDeNivel().then(() => {
