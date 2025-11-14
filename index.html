@@ -9,7 +9,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 
 <!-- 1. ADICIONADO: SCRIPT DO EMAILJS -->
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script> -->
+<!-- REMOVIDO: Script EmailJS. O ESP32 é responsável pelo envio de e-mails. -->
 
 <style>
 /* --- ESTILOS GERAIS --- */
@@ -70,7 +71,7 @@ body {
 
 .logo {
 	width: 160px;
-	margin-bottom: 20px; /* Ajusta espaço após a logo */
+	margin-bottom: 20px; /* Ajusta espaço após da logo */
 	opacity: 0.95;
 	z-index: 10;
 	position: relative;
@@ -783,14 +784,16 @@ let activeTab = 'caixa'; // REQ 4: Vista da aplicação (caixa, grafico, etc.)
 let nivelAtual = 0;
 let ultimoNivelValido = 0; // REQ 3: Filtro para 0%
 let nivelAlertaConfigurado = 30; // Valor padrão
-let alertaEmailEnviadoTimestamp = 0; // FIX: Cooldown para spam de email
-let emailJsInicializado = false; 
+// let alertaEmailEnviadoTimestamp = 0; // REMOVIDO: Lógica de e-mail movida para o ESP32
+// let emailJsInicializado = false; // REMOVIDO: Lógica de e-mail movida para o ESP32
 let alertaModalMostrado = false; // REQ 2: Flag para modal
 
 // REQ 2: Constante de cálculo de Litros (7000L = 85%)
 const LITROS_POR_PERCENTO = 7000 / 85; // Aprox. 82.35 L por %
 
 // --- 2. ADICIONADO: INICIALIZAÇÃO E FUNÇÃO DE ENVIO EMAILJS ---
+// REMOVIDO: Toda a função enviarEmailAlerta e constantes. O ESP32 trata disso.
+/*
 const SERVICE_ID = "service_txwft9l";
 const TEMPLATE_ID = "template_c5l1j8r";
 
@@ -799,49 +802,9 @@ async function enviarEmailAlerta(nivel) {
 		console.warn("EmailJS não foi inicializado. Abortando envio de e-mail. Verifique sua Public Key.");
 		return false; 
 	}
-
-	let contatos = {};
-	try {
-		const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
-		contatos = await r.json();
-		if (!contatos) {
-			console.warn("Alerta disparado, mas não há contatos de e-mail cadastrados.");
-			return false; 
-		}
-	} catch (e) {
-		console.error("Erro ao buscar contatos para enviar e-mail:", e);
-		return false; 
-	}
-
-	const emailsParaEnviar = Object.values(contatos)
-								   .filter(c => c.tipo === 'email' && c.valor)
-								   .map(c => c.valor);
-
-	if (emailsParaEnviar.length === 0) {
-		console.warn("Alerta disparado, mas não há contatos do TIPO 'email' cadastrados.");
-		return false;
-	}
-
-	console.log(`Tentando enviar e-mail de alerta para o nível: ${nivel}% para:`, emailsParaEnviar);
-	
-	let todosEnviadosComSucesso = true;
-	for (const email of emailsParaEnviar) {
-		const templateParams = {
-			nivel_agua: nivel,
-			to_email: email	
-		};
-
-		try {
-			await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
-			console.log(`E-mail enviado com SUCESSO para ${email}!`);
-		} catch (err) {
-			console.error(`ERRO ao enviar e-mail de alerta para ${email}:`, err);
-			todosEnviadosComSucesso = false; 
-		}
-	}
-	
-	return todosEnviadosComSucesso;
+// ... (código de envio de e-mail removido)
 }
+*/
 // --- FIM DA SEÇÃO EMAILJS ---
 
 // --- REQ 2: FUNÇÕES DO MODAL DE ALERTA ---
@@ -916,8 +879,11 @@ function atualizarGraficosHistorico(result) {
     let displayLabelsLinha = [...labelsHistorico];
 	let displayNiveisLinha = [...niveisHistorico];
 
+	// FIX: Correção de Fuso Horário
+    const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+    const hoje = hojeLocal.toISOString().split('T')[0];
 	const datePicker = document.getElementById('dataEscolhida');
-	const hoje = new Date().toISOString().split('T')[0];
+	// const hoje = new Date().toISOString().split('T')[0];
 
 	if (currentView === 'diario' && datePicker.value === hoje) {
 		displayLabelsLinha.push("Atual");
@@ -1083,6 +1049,7 @@ async function salvarLeituraNoFirebase(nivel, timestamp) {
     const dia = String(d.getDate()).padStart(2, '0');
     const data = `${ano}-${mes}-${dia}`; // Formato YYYY-MM-DD local
 
+    // REQ 3 (ajuste): Formatar para HH:mm
     const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     const path = `PP7_config/historico/${data}/${hora}.json`;
@@ -1118,6 +1085,7 @@ async function carregarHistoricoEConsumo() {
 		if (!data) return result;
 		url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${data}.json`;
 		processData = (dados) => {
+            if (!dados) return { labels: [], niveis: [], consumo: [] }; // FIX: Retorna vazio se dados forem nulos
 			const labels = Object.keys(dados).sort(); 
 			const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
 			return { labels, niveis, consumo: [] }; // Consumo vazio para diário
@@ -1140,6 +1108,7 @@ async function carregarHistoricoEConsumo() {
 		url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
 		
 		processData = (dados) => {
+            if (!dados) return { labels: [], niveis: [], consumo: [] }; // FIX: Retorna vazio se dados forem nulos
             const dailyAverages = {};
             const dailyConsumption = {}; // REQ 4: Consumo
             
@@ -1195,7 +1164,10 @@ async function carregarHistoricoEConsumo() {
 		const r = await fetch(url);
 		const dados = await r.json();
 		
-		const isTodayDiario = (currentView === 'diario' && document.getElementById('dataEscolhida').value === new Date().toISOString().split('T')[0]);
+        // FIX: Correção de Fuso Horário
+        const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+        const hoje = hojeLocal.toISOString().split('T')[0];
+		const isTodayDiario = (currentView === 'diario' && document.getElementById('dataEscolhida').value === hoje);
 
 		if (!dados) {
             historicoLabels = [];
@@ -1344,10 +1316,56 @@ async function carregarDadosAbastecimento() {
     }
 }
 
+// +++ CORREÇÃO: Função de busca inicial para o filtro 0% +++
+async function primeiraBuscaDeNivel() {
+    console.log("Buscando nível inicial...");
+    const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
+    try {
+        const r = await fetch(dataUrl);
+        const j = await r.json();
+        
+        let nivelRecebidoRaw = j.nivel_pct || j.nivel;
+        let nivelRecebidoNum = parseFloat(nivelRecebidoRaw);
+
+        if (!isNaN(nivelRecebidoNum) && nivelRecebidoNum > 0) {
+            console.log(`Nível inicial válido encontrado: ${nivelRecebidoNum}%`);
+            nivelAtual = nivelRecebidoNum;
+            ultimoNivelValido = nivelRecebidoNum;
+        } else {
+            console.log("Nível inicial é 0 ou inválido. Tentando buscar no histórico...");
+            // Se o nível atual for 0, tenta pegar o último do histórico.
+            // Pega o histórico de hoje.
+            const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+            const hoje = hojeLocal.toISOString().split('T')[0];
+            const urlHist = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${hoje}.json?orderBy="$key"&limitToLast=1`;
+            const rHist = await fetch(urlHist);
+            const dHist = await rHist.json();
+            
+            if (dHist) {
+                const lastKey = Object.keys(dHist)[0];
+                const lastReading = dHist[lastKey].nivel_pct;
+                if (lastReading > 0) {
+                    console.log(`Nível inicial pego do histórico: ${lastReading}%`);
+                    nivelAtual = lastReading;
+                    ultimoNivelValido = lastReading;
+                }
+            } else {
+                console.log("Nenhum histórico encontrado para hoje.");
+            }
+        }
+    } catch(e) {
+        console.error("Erro na busca de nível inicial:", e);
+        // Continua mesmo assim, mas o nível será 0 se o sensor falhar
+    }
+}
+
 
 // --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
 	try {
+        // FIX: Definir 'agora' no início do loop
+        const agora = Date.now(); 
+
 		let j;
 		let config;	
 		
@@ -1368,20 +1386,21 @@ async function loopDeAtualizacao() {
 			config = await rConfig.json();
 		}
 		
-        let nivelRecebido = j.nivel_pct || j.nivel || 0;
+        // +++ CORREÇÃO: Lógica de filtro 0% (Tentativa 5) +++
+        let nivelRecebidoRaw = j.nivel_pct || j.nivel;
+        let nivelRecebidoNum = parseFloat(nivelRecebidoRaw);
 
-        // REQ 3: Filtro para leituras 0% (sensor com erro)
-        if (nivelRecebido > 0) {
-            nivelAtual = nivelRecebido;
-            ultimoNivelValido = nivelRecebido;
-        } else if (nivelRecebido === 0 && ultimoNivelValido > 0) {
-            // A leitura é 0 (erro), mas já temos um valor válido anterior
-            nivelAtual = ultimoNivelValido;
-            //console.warn(`Leitura 0% recebida, usando último nível válido: ${ultimoNivelValido}%`);
-        } else {
-            // Leitura é 0 e não temos nada salvo, então é 0 mesmo.
-            nivelAtual = 0;
+        // SÓ atualizamos o nível (global) se a leitura for um número válido e > 0
+        if (!isNaN(nivelRecebidoNum) && nivelRecebidoNum > 0) {
+            nivelAtual = nivelRecebidoNum;
+            ultimoNivelValido = nivelRecebidoNum; // Guarda o último bom
+        } 
+        // Se a leitura for inválida (0, NaN, null), e já temos um valor bom...
+        else if (ultimoNivelValido > 0) {
+            nivelAtual = ultimoNivelValido; // ...reverte para o último bom.
         }
+        // Se a leitura for inválida e NUNCA tivemos um valor bom (ultimoNivelValido = 0),
+        // nivelAtual continuará 0 (da sua inicialização global).
 		
 		if (config) {
 			nivelAlertaConfigurado = parseInt(config) || 30;
@@ -1391,41 +1410,45 @@ async function loopDeAtualizacao() {
         const statusDisplay = document.getElementById('status-display');
         statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
 
-        // FIX: Adicionado cooldown de 10 minutos para EmailJS
-        const agora = Date.now(); // Definido mais cedo para usar no alerta
-        const DEZ_MINUTOS = 10 * 60 * 1000; // 10 minutos de cooldown
+        // REMOVIDA: Lógica de cooldown e envio de e-mail.
+        // const agora = Date.now(); // FIX: Movido para o topo do loop
+        // const COOLDOWN_ALERTA = 7 * 24 * 60 * 60 * 1000; // 7 Dias
 
 		if (nivelAtual <= nivelAlertaConfigurado) {
             statusDisplay.classList.add('level-danger');
 
-            // Verifica se já passou o cooldown de 10 minutos
-            if (agora - alertaEmailEnviadoTimestamp > DEZ_MINUTOS) {
+            // REMOVIDO: Bloco de envio de e-mail
+            /*
+            // Verifica se já passou o cooldown de 7 dias
+            if (agora - alertaEmailEnviadoTimestamp > COOLDOWN_ALERTA) {
                 console.log(`Disparando alerta! Nível ${nivelAtual}% <= ${nivelAlertaConfigurado}%`);
                 alertaEmailEnviadoTimestamp = agora; // Define o timestamp da *tentativa*
                 
                 enviarEmailAlerta(nivelAtual).then(success => {
                     if (!success) {
-                        console.log("Falha no envio. Próxima tentativa em 10 minutos.");
+                        console.log("Falha no envio. Próxima tentativa em 7 dias.");
                         // Não reseta o timestamp, espera o cooldown
                     }
                 });
             }
+            */
+            // MANTIDO: Lógica do Modal Visual
             if (!alertaModalMostrado) {
                 mostrarAlertaModal();
                 alertaModalMostrado = true;
             }
 		} else if (nivelAtual <= 60) {
             statusDisplay.classList.add('level-warn');
-            // Reseta o timestamp se o nível voltar ao normal (mas ainda em alerta amarelo)
-            if (alertaEmailEnviadoTimestamp !== 0) alertaEmailEnviadoTimestamp = 0;
+            // REMOVIDO: Reset de timestamp de e-mail
+            // if (alertaEmailEnviadoTimestamp !== 0) alertaEmailEnviadoTimestamp = 0;
             if (alertaModalMostrado) {
                 fecharAlertaModal();
                 alertaModalMostrado = false;
             }
         } else {
             statusDisplay.classList.add('level-ok');
-            // Reseta o timestamp se o nível estiver OK
-            if (alertaEmailEnviadoTimestamp !== 0) alertaEmailEnviadoTimestamp = 0;
+            // REMOVIDO: Reset de timestamp de e-mail
+            // if (alertaEmailEnviadoTimestamp !== 0) alertaEmailEnviadoTimestamp = 0;
             if (alertaModalMostrado) {
                 fecharAlertaModal();
                 alertaModalMostrado = false;
@@ -1449,15 +1472,18 @@ async function loopDeAtualizacao() {
 			atualizarGraficosHistorico({ labels: historicoLabels, niveis: historicoNiveis });
 		}
 		
-		// const agora = Date.now(); // FIX: Movido para cima
+		// const agora = Date.now(); // FIX: Movido para o topo do loop
 		const trintaMinutos = 30 * 60 * 1000; // REQ: Alterado de 5 para 30 min
 		const datePicker = document.getElementById('dataEscolhida');
-		const hoje = new Date().toISOString().split('T')[0];
+        // FIX: Correção de Fuso Horário
+        const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+		const hoje = hojeLocal.toISOString().split('T')[0];
 
 		if (agora - ultimaAtualizacaoGrafico > trintaMinutos) { // REQ: Alterado de 5 para 30 min
             ultimaAtualizacaoGrafico = agora; 
 
 			if (currentView === 'diario' && datePicker.value === hoje) {
+                // REQ 3 (ajuste): Formatar para HH:mm
 				const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 				
                 if (historicoLabels[historicoLabels.length - 1] !== hora) {
@@ -1476,6 +1502,8 @@ async function loopDeAtualizacao() {
 window.onload = function() {
 	
 	// --- INICIALIZAÇÃO EMAILJS ---
+	// REMOVIDO: Bloco de inicialização do EmailJS.
+	/*
 	(function() {
 		const PUBLIC_KEY = "xwk898VhH0VS-PSg9";	
 		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") {
@@ -1492,6 +1520,7 @@ window.onload = function() {
 			emailJsInicializado = false;
 		}
 	})();
+	*/
 	// --- FIM DA INICIALIZAÇÃO EMAILJS ---
 
     // REQ 2: Referências de Views e Botões atualizadas
@@ -1699,10 +1728,13 @@ window.onload = function() {
 
 	criarGraficos();
 	const hoje = new Date();
-	const dataFimPadrao = hoje.toISOString().split('T')[0];
-	const mesFimPadrao = hoje.toISOString().substring(0, 7);
+    // FIX: Correção de Fuso Horário
+    const dataFimPadrao = new Date(hoje.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"})).toISOString().split('T')[0];
+	// const dataFimPadrao = hoje.toISOString().split('T')[0];
+	const mesFimPadrao = dataFimPadrao.substring(0, 7);
 	hoje.setDate(hoje.getDate() - 59); 
-	const dataInicioPadrao = hoje.toISOString().split('T')[0];
+    const dataInicioPadrao = new Date(hoje.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"})).toISOString().split('T')[0];
+	// const dataInicioPadrao = hoje.toISOString().split('T')[0];
 	document.getElementById('dataEscolhida').value = dataFimPadrao;
 	document.getElementById('mesEscolhido').value = mesFimPadrao;
 	document.getElementById('dataInicio').value = dataInicioPadrao;
@@ -1720,10 +1752,14 @@ window.onload = function() {
         }
     };
     
-    // REQ 2: Carregamento inicial
+    // +++ CORREÇÃO: Carregamento inicial com filtro 0% +++
 	carregarHistoricoEConsumo().then(() => {
-		loopDeAtualizacao();
-		setInterval(loopDeAtualizacao, 2000);
+        // Fazer uma primeira busca SÓ para inicializar o nível
+        primeiraBuscaDeNivel().then(() => {
+            // Só então, iniciar o loop
+    		loopDeAtualizacao();
+	    	setInterval(loopDeAtualizacao, 2000);
+        });
 	});
 
 	
@@ -1786,6 +1822,11 @@ async function carregarHistoricoAbastecimento() {
             }
             ids.forEach(id => {
                 const item = dados[id];
+                // FIX: Adiciona verificação para item e item.timestamp
+                if (!item || !item.timestamp) {
+                    console.warn("Item de abastecimento inválido ou sem timestamp:", id, item);
+                    return; // Pula este item
+                }
                 const li = document.createElement('li');
                 const d = new Date(item.timestamp);
                 const dataStr = d.toLocaleDateString('pt-BR');
