@@ -1565,6 +1565,34 @@ async function loopDeAtualizacao() {
 // --- INICIALIZAÇÃO E CONTROLE GERAL ---
 window.onload = function() {
 	
+    // --- CORREÇÃO MANUAL PARA "VALOR PRESO" (ex: 50% vs 42%) ---
+    // Esta função força a "memória de emergência" no Firebase para o valor correto.
+    // Use-a UMA VEZ para corrigir um valor antigo que ficou preso.
+    async function forceCorrigirValorEmergencia(valorCorreto) {
+        console.warn(`CORREÇÃO MANUAL: Forçando "ultimo_valor_valido" para ${valorCorreto}%`);
+        const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_valor_valido.json`;
+        try {
+            await fetch(url, {
+                method: 'PUT',
+                body: JSON.stringify({ nivel_pct: valorCorreto })
+            });
+            console.log(`Correção manual enviada: ${valorCorreto}%`);
+            // Atualiza o valor local imediatamente para garantir que o carregamento o use
+            ultimoNivelValido = valorCorreto; 
+            nivelAtual = valorCorreto;
+        } catch (e) {
+            console.error("Erro ao forçar correção manual:", e);
+        }
+    }
+    
+    // --- EXECUTAR A CORREÇÃO MANUAL ---
+    // Define o valor de emergência para 42% IMEDIATAMENTE.
+    // Isto só precisa de ser executado uma vez.
+    // Após a página carregar e mostrar 42%, pode comentar a linha abaixo.
+    forceCorrigirValorEmergencia(42);
+    // -----------------------------------------------------------
+
+
 	// --- INICIALIZAÇÃO EMAILJS ---
 	// REMOVIDO: Bloco de inicialização do EmailJS.
 
