@@ -8,9 +8,9 @@
 <!-- Fonte foi removida, usando 'Arial' do sistema -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 
-<!-- 1. ADICIONADO: SCRIPT DO EMAILJS -->
-<!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script> -->
-<!-- REMOVIDO: Script EmailJS. O ESP32 é responsável pelo envio de e-mails. -->
+<!-- 
+Nenhum script de e-mail é necessário aqui. O ESP32 é responsável pelo envio.
+-->
 
 <style>
 /* --- ESTILOS GERAIS --- */
@@ -19,10 +19,10 @@
 	--accent-dark: #0e7490; /* Ciano mais escuro */
 	--bg-color-light: #f0f7ff; /* Azul bem claro para cards */
 	--header-bg: #ffffff; /* Fundo do novo cabeçalho */
-    /* ADICIONADO: Cores de Nível */
-    --level-ok: #10b981; /* Verde */
-    --level-warn: #f59e0b; /* Amarelo */
-    --level-danger: #ef4444; /* Vermelho */
+    /* Cores de Nível */
+    --level-ok: #10b981; /* Verde */
+    --level-warn: #f59e0b; /* Amarelo */
+    --level-danger: #ef4444; /* Vermelho */
 }
 * { box-sizing: border-box; }
 html, body {
@@ -48,16 +48,16 @@ body {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	gap: 10px; /* REQ: Espaço diminuído para caber mais botões */
+	gap: 10px; 
 	margin-bottom: 20px; /* Espaço antes da logo */
-	position: sticky; /* Opcional: fixa o header no topo */
+	position: sticky; 
 	top: 0;
 	z-index: 1000;
 }
 
 /* Views de conteúdo (Caixa, Gráfico, Config) */
 #caixa-view, #grafico-container, #config-view,
-#abastecimento-view, #consumo-view { /* REQ 2: Add novas views */
+#abastecimento-view, #consumo-view { 
 	width: 100%;
 	max-width: 1200px; /* Limita a largura do conteúdo principal */
 	margin: 0 auto; /* Centraliza o conteúdo principal */
@@ -80,7 +80,7 @@ body {
 	margin-right: auto; /* Centraliza a logo */
 }
 
-/* ADICIONADO: REQ 3 & 4 - Estilo do Quadro de Status (Melhorado) */
+/* Estilo do Quadro de Status */
 #status-display {
 	width: 100%;
 	max-width: 350px;
@@ -90,67 +90,65 @@ body {
 	padding: 12px 20px;
 	margin: 0 auto 15px auto; /* Acima da caixa */
 	box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-	backdrop-filter: blur(4px); /* Efeito "tech" de vidro fosco */
-    transition: border-color 0.3s ease;
-    
-    /* Layout em Grid */
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Duas colunas */
-    grid-template-rows: auto auto;    /* Duas linhas */
-    gap: 4px 15px; /* REQ 1: Espaço de linha diminuído */
+	backdrop-filter: blur(4px); 
+    transition: border-color 0.3s ease;
+    
+    /* Layout em Grid */
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Duas colunas */
+    grid-template-rows: auto auto;    /* Duas linhas */
+    gap: 4px 15px; 
 }
 .status-item {
-    display: flex;
-    flex-direction: column;
-    text-align: center;
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    position: relative;
 }
 .status-item.item-level { grid-column: 1 / 2; grid-row: 1 / 2; }
 .status-item.item-litros { grid-column: 2 / 3; grid-row: 1 / 2; }
 .status-item.item-time {
-    grid-column: 1 / 3; /* Ocupa linha inteira */
-    grid-row: 2 / 3;
-    border-top: 1px solid #cce0f5; /* Separador */
-    padding-top: 4px; /* REQ 1: Espaço diminuído */
-    margin-top: 2px; /* REQ 1: Espaço diminuído */
+    grid-column: 1 / 3; /* Ocupa linha inteira */
+    grid-row: 2 / 3;
+    border-top: 1px solid #cce0f5; /* Separador */
+    padding-top: 4px; 
+    margin-top: 2px; 
 }
 .status-label {
-    font-size: 0.75rem; /* 12px */
-    font-weight: 700;
-    color: #556a83;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 2px;
+    font-size: 0.75rem; /* 12px */
+    font-weight: 700;
+    color: #556a83;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
 }
 .status-value {
-    font-size: 2.2rem; /* 35px */
-    font-weight: 700;
-    font-family: 'Arial', sans-serif;
-    line-height: 1.1;
-    color: var(--accent-dark);
-    transition: color 0.3s ease;
+    font-size: 2.2rem; /* 35px */
+    font-weight: 700;
+    font-family: 'Arial', sans-serif;
+    line-height: 1.1;
+    color: var(--accent-dark);
+    transition: color 0.3s ease;
 }
-/* REQ 1: Ajuste de fonte para "Litros" */
 #status-litros {
-    font-size: 2.0rem; /* 32px */
-    /* Alinha o texto "Litros" ao lado */
-    display: flex;
-    justify-content: center;
-    align-items: baseline;
-    gap: 5px;
+    font-size: 2.0rem; /* 32px */
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 5px;
 }
 #status-litros small {
-    font-size: 1.1rem; /* 18px */
-    font-weight: 500;
-    color: var(--accent-dark);
+    font-size: 1.1rem; /* 18px */
+    font-weight: 500;
+    color: var(--accent-dark);
 }
 #status-time {
-    font-size: 1.4rem; /* 22px */
-    color: #334155;
+    font-size: 1.4rem; /* 22px */
+    color: #334155;
 }
 
 
-/* REQ 1: Cores dinâmicas para o status */
+/* Cores dinâmicas para o status */
 #status-display.level-ok .item-level .status-value { color: var(--level-ok); }
 #status-display.level-warn .item-level .status-value { color: var(--level-warn); }
 #status-display.level-danger .item-level .status-value { color: var(--level-danger); }
@@ -163,19 +161,18 @@ body {
 	width: 350px;
 	height: 600px;
 	position: relative;
-    /* REQ 2: Zoom na caixa (1.15 = 15% maior) */
 	transform: scale(1.15);
 	margin: 15px 0; /* Margem adicionada para compensar o zoom */
 }
 
-/* ADICIONADO: REQ 2/4 - Estilo do form de abastecimento */
+/* Estilo do form de abastecimento */
 #abastecimento-form {
 	 width: 100%;
 	 max-width: 350px;
 	 margin: 20px auto 0 auto;
 }
 
-/* ADICIONADO: REQ 4 - Estilo da lista de histórico de abastecimento */
+/* Estilo da lista de histórico de abastecimento */
 #lista-abastecimentos {
 	list-style: none;
 	padding: 0;
@@ -196,40 +193,39 @@ body {
 	align-items: center;
 	border: 1px solid #e2e8f0;
 }
-/* REQ 1: Div para info e botão de apagar */
 .abastecimento-info {
-    flex-grow: 1;
+    flex-grow: 1;
 }
 .abastecimento-info strong {
-	color: #047481; /* Darker accent */
+	color: #047481; 
 	font-weight: 700;
 	font-size: 1rem;
-    margin-left: 10px;
+    margin-left: 10px;
 }
 .delete-abastecimento-btn {
-    background: #fee2e2;
-    color: #ef4444;
-    border: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 1.1rem;
-    line-height: 1;
-    transition: all 0.2s ease;
+    background: #fee2e2;
+    color: #ef4444;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: all 0.2s ease;
 }
 .delete-abastecimento-btn:hover {
-    background: #ef4444;
-    color: white;
+    background: #ef4444;
+    color: white;
 }
 /* Estilo do botão de confirmação */
 .delete-abastecimento-btn[data-confirming="true"] {
-    background: #ef4444;
-    color: white;
-    width: auto;
-    padding: 0 10px;
-    font-size: 0.8rem;
+    background: #ef4444;
+    color: white;
+    width: auto;
+    padding: 0 10px;
+    font-size: 0.8rem;
 }
 
 
@@ -271,15 +267,15 @@ body {
 	border: none;
 	color: #ffffff; /* Texto branco */
 	font-weight: 700;	
-	padding: 10px 20px; /* Padding ajustado */
+	padding: 10px 20px; 
 	border-radius: 8px;
 	cursor: pointer;
 	font-family: Arial, Helvetica, sans-serif;
-	font-size: 0.9rem; /* Tamanho ajustado */
+	font-size: 0.9rem; 
 	box-shadow: 0 4px 15px rgba(6,182,212,0.3);
 	transition: all 0.2s ease;
 	text-align: center;
-	text-transform: uppercase; /* CAIXA ALTA */
+	text-transform: uppercase; 
 	letter-spacing: 0.05em;	
 }
 .modern-button:hover {
@@ -293,27 +289,25 @@ body {
 }
 
 /* --- ESTILOS GRÁFICOS --- */
-/* REQ 2: Header dos gráficos (que agora se move) */
 #grafico-container header, #consumo-view header, #abastecimento-view header {
 	width: 100%;	
 	display: flex; flex-wrap: wrap;
 	justify-content: space-between; align-items: center; gap: 12px;
 	margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
 }
-/* REQ 1: Título H1 movido para o HTML estático de cada view */
-#grafico-container header h1, #consumo-view header h1, #abastecimento-view header h1 { 
-    margin: 0; 
-    font-family: Arial, Helvetica, sans-serif; 
-    font-size: 1.5rem; 
-    color: #1e3a8a; 
+#grafico-container header h1, #consumo-view header h1, #abastecimento-view header h1 { 
+    margin: 0; 
+    font-family: Arial, Helvetica, sans-serif; 
+    font-size: 1.5rem; 
+    color: #1e3a8a; 
 }
-.header-right { 
-    display: flex; 
-    flex-wrap: wrap; 
-    align-items: center; 
-    gap: 20px; 
-    justify-content: flex-end; 
-    flex-grow: 1; 
+.header-right { 
+    display: flex; 
+    flex-wrap: wrap; 
+    align-items: center; 
+    gap: 20px; 
+    justify-content: flex-end; 
+    flex-grow: 1; 
 }
 .controls { display: flex; gap: 10px; align-items: center; }
 input[type="date"], input[type="month"] {	
@@ -382,8 +376,8 @@ canvas {
 .nav-button {
 	width: auto;	
 	text-align: center;	
-	padding: 10px 12px; /* REQ: Padding ajustado */
-	font-size: 0.8rem; /* REQ: Fonte diminuída */
+	padding: 10px 12px; 
+	font-size: 0.8rem; 
 }
 /* Estilo ativo específico para botões no header */
 .nav-button.active {
@@ -433,57 +427,57 @@ canvas {
 }
 .contato-item button:hover { background: #dc2626; }
 
-/* --- REQ 2: ESTILOS MODAL DE ALERTA --- */
+/* --- ESTILOS MODAL DE ALERTA --- */
 #alert-modal {
-    display: none; /* Oculto por padrão */
-    position: fixed;
-    z-index: 2000;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6);
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
+    display: none; /* Oculto por padrão */
+    position: fixed;
+    z-index: 2000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
 }
 .modal-content {
-    background: #ffffff;
-    padding: 0;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 450px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    overflow: hidden;
-    animation: zoomIn 0.3s ease;
+    background: #ffffff;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    overflow: hidden;
+    animation: zoomIn 0.3s ease;
 }
 .modal-header {
-    background: var(--level-danger);
-    color: white;
-    padding: 15px 20px;
-    font-size: 1.3rem;
-    font-weight: 700;
+    background: var(--level-danger);
+    color: white;
+    padding: 15px 20px;
+    font-size: 1.3rem;
+    font-weight: 700;
 }
 .modal-body {
-    padding: 30px 25px;
-    font-size: 1.1rem;
-    color: #334155;
-    line-height: 1.6;
+    padding: 30px 25px;
+    font-size: 1.1rem;
+    color: #334155;
+    line-height: 1.6;
 }
 .modal-footer {
-    padding: 15px 20px;
-    background: #f1f5f9;
-    text-align: right;
+    padding: 15px 20px;
+    background: #f1f5f9;
+    text-align: right;
 }
 #modal-close-btn {
-    background: var(--accent-dark);
-    padding: 10px 18px;
-    font-size: 0.9rem;
+    background: var(--accent-dark);
+    padding: 10px 18px;
+    font-size: 0.9rem;
 }
 #modal-close-btn:hover {
-    background: #1e3a8a;
+    background: #1e3a8a;
 }
 @keyframes zoomIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
 
@@ -499,39 +493,38 @@ canvas {
 		position: fixed; /* Header fixo no mobile */
 		top: 0;
 		left: 0;
-		gap: 5px; /* REQ: Espaço diminuído */
-		padding: 8px 5px; /* REQ: Padding diminuído */
+		gap: 5px; 
+		padding: 8px 5px; 
 		margin-bottom: 10px;
-        flex-wrap: wrap; /* Permite que botões quebrem a linha se necessário */
+        flex-wrap: wrap; 
 	}
 
-	/* Ajusta padding dos botões de navegação no header mobile */
 	.nav-button {
-		  padding: 8px 10px;
-		  font-size: 0.8rem;
+		  padding: 8px 10px;
+		  font-size: 0.8rem;
 	}
 	
 	#caixa-view, #grafico-container, #config-view,
-    #abastecimento-view, #consumo-view { 
-        padding: 0.5rem; 
-    }
+    #abastecimento-view, #consumo-view { 
+        padding: 0.5rem; 
+    }
 	.reservatorio-wrapper {	
 		width: 90%;	
 		max-width: 300px;
 		height: 50vh;
-        transform: scale(1.1); /* Zoom um pouco menor no mobile */
-        margin: 10px 0;
+        transform: scale(1.1); 
+        margin: 10px 0;
 	}
 	.logo {	
-		margin-top: 10px; /* Ajusta margem topo da logo */
+		margin-top: 10px; 
 		margin-bottom: 15px;	
 	}	
-	#grafico-container header, #consumo-view header, #abastecimento-view header, 
-    .header-right { 
-        flex-direction: column; 
-        align-items: stretch; 
-        gap: 10px; 
-    }
+	#grafico-container header, #consumo-view header, #abastecimento-view header, 
+    .header-right { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 10px; 
+    }
 	.controls { flex-direction: column; align-items: stretch;}	
 	.view-selector { justify-content: center;}	
 	.config-board { grid-template-columns: 1fr; }
@@ -543,61 +536,60 @@ canvas {
 	canvas {
 		height: 250px !important;	
 	}
-    
-    /* Grid de status no mobile */
-    #status-display {
-        grid-template-rows: auto auto;
-        padding: 12px 15px;
-    }
-    .status-item.item-time {
-        margin-top: 8px;
-    }
-    .status-value {
-        font-size: 1.8rem; /* Fonte menor no mobile */
-    }
-    #status-litros {
-        font-size: 1.7rem; /* Fonte menor no mobile */
-    }
-    #status-litros small {
-        font-size: 1.0rem;
-    }
-    #status-time {
-        font-size: 1.2rem; /* Fonte menor no mobile */
-    }
+    
+    /* Grid de status no mobile */
+    #status-display {
+        grid-template-rows: auto auto;
+        padding: 12px 15px;
+    }
+    .status-item.item-time {
+        margin-top: 8px;
+    }
+    .status-value {
+        font-size: 1.8rem; /* Fonte menor no mobile */
+    }
+    #status-litros {
+        font-size: 1.7rem; /* Fonte menor no mobile */
+    }
+    #status-litros small {
+        font-size: 1.0rem;
+    }
+    #status-time {
+        font-size: 1.2rem; /* Fonte menor no mobile */
+    }
 }
 </style>
 </head>
 <body>
 
-<!-- REQ 2: Header com os botões ATUALIZADO -->
+<!-- Header com os botões -->
 <div class="main-header">
 	<button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
 	<button id="btn-view-grafico" class="nav-button view-btn">Histórico</button>
-    <button id="btn-view-abastecimento" class="nav-button view-btn">Abastecimento</button>
-    <button id="btn-view-consumo" class="nav-button view-btn">Consumo</button>
+    <button id="btn-view-abastecimento" class="nav-button view-btn">Abastecimento</button>
+    <button id="btn-view-consumo" class="nav-button view-btn">Consumo</button>
 	<button id="btn-view-config" class="nav-button view-btn">Configurações</button>
 </div>
 
-<!-- Logo agora vem depois do header -->
+<!-- Logo -->
 <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
 
-<!-- REQ 2: VIEW DA CAIXA (Formulário de abastecimento removido) -->
+<!-- VIEW DA CAIXA -->
 <div id="caixa-view">
-    <div id="status-display">
-        <div class="status-item item-level">
-            <span class="status-label">Nível</span>
-            <span class="status-value" id="status-level">--%</span>
-        </div>
-        <div class="status-item item-litros">
-            <span class="status-label">Volume (Aprox.)</span>
-            <!-- REQ 1: Formato "7000 <small>Litros</small>" -->
-            <span class="status-value" id="status-litros">---- <small>Litros</small></span>
-        </div>
-        <div class="status-item item-time">
-            <span class="status-label">Hora</span>
-            <span class="status-value" id="status-time">--:--:--</span>
-        </div>
-    </div>
+    <div id="status-display">
+        <div class="status-item item-level">
+            <span class="status-label">Nível</span>
+            <span class="status-value" id="status-level">--%</span>
+        </div>
+        <div class="status-item item-litros">
+            <span class="status-label">Volume (Aprox.)</span>
+            <span class="status-value" id="status-litros">---- <small>Litros</small></span>
+        </div>
+        <div class="status-item item-time">
+            <span class="status-label">Hora</span>
+            <span class="status-value" id="status-time">--:--:--</span>
+        </div>
+    </div>
 	<div class="reservatorio-wrapper" id="caixa-container">
 		<svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
 			<defs>
@@ -623,85 +615,78 @@ canvas {
 	</div>
 </div>
 
-<!-- REQ 2: VIEW DE HISTÓRICO (Antiga Gráfico) -->
+<!-- VIEW DE HISTÓRICO -->
 <div id="grafico-container" style="display:none;">
 	<header>
-        <!-- REQ 1: Título estático (sem duplicar) -->
-        <h1>Histórico de Monitoramento</h1>
-        <!-- Os controles de data (header-right) serão movidos para cá pelo JS -->
-    </header>
+        <h1>Histórico de Monitoramento</h1>
+    </header>
 	<div class="board">
 		<div class="charts">
 			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Intervalos de 30 min)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível (HH:mm) ao longo do dia selecionado.</div></div>
-			<!-- REQ 3: Descrição do Gráfico de Blocos atualizada -->
-            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Média de 60 min)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe a média do nível a cada 60 minutos.</div></div>
+            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Média de 60 min)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe a média do nível a cada 60 minutos.</div></div>
 		</div>
 	</div>
 </div>
 
-<!-- REQ 2: NOVA VIEW DE ABASTECIMENTO -->
+<!-- NOVA VIEW DE ABASTECIMENTO -->
 <div id="abastecimento-view" style="display:none;">
-    <header>
-        <!-- REQ 1: Título estático (sem duplicar) -->
-        <h1>Gestão de Abastecimento</h1>
-        <!-- Os controles de data (header-right) serão movidos para cá pelo JS -->
-    </header>
-    <div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
-        <!-- Formulário movido para cá -->
-        <div id="abastecimento-form" class="config-card" style="margin: 0;">
-            <h2>Registrar Abastecimento</h2>
-            <div class="form-group">
-                <input type="number" id="litros-abastecidos" placeholder="Litros (ex: 5000)" min="1" style="flex-grow: 2;">
-                <button id="btn-salvar-abastecimento" class="modern-button" style="flex-grow: 1;">Salvar</button>
-            </div>
-            <div id="status-abastecimento" class="small" style="font-weight:bold; margin: -10px 0 0 0;"></div>
-        </div>
+    <header>
+        <h1>Gestão de Abastecimento</h1>
+    </header>
+    <div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+        <!-- Formulário -->
+        <div id="abastecimento-form" class="config-card" style="margin: 0;">
+            <h2>Registrar Abastecimento</h2>
+            <div class="form-group">
+                <input type="number" id="litros-abastecidos" placeholder="Litros (ex: 5000)" min="1" style="flex-grow: 2;">
+                <button id="btn-salvar-abastecimento" class="modern-button" style="flex-grow: 1;">Salvar</button>
+            </div>
+            <div id="status-abastecimento" class="small" style="font-weight:bold; margin: -10px 0 0 0;"></div>
+        </div>
 
-        <!-- Histórico movido para cá -->
-        <div id="abastecimento-historico-card" style="width: 100%; max-width: 350px;">
-            <h3 style="margin: 0 0 10px 0; color: #1e3a8a; font-size: 1.1rem; text-align: left; border-bottom: 1px solid #eee; padding-bottom: 5px;">Últimos Abastecimentos</h3>
-            <ul id="lista-abastecimentos">
-                <!-- Histórico será carregado aqui -->
-            </ul>
-        </div>
-        
-        <!-- Novo Gráfico de Intensidade -->
-        <div class="charts" style="width: 100%;">
-            <div class="chart-card" id="abastecimento-chart-card" style="display:none;">
-                <strong>Gráfico de Abastecimento (Litros)</strong>
-                <canvas id="chartAbastecimento"></canvas>
-                <div class="small">Exibe o total de litros abastecidos por dia. Aparece nas vistas "Semanal" e "Mensal".</div>
-            </div>
-        </div>
-    </div>
+        <!-- Histórico -->
+        <div id="abastecimento-historico-card" style="width: 100%; max-width: 350px;">
+            <h3 style="margin: 0 0 10px 0; color: #1e3a8a; font-size: 1.1rem; text-align: left; border-bottom: 1px solid #eee; padding-bottom: 5px;">Últimos Abastecimentos</h3>
+            <ul id="lista-abastecimentos">
+                <!-- Histórico será carregado aqui -->
+            </ul>
+        </div>
+        
+        <!-- Novo Gráfico de Intensidade -->
+        <div class="charts" style="width: 100%;">
+            <div class="chart-card" id="abastecimento-chart-card" style="display:none;">
+                <strong>Gráfico de Abastecimento (Litros)</strong>
+                <canvas id="chartAbastecimento"></canvas>
+                <div class="small">Exibe o total de litros abastecidos por dia. Aparece nas vistas "Semanal" e "Mensal".</div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- REQ 2: NOVA VIEW DE CONSUMO -->
+<!-- NOVA VIEW DE CONSUMO -->
 <div id="consumo-view" style="display:none;">
-    <header>
-        <!-- REQ 1: Título estático (sem duplicar) -->
-        <h1>Relatório de Consumo</h1>
-        <!-- Os controles de data (header-right) serão movidos para cá pelo JS -->
-    </header>
-    <div class="board">
+    <header>
+        <h1>Relatório de Consumo</h1>
+    </header>
+    <div class="board">
 		<div class="charts">
-            <!-- Gráfico de Consumo (Vela/Bloco) movido para cá -->
-            <div class="chart-card" id="consumo-chart-card-bloco" style="display:none;">
-                <strong>Gráfico de Consumo Diário (Litros) - Blocos</strong>
-                <canvas id="chartConsumoBloco"></canvas>
-                <div class="small">Exibe o consumo aproximado em litros por dia (Barras).</div>
-            </div>
-            <!-- Novo Gráfico de Consumo (Linha) -->
-            <div class="chart-card" id="consumo-chart-card-linha" style="display:none;">
-                <strong>Gráfico de Consumo Diário (Litros) - Linha</strong>
-                <canvas id="chartConsumoLinha"></canvas>
-                <div class="small">Exibe o consumo aproximado em litros por dia (Linha).</div>
-            </div>
+            <!-- Gráfico de Consumo (Bloco) -->
+            <div class="chart-card" id="consumo-chart-card-bloco" style="display:none;">
+                <strong>Gráfico de Consumo Diário (Litros) - Blocos</strong>
+                <canvas id="chartConsumoBloco"></canvas>
+                <div class="small">Exibe o consumo aproximado em litros por dia (Barras).</div>
+            </div>
+            <!-- Gráfico de Consumo (Linha) -->
+            <div class="chart-card" id="consumo-chart-card-linha" style="display:none;">
+                <strong>Gráfico de Consumo Diário (Litros) - Linha</strong>
+                <canvas id="chartConsumoLinha"></canvas>
+                <div class="small">Exibe o consumo aproximado em litros por dia (Linha).</div>
+            </div>
 		</div>
 	</div>
 </div>
 
-
+<!-- VIEW DE CONFIGURAÇÕES -->
 <div id="config-view" style="display:none;">
 	<h1>Configurações de Notificação</h1>
 	<div class="config-board">
@@ -742,67 +727,64 @@ canvas {
 	</div>
 </div>
 
-<!-- REQ 2: HTML DO MODAL DE ALERTA -->
+<!-- HTML DO MODAL DE ALERTA -->
 <div id="alert-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            ALERTA DE NÍVEL BAIXO
-        </div>
-        <div class="modal-body">
-            Atenção: Solicitar abastecimento ao CCO.
-        </div>
-        <div class="modal-footer">
-            <button id="modal-close-btn" class="modern-button">Entendido</button>
-        </div>
-    </div>
+    <div class="modal-content">
+        <div class="modal-header">
+            ALERTA DE NÍVEL BAIXO
+        </div>
+        <div class="modal-body">
+            Atenção: Solicitar abastecimento ao CCO.
+        </div>
+        <div class="modal-footer">
+            <button id="modal-close-btn" class="modern-button">Entendido</button>
+        </div>
+    </div>
 </div>
 
-<!-- REQ 1 & 4: Template dos controles de data (H1 removido, Botão Semanal adicionado) -->
+<!-- Template dos controles de data -->
 <div class="header-right" id="date-controls" style="display: none;">
-    <div class="view-selector">
-        <button id="btn-view-diario" class="view-btn active" data-view="diario">Diário</button>
-        <button id="btn-view-semanal" class="view-btn" data-view="semanal" style="display:none;">Semanal</button>
-        <button id="btn-view-mensal" class="view-btn" data-view="mensal">Mensal</button>
-        <button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Intervalo</button>
-    </div>
-    <div class="controls">
-        <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
-        <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
-        <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
-        <button id="btnAtualizar" class="modern-button">Carregar</button>
-    </div>
+    <div class="view-selector">
+        <button id="btn-view-diario" class="view-btn active" data-view="diario">Diário</button>
+        <button id="btn-view-semanal" class="view-btn" data-view="semanal" style="display:none;">Semanal</button>
+        <button id="btn-view-mensal" class="view-btn" data-view="mensal">Mensal</button>
+        <button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Intervalo</button>
+    </div>
+    <div class="controls">
+        <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
+        <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
+        <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
+        <button id="btnAtualizar" class="modern-button">Carregar</button>
+    </div>
 </div>
 
 
 <script>
 // --- VARIÁVEIS GLOBAIS ---
-let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; // REQ 2: Gráficos atualizados
+let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
 let historicoNiveis = [], historicoLabels = [];
 let ultimaAtualizacaoGrafico = 0;
-let currentView = 'diario'; // Vista de data (diario, semanal, mensal, intervalo)
-let activeTab = 'caixa'; // REQ 4: Vista da aplicação (caixa, grafico, etc.)
+let currentView = 'diario'; 
+let activeTab = 'caixa'; 
 let nivelAtual = 0;
-let ultimoNivelValido = 0; // REQ 3: Filtro para 0%
-let nivelAlertaConfigurado = 30; // Valor padrão
-// let alertaEmailEnviadoTimestamp = 0; // REMOVIDO: Lógica de e-mail movida para o ESP32
-// let emailJsInicializado = false; // REMOVIDO: Lógica de e-mail movida para o ESP32
-let alertaModalMostrado = false; // REQ 2: Flag para modal
 
-// REQ 2: Constante de cálculo de Litros (7000L = 85%)
+// --- NOVO: Buffer para as 3 últimas leituras ---
+let ultimasTresLeituras = []; // Armazena [v1, v2, v3]
+
+let nivelAlertaConfigurado = 30; // Valor padrão
+let alertaModalMostrado = false; 
+
 const LITROS_POR_PERCENTO = 7000 / 85; // Aprox. 82.35 L por %
 
-// --- 2. ADICIONADO: INICIALIZAÇÃO E FUNÇÃO DE ENVIO EMAILJS ---
-// REMOVIDO: Toda a função enviarEmailAlerta e constantes. O ESP32 trata disso.
-
-// --- REQ 2: FUNÇÕES DO MODAL DE ALERTA ---
+// --- FUNÇÕES DO MODAL DE ALERTA ---
 function mostrarAlertaModal() {
-    const modal = document.getElementById('alert-modal');
-    if (modal) modal.style.display = 'flex';
+    const modal = document.getElementById('alert-modal');
+    if (modal) modal.style.display = 'flex';
 }
 
 function fecharAlertaModal() {
-    const modal = document.getElementById('alert-modal');
-    if (modal) modal.style.display = 'none';
+    const modal = document.getElementById('alert-modal');
+    if (modal) modal.style.display = 'none';
 }
 
 
@@ -829,48 +811,46 @@ function atualizarCaixaDOM(nivel) {
 }
 
 
-// REQ 3: Função para AGREGAR dados por hora (Média)
+// Função para AGREGAR dados por hora (Média)
 function agregarDadosPorHora(labels, niveis) {
-    const agregados = {}; // Ex: { "10:00": { sum: 0, count: 0 }, "11:00": { ... } }
-    
-    for (let i = 0; i < labels.length; i++) {
-        const label = labels[i]; // "10:05"
-        const nivel = niveis[i];
-        
-        // Ignora "Atual" ou labels mal formadas
-        if (typeof label !== 'string' || !label.includes(':')) continue; 
+    const agregados = {}; // Ex: { "10:00": { sum: 0, count: 0 }, "11:00": { ... } }
+    
+    for (let i = 0; i < labels.length; i++) {
+        const label = labels[i]; // "10:05"
+        const nivel = niveis[i];
+        
+        // Ignora "Atual" ou labels mal formadas
+        if (typeof label !== 'string' || !label.includes(':')) continue; 
 
-        const hora = label.split(':')[0] + ":00"; // Agrupa por hora. "10:05" -> "10:00"
-        
-        if (!agregados[hora]) {
-            agregados[hora] = { sum: 0, count: 0 };
-        }
-        agregados[hora].sum += nivel;
-        agregados[hora].count++;
-    }
+        const hora = label.split(':')[0] + ":00"; // Agrupa por hora. "10:05" -> "10:00"
+        
+        if (!agregados[hora]) {
+            agregados[hora] = { sum: 0, count: 0 };
+        }
+        agregados[hora].sum += nivel;
+        agregados[hora].count++;
+    }
 
-    const newLabels = Object.keys(agregados).sort();
-    // Calcula a média para cada hora
-    const newNiveis = newLabels.map(hora => agregados[hora].sum / agregados[hora].count);
+    const newLabels = Object.keys(agregados).sort();
+    // Calcula a média para cada hora
+    const newNiveis = newLabels.map(hora => agregados[hora].sum / agregados[hora].count);
 
-    return { labels: newLabels, niveis: newNiveis };
+    return { labels: newLabels, niveis: newNiveis };
 }
 
-// REQ 2: Funções de atualização de gráficos separadas
+// Funções de atualização de gráficos separadas
 function atualizarGraficosHistorico(result) {
-    if (!chartLinha || !chartBlocos) return;
+    if (!chartLinha || !chartBlocos) return;
 
-    const { labels: labelsHistorico, niveis: niveisHistorico } = result;
-    
-    // Gráfico de Linha (com "Atual")
-    let displayLabelsLinha = [...labelsHistorico];
+    const { labels: labelsHistorico, niveis: niveisHistorico } = result;
+    
+    // Gráfico de Linha (com "Atual")
+    let displayLabelsLinha = [...labelsHistorico];
 	let displayNiveisLinha = [...niveisHistorico];
 
-	// FIX: Correção de Fuso Horário
-    const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
-    const hoje = hojeLocal.toISOString().split('T')[0];
+    const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+    const hoje = hojeLocal.toISOString().split('T')[0];
 	const datePicker = document.getElementById('dataEscolhida');
-	// const hoje = new Date().toISOString().split('T')[0];
 
 	if (currentView === 'diario' && datePicker.value === hoje) {
 		displayLabelsLinha.push("Atual");
@@ -881,17 +861,17 @@ function atualizarGraficosHistorico(result) {
 	chartLinha.data.datasets[0].data = displayNiveisLinha;
 	chartLinha.update('none');
 
-    // Gráfico de Blocos (AGREGADO por 60 min, azul)
-    let labelsBlocos, niveisBlocos;
-    
-    if (currentView === 'diario') {
-		const { labels, niveis } = agregarDadosPorHora(labelsHistorico, niveisHistorico); 
+    // Gráfico de Blocos (AGREGADO por 60 min, azul)
+    let labelsBlocos, niveisBlocos;
+    
+    if (currentView === 'diario') {
+		const { labels, niveis } = agregarDadosPorHora(labelsHistorico, niveisHistorico); 
 		labelsBlocos = labels;
 		niveisBlocos = niveis;
-    } else {
-		labelsBlocos = [...labelsHistorico]; 
-		niveisBlocos = [...niveisHistorico]; 
-    }
+    } else {
+		labelsBlocos = [...labelsHistorico]; 
+		niveisBlocos = [...niveisHistorico]; 
+    }
 
 	const cores = 'rgba(6, 182, 212, 0.85)';
 	chartBlocos.data.labels = labelsBlocos;
@@ -901,56 +881,56 @@ function atualizarGraficosHistorico(result) {
 }
 
 function atualizarGraficosConsumo(result) {
-    if (!chartConsumoBloco || !chartConsumoLinha) return;
-    
-    const consumoData = result.consumo || [];
-    const consumoLabels = result.labels || [];
-    
-    const cardBloco = document.getElementById('consumo-chart-card-bloco');
-    const cardLinha = document.getElementById('consumo-chart-card-linha');
+    if (!chartConsumoBloco || !chartConsumoLinha) return;
+    
+    const consumoData = result.consumo || [];
+    const consumoLabels = result.labels || [];
+    
+    const cardBloco = document.getElementById('consumo-chart-card-bloco');
+    const cardLinha = document.getElementById('consumo-chart-card-linha');
 
-    if (currentView === 'diario') {
-        cardBloco.style.display = 'none'; 
-        cardLinha.style.display = 'none'; 
-        chartConsumoBloco.data.labels = [];
-        chartConsumoBloco.data.datasets[0].data = [];
-        chartConsumoLinha.data.labels = [];
-        chartConsumoLinha.data.datasets[0].data = [];
-    } else {
-        cardBloco.style.display = 'block'; 
-        cardLinha.style.display = 'block';
-        chartConsumoBloco.data.labels = consumoLabels;
-        chartConsumoBloco.data.datasets[0].data = consumoData;
-        chartConsumoLinha.data.labels = consumoLabels;
-        chartConsumoLinha.data.datasets[0].data = consumoData;
-    }
-    chartConsumoBloco.update('none');
-    chartConsumoLinha.update('none');
+    if (currentView === 'diario') {
+        cardBloco.style.display = 'none'; 
+        cardLinha.style.display = 'none'; 
+        chartConsumoBloco.data.labels = [];
+        chartConsumoBloco.data.datasets[0].data = [];
+        chartConsumoLinha.data.labels = [];
+        chartConsumoLinha.data.datasets[0].data = [];
+    } else {
+        cardBloco.style.display = 'block'; 
+        cardLinha.style.display = 'block';
+        chartConsumoBloco.data.labels = consumoLabels;
+        chartConsumoBloco.data.datasets[0].data = consumoData;
+        chartConsumoLinha.data.labels = consumoLabels;
+        chartConsumoLinha.data.datasets[0].data = consumoData;
+    }
+    chartConsumoBloco.update('none');
+    chartConsumoLinha.update('none');
 }
 
 function atualizarGraficoAbastecimento(result) {
-    if (!chartAbastecimento) return;
+    if (!chartAbastecimento) return;
 
-    const abastData = result.litros || [];
-    const abastLabels = result.labels || [];
-    const card = document.getElementById('abastecimento-chart-card');
+    const abastData = result.litros || [];
+    const abastLabels = result.labels || [];
+    const card = document.getElementById('abastecimento-chart-card');
 
-    if (currentView === 'diario') {
-        card.style.display = 'none'; 
-        chartAbastecimento.data.labels = [];
-        chartAbastecimento.data.datasets[0].data = [];
-    } else {
-        card.style.display = 'block'; 
-        chartAbastecimento.data.labels = abastLabels;
-        chartAbastecimento.data.datasets[0].data = abastData;
-    }
-    chartAbastecimento.update('none');
+    if (currentView === 'diario') {
+        card.style.display = 'none'; 
+        chartAbastecimento.data.labels = [];
+        chartAbastecimento.data.datasets[0].data = [];
+    } else {
+        card.style.display = 'block'; 
+        chartAbastecimento.data.labels = abastLabels;
+        chartAbastecimento.data.datasets[0].data = abastData;
+    }
+    chartAbastecimento.update('none');
 }
 
 
 // --- FUNÇÕES DE LÓGICA E FETCH ---
 function criarGraficos() {
-    // --- Gráficos de Histórico ---
+    // --- Gráficos de Histórico ---
 	const ctxL = document.getElementById('chartLinha').getContext('2d');
 	const gradL = ctxL.createLinearGradient(0, 0, 0, 300);
 	gradL.addColorStop(0, 'rgba(6,182,212,0.28)');
@@ -977,118 +957,109 @@ function criarGraficos() {
 		}
 	});
 
-    // --- Gráficos de Consumo (REQ 2: Cor alterada para azul) ---
-    const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d');
-    chartConsumoBloco = new Chart(ctxCB, {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], backgroundColor: 'rgba(6, 182, 212, 0.85)', borderRadius: 6 }] },
-        options: {
-            animation: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, // min: 0
-            maintainAspectRatio: false
-        }
-    });
-    const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
-    const gradC = ctxCL.createLinearGradient(0, 0, 0, 300);
+    // --- Gráficos de Consumo ---
+    const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d');
+    chartConsumoBloco = new Chart(ctxCB, {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], backgroundColor: 'rgba(6, 182, 212, 0.85)', borderRadius: 6 }] },
+        options: {
+            animation: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, // min: 0
+            maintainAspectRatio: false
+        }
+    });
+    const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
+    const gradC = ctxCL.createLinearGradient(0, 0, 0, 300);
 	gradC.addColorStop(0, 'rgba(6, 182, 212, 0.28)');
 	gradC.addColorStop(1, 'rgba(6, 182, 212, 0.03)');
-    chartConsumoLinha = new Chart(ctxCL, {
-        type: 'line',
-        data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], fill: true, backgroundColor: gradC, borderColor: 'rgba(6, 182, 212, 0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
-        options: {
-            animation: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, // min: 0
-            maintainAspectRatio: false
-        }
-    });
+    chartConsumoLinha = new Chart(ctxCL, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], fill: true, backgroundColor: gradC, borderColor: 'rgba(6, 182, 212, 0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
+        options: {
+            animation: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, // min: 0
+            maintainAspectRatio: false
+        }
+    });
 
-    // --- Gráfico de Abastecimento ---
-    const ctxA = document.getElementById('chartAbastecimento').getContext('2d');
-    chartAbastecimento = new Chart(ctxA, {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Abastecimento (L)', data: [], backgroundColor: 'rgba(34, 197, 94, 0.85)', borderRadius: 6 }] },
-        options: {
-            animation: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, // min: 0
-            maintainAspectRatio: false
-        }
-    });
+    // --- Gráfico de Abastecimento ---
+    const ctxA = document.getElementById('chartAbastecimento').getContext('2d');
+    chartAbastecimento = new Chart(ctxA, {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Abastecimento (L)', data: [], backgroundColor: 'rgba(34, 197, 94, 0.85)', borderRadius: 6 }] },
+        options: {
+            animation: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, // min: 0
+            maintainAspectRatio: false
+        }
+    });
 }
 
-// ADICIONADO: REQ 1 - Função para salvar leitura no Firebase
+// Função para salvar leitura no Firebase
 async function salvarLeituraNoFirebase(nivel, timestamp) {
-    // REQ 3: Só salva se o nível for válido (evita salvar 0% por erro)
-    if (nivel <= 0) {
-        //console.warn(`Leitura ${nivel}% inválida. Não será salva no histórico.`);
-        return;
-    }
+    if (nivel <= 0) {
+        return;
+    }
+    const d = new Date(timestamp);
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0'); 
+    const dia = String(d.getDate()).padStart(2, '0');
+    const data = `${ano}-${mes}-${dia}`; 
+    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const path = `PP7_config/historico/${data}/${hora}.json`;
+    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
+    
+    const dados = {
+        nivel_pct: nivel,
+        timestamp: timestamp
+    };
 
-    const d = new Date(timestamp);
-    // FIX: Problema de fuso horário (UTC)
-    // const data = d.toISOString().split('T')[0]; // ISSO GERA O DIA SEGUINTE APÓS AS 21:00 (GMT-3)
-    
-    // CORREÇÃO: Usar data local
-    const ano = d.getFullYear();
-    const mes = String(d.getMonth() + 1).padStart(2, '0'); // Mês é 0-11
-    const dia = String(d.getDate()).padStart(2, '0');
-    const data = `${ano}-${mes}-${dia}`; // Formato YYYY-MM-DD local
-
-    // REQ 3 (ajuste): Formatar para HH:mm
-    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-    const path = `PP7_config/historico/${data}/${hora}.json`;
-    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
-    
-    const dados = {
-        nivel_pct: nivel,
-        timestamp: timestamp
-    };
-
-    try {
-        await fetch(url, {
-            method: 'PUT',
-            body: JSON.stringify(dados)
-        });
-    } catch (e) {
-        console.error("Erro ao salvar leitura no Firebase:", e);
-    }
+    try {
+        await fetch(url, {
+            method: 'PUT',
+            body: JSON.stringify(dados)
+        });
+    } catch (e) {
+        console.error("Erro ao salvar leitura no Firebase:", e);
+    }
 }
 
-// CORREÇÃO: Salvar "memória de emergência" (último valor válido) no Firebase
-async function salvarUltimoValorValido(nivel) {
-    if (nivel <= 0) return; // Não salvar 0
-    // Usamos PUT para substituir o valor antigo
-    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_valor_valido.json`;
+// --- NOVO: Salvar LISTA de leituras de emergência ---
+async function salvarLeiturasEmergencia(leituras) {
+    // Este é o novo endpoint que armazena a lista
+    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_emergencia.json`;
     try {
+        // Salva o ARRAY inteiro [v1, v2, v3]
         await fetch(url, {
             method: 'PUT',
-            body: JSON.stringify({ nivel_pct: nivel })
+            body: JSON.stringify(leituras)
         });
+        // console.log("Buffer de emergência salvo:", leituras);
     } catch (e) {
-        console.warn("Não foi possível salvar o último valor válido:", e);
+        console.warn("Não foi possível salvar o buffer de emergência:", e);
     }
 }
 
 
-// REQ 2: Função de carregamento principal (Histórico e Consumo)
+// Função de carregamento principal (Histórico e Consumo)
 async function carregarHistoricoEConsumo() {
-    // REQ 4: Não executa se a view for 'semanal' (que é só para abastecimento)
-    if (currentView === 'semanal') return;
+    // Não executa se a view for 'semanal'
+    if (currentView === 'semanal') return;
 
 	let url = '';
 	let processData;
-    let result = { labels: [], niveis: [], consumo: [] }; // Objeto de retorno padrão
+    let result = { labels: [], niveis: [], consumo: [] }; // Objeto de retorno padrão
 
 	if (currentView === 'diario') {
 		const data = document.getElementById('dataEscolhida').value;
 		if (!data) return result;
 		url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${data}.json`;
 		processData = (dados) => {
-            if (!dados) return { labels: [], niveis: [], consumo: [] }; // FIX: Retorna vazio se dados forem nulos
-			const labels = Object.keys(dados).sort(); 
+            if (!dados) return { labels: [], niveis: [], consumo: [] }; 
+			const labels = Object.keys(dados).sort(); 
 			const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
 			return { labels, niveis, consumo: [] }; // Consumo vazio para diário
 		};
@@ -1110,55 +1081,53 @@ async function carregarHistoricoEConsumo() {
 		url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
 		
 		processData = (dados) => {
-            if (!dados) return { labels: [], niveis: [], consumo: [] }; // FIX: Retorna vazio se dados forem nulos
-            const dailyAverages = {};
-            const dailyConsumption = {}; // REQ 4: Consumo
-            
-            for (const dateKey in dados) {
-                const dailyReadings = dados[dateKey];
-                let sum = 0; let count = 0;
-                
-                // REQ 4: Lógica de Consumo (Soma de todas as quedas)
-                const readingKeys = Object.keys(dailyReadings).sort(); // 09:00, 09:05...
-                let consumoTotalPct = 0;
-                let ultimoNivel = -1;
-                
-                for (const key of readingKeys) {
-                    const nivelAtual = dailyReadings[key].nivel_pct || 0;
-                    if (ultimoNivel !== -1) {
-                        if (nivelAtual < ultimoNivel) {
-                            // Nível caiu, é consumo
-                            consumoTotalPct += (ultimoNivel - nivelAtual);
-                        }
-                    }
-                    ultimoNivel = nivelAtual; // Atualiza o último nível
-                }
-                dailyConsumption[dateKey] = consumoTotalPct * LITROS_POR_PERCENTO;
+            if (!dados) return { labels: [], niveis: [], consumo: [] }; 
+            const dailyAverages = {};
+            const dailyConsumption = {}; 
+            
+            for (const dateKey in dados) {
+                const dailyReadings = dados[dateKey];
+                let sum = 0; let count = 0;
+                
+                // Lógica de Consumo
+                const readingKeys = Object.keys(dailyReadings).sort(); // 09:00, 09:05...
+                let consumoTotalPct = 0;
+                let ultimoNivel = -1;
+                
+                for (const key of readingKeys) {
+                    const nivelAtual = dailyReadings[key].nivel_pct || 0;
+                    if (ultimoNivel !== -1) {
+                        if (nivelAtual < ultimoNivel) {
+                            consumoTotalPct += (ultimoNivel - nivelAtual);
+                        }
+                    }
+                    ultimoNivel = nivelAtual; // Atualiza o último nível
+                }
+                dailyConsumption[dateKey] = consumoTotalPct * LITROS_POR_PERCENTO;
 
-                // Lógica de Média (Existente)
-                for (const timeKey in dailyReadings) {
-                    sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
-                    count++; 
-                }
-                if (count > 0) dailyAverages[dateKey] = sum / count;
-            }
-            const labels = Object.keys(dailyAverages).sort(); // Usar o mesmo label
-            const niveis = labels.map(key => dailyAverages[key]);
-            const consumo = labels.map(key => dailyConsumption[key]); // REQ 4: Array de consumo
-            
-            // REQ 5: Ajuste de labels (Mensal vs Intervalo)
-            let displayLabels;
-            if (currentView === 'mensal') {
-                displayLabels = labels.map(d => d.substring(8, 10)); // "01", "02"
-            } else { // 'intervalo'
-                // Formatar "2025-11-10" -> "10/11"
-                displayLabels = labels.map(d => {
-                    const [ano, mes, dia] = d.split('-');
-                    return `${dia}/${mes}`;
-                });
-            }
+                // Lógica de Média
+                for (const timeKey in dailyReadings) {
+                    sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
+                    count++; 
+                }
+                if (count > 0) dailyAverages[dateKey] = sum / count;
+            }
+            const labels = Object.keys(dailyAverages).sort(); 
+            const niveis = labels.map(key => dailyAverages[key]);
+            const consumo = labels.map(key => dailyConsumption[key]); 
+            
+            // Ajuste de labels (Mensal vs Intervalo)
+            let displayLabels;
+            if (currentView === 'mensal') {
+                displayLabels = labels.map(d => d.substring(8, 10)); // "01", "02"
+            } else { // 'intervalo'
+                displayLabels = labels.map(d => {
+                    const [ano, mes, dia] = d.split('-');
+                    return `${dia}/${mes}`;
+                });
+            }
 
-            return { labels: displayLabels, niveis, consumo }; // Retorna consumo
+            return { labels: displayLabels, niveis, consumo }; // Retorna consumo
 		};
 	}
 
@@ -1166,18 +1135,14 @@ async function carregarHistoricoEConsumo() {
 		const r = await fetch(url);
 		const dados = await r.json();
 		
-        // FIX: Correção de Fuso Horário
-        const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
-        const hoje = hojeLocal.toISOString().split('T')[0];
+        const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+        const hoje = hojeLocal.toISOString().split('T')[0];
 		const isTodayDiario = (currentView === 'diario' && document.getElementById('dataEscolhida').value === hoje);
 
 		if (!dados) {
-            historicoLabels = [];
-            historicoNiveis = [];
-			if (!isTodayDiario) {
-				console.log("Nenhum dado encontrado para o período selecionado.");
-			}
-            result = { labels: [], niveis: [], consumo: [] };
+            historicoLabels = [];
+            historicoNiveis = [];
+            result = { labels: [], niveis: [], consumo: [] };
 		} else {
 			result = processData(dados);
 			if (!isTodayDiario) {
@@ -1187,375 +1152,309 @@ async function carregarHistoricoEConsumo() {
 				const firebaseLabels = result.labels || [];
 				const firebaseNiveis = result.niveis || [];
 				
-                // Combina dados da sessão (em memória) com os do Firebase
 				const sessionOnlyLabels = historicoLabels.filter(label => !firebaseLabels.includes(label));
 				const sessionOnlyNiveis = sessionOnlyLabels.map(label => historicoNiveis[historicoLabels.indexOf(label)]);
 				
 				historicoLabels = [...firebaseLabels, ...sessionOnlyLabels];
 				historicoNiveis = [...firebaseNiveis, ...sessionOnlyNiveis];
 
-                // Atualiza o 'result' com os dados de hoje combinados
-                result.labels = historicoLabels;
-                result.niveis = historicoNiveis;
+                result.labels = historicoLabels;
+                result.niveis = historicoNiveis;
 			}
 		}
-        atualizarGraficosHistorico(result);
-        atualizarGraficosConsumo(result);
+        atualizarGraficosHistorico(result);
+        atualizarGraficosConsumo(result);
 
 	} catch (e) { console.error("Erro ao carregar histórico:", e); }
 }
 
-// REQ 2 & 4: Nova função de carregamento para Abastecimento
+// Nova função de carregamento para Abastecimento
 async function carregarDadosAbastecimento() {
-    let result = { labels: [], litros: [] };
-    let dataInicio, dataFim;
+    let result = { labels: [], litros: [] };
+    let dataInicio, dataFim;
 
-    if (currentView === 'diario') {
-        atualizarGraficoAbastecimento(result); // Zera o gráfico
-        return;
-    }
-    
-    // REQ 4: Lógica para Semanal
-    if (currentView === 'semanal') {
-        const hoje = new Date();
-        const fim = new Date(hoje);
-        // Define 'inicio' para 6 dias atrás (para incluir hoje como o 7º dia)
-        const inicio = new Date(new Date().setDate(hoje.getDate() - 6)); 
+    if (currentView === 'diario') {
+        atualizarGraficoAbastecimento(result); // Zera o gráfico
+        return;
+    }
+    
+    if (currentView === 'semanal') {
+        const hoje = new Date();
+        const fim = new Date(hoje);
+        const inicio = new Date(new Date().setDate(hoje.getDate() - 6)); 
+        dataInicio = inicio.toISOString().split('T')[0];
+        dataFim = fim.toISOString().split('T')[0];
+    
+    } else if (currentView === 'mensal') {
+        const mesAno = document.getElementById('mesEscolhido').value;
+        if (!mesAno) return;
+        dataInicio = `${mesAno}-01`;
+        const [ano, mes] = mesAno.split('-');
+        const ultimoDia = new Date(ano, mes, 0).getDate();
+        dataFim = `${mesAno}-${ultimoDia}`;
+    
+    } else { // Intervalo
+        dataInicio = document.getElementById('dataInicio').value;
+        dataFim = document.getElementById('dataFim').value;
+        if (!dataInicio || !dataFim) return;
+    }
 
-        dataInicio = inicio.toISOString().split('T')[0];
-        dataFim = fim.toISOString().split('T')[0];
-    
-    } else if (currentView === 'mensal') {
-        const mesAno = document.getElementById('mesEscolhido').value;
-        if (!mesAno) return;
-        dataInicio = `${mesAno}-01`;
-        const [ano, mes] = mesAno.split('-');
-        const ultimoDia = new Date(ano, mes, 0).getDate();
-        dataFim = `${mesAno}-${ultimoDia}`;
-    
-    } else { // Intervalo (Não deve ser chamado aqui, mas por segurança)
-        dataInicio = document.getElementById('dataInicio').value;
-        dataFim = document.getElementById('dataFim').value;
-        if (!dataInicio || !dataFim) return;
-    }
+    const startAt = new Date(dataInicio + "T00:00:00").getTime();
+    const endAt = new Date(dataFim + "T23:59:59").getTime();
 
-    // Convertendo datas para Timestamps para query do Firebase
-    const startAt = new Date(dataInicio + "T00:00:00").getTime();
-    const endAt = new Date(dataFim + "T23:59:59").getTime();
+    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="timestamp"&startAt=${startAt}&endAt=${endAt}`;
+    
+    try {
+        const r = await fetch(url);
+        const dados = await r.json();
 
-    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="timestamp"&startAt=${startAt}&endAt=${endAt}`;
-    
-    try {
-        const r = await fetch(url);
-        const dados = await r.json();
+        if (!dados) {
+            atualizarGraficoAbastecimento(result);
+            return;
+        }
 
-        if (!dados) {
-            atualizarGraficoAbastecimento(result);
-            return;
-        }
+        const dailyTotals = {}; // { "2025-11-10": 5000, "2025-11-12": 7000 }
 
-        const dailyTotals = {}; // { "2025-11-10": 5000, "2025-11-12": 7000 }
+        for (const key in dados) {
+            const item = dados[key];
+            
+            if (!item || !item.data_legivel) {
+                console.warn("Item de abastecimento inválido ou sem data_legivel:", key, item);
+                continue; 
+            }
 
-        for (const key in dados) {
-            const item = dados[key];
-            
-            // FIX: Adiciona verificação para item e item.data_legivel
-            if (!item || !item.data_legivel) {
-                console.warn("Item de abastecimento inválido ou sem data_legivel:", key, item);
-                continue; // Pula este item
-            }
+            const dataKey = item.data_legivel.split('T')[0]; // "2025-11-10"
+            
+            if (!dailyTotals[dataKey]) {
+                dailyTotals[dataKey] = 0;
+            }
+            dailyTotals[dataKey] += item.litros;
+        }
 
-            const dataKey = item.data_legivel.split('T')[0]; // "2025-11-10"
-            
-            if (!dailyTotals[dataKey]) {
-                dailyTotals[dataKey] = 0;
-            }
-            dailyTotals[dataKey] += item.litros;
-        }
+        let displayLabels;
+        let finalData;
+        
+        if (currentView === 'semanal') {
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+            const labelsTemp = [];
+            const dataTemp = [];
+            let d = new Date(dataInicio + 'T12:00:00'); 
+            
+            for (let i = 0; i < 7; i++) {
+                const dataKey = d.toISOString().split('T')[0];
+                const diaDaSemana = diasSemana[d.getDay()];
+                
+                labelsTemp.push(diaDaSemana); // "Seg", "Ter", ...
+                dataTemp.push(dailyTotals[dataKey] || 0); // Pega o total ou 0
+                
+                d.setDate(d.getDate() + 1); // Próximo dia
+            }
+            displayLabels = labelsTemp;
+            finalData = dataTemp;
 
-        // REQ 4: Gerar labels para 'semanal' (dias da semana) ou 'mensal' (dias do mês)
-        let displayLabels;
-        let finalData;
-        
-        if (currentView === 'semanal') {
-            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
-            const labelsTemp = [];
-            const dataTemp = [];
-            // Usamos T12:00:00 para evitar problemas de fuso horário (UTC)
-            let d = new Date(dataInicio + 'T12:00:00'); 
-            
-            for (let i = 0; i < 7; i++) {
-                const dataKey = d.toISOString().split('T')[0];
-                const diaDaSemana = diasSemana[d.getDay()];
-                
-                labelsTemp.push(diaDaSemana); // "Seg", "Ter", ...
-                dataTemp.push(dailyTotals[dataKey] || 0); // Pega o total ou 0
-                
-                d.setDate(d.getDate() + 1); // Próximo dia
-            }
-            displayLabels = labelsTemp;
-            finalData = dataTemp;
+        } else { // Mensal ou Intervalo (lógica original)
+            const labels = Object.keys(dailyTotals).sort();
+            finalData = labels.map(key => dailyTotals[key]);
 
-        } else { // Mensal ou Intervalo (lógica original)
-            const labels = Object.keys(dailyTotals).sort();
-            finalData = labels.map(key => dailyTotals[key]);
+            if (currentView === 'mensal') {
+                displayLabels = labels.map(d => d.substring(8, 10)); // "01", "02"
+            } else { // 'intervalo'
+                displayLabels = labels.map(d => {
+                    const [ano, mes, dia] = d.split('-');
+                    return `${dia}/${mes}`;
+                });
+            }
+        }
+        
+        result = { labels: displayLabels, litros: finalData };
+        atualizarGraficoAbastecimento(result);
 
-            if (currentView === 'mensal') {
-                displayLabels = labels.map(d => d.substring(8, 10)); // "01", "02"
-            } else { // 'intervalo'
-                displayLabels = labels.map(d => {
-                    const [ano, mes, dia] = d.split('-');
-                    return `${dia}/${mes}`;
-                });
-            }
-        }
-        
-        result = { labels: displayLabels, litros: finalData };
-        atualizarGraficoAbastecimento(result);
-
-    } catch (e) {
-        console.error("Erro ao carregar dados de abastecimento:", e);
-        atualizarGraficoAbastecimento(result);
-    }
+    } catch (e) {
+        console.error("Erro ao carregar dados de abastecimento:", e);
+        atualizarGraficoAbastecimento(result);
+    }
 }
 
-// CORREÇÃO: Lógica de "Backup Profundo" para o carregamento inicial
-async function buscarBackupHistorico() {
-    console.warn("Modo de backup: Buscando último valor no histórico dos 7 dias.");
-    try {
-        // Pega os últimos 7 dias
-        const hoje = new Date();
-        const fim = hoje.toISOString().split('T')[0];
-        const inicio = new Date(new Date().setDate(hoje.getDate() - 7)).toISOString().split('T')[0];
-        
-        const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${inicio}"&endAt="${fim}"`;
-        
-        const r = await fetch(url);
-        const dados = await r.json();
-
-        if (!dados) return 0; // Nenhum histórico
-
-        // Pega a última data disponível
-        const ultimasDatas = Object.keys(dados).sort();
-        const ultimaDataKey = ultimasDatas[ultimasDatas.length - 1];
-        const leiturasDoDia = dados[ultimaDataKey];
-        
-        if (!leiturasDoDia) return 0;
-
-        // Pega a última hora disponível
-        const ultimasHoras = Object.keys(leiturasDoDia).sort();
-        const ultimaHoraKey = ultimasHoras[ultimasHoras.length - 1];
-        const ultimaLeitura = leiturasDoDia[ultimaHoraKey];
-
-        if (ultimaLeitura && ultimaLeitura.nivel_pct > 0) {
-            console.log(`Backup do histórico encontrou: ${ultimaLeitura.nivel_pct}%`);
-            return parseFloat(ultimaLeitura.nivel_pct);
-        }
-        return 0; // Não encontrou nada válido
-
-    } catch (e) {
-        console.error("Erro ao buscar backup no histórico:", e);
-        return 0;
-    }
-}
-
-
+// ATUALIZADO: Busca de Nível Inicial
 async function primeiraBuscaDeNivel() {
-    console.log("Buscando nível inicial...");
-    const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
-    const ultimoValidoUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_valor_valido.json';
+    console.log("Buscando nível inicial e buffer de segurança...");
+    const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
+    // Novo endpoint para lista
+    const bufferUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_emergencia.json';
 
-    let nivelSensorNum = 0;
-    let nivelMemoria = 0;
+    let nivelSensorNum = 0;
 
-    try {
-        const results = await Promise.allSettled([
-            fetch(dataUrl),
-            fetch(ultimoValidoUrl)
-        ]);
+    try {
+        const results = await Promise.allSettled([
+            fetch(dataUrl),
+            fetch(bufferUrl)
+        ]);
 
-        // Processar resultado do Sensor (índice 0)
-        if (results[0].status === 'fulfilled') {
-            const jSensor = await results[0].value.json();
-            if (jSensor) {
-                let nivelSensorRaw = jSensor.nivel_pct || jSensor.nivel;
-                nivelSensorNum = parseFloat(nivelSensorRaw);
-                if (isNaN(nivelSensorNum)) nivelSensorNum = 0;
-            }
-        } else {
+        // 1. Tenta ler do sensor
+        if (results[0].status === 'fulfilled') {
+            const jSensor = await results[0].value.json();
+            if (jSensor) {
+                let nivelSensorRaw = jSensor.nivel_pct || jSensor.nivel;
+                nivelSensorNum = parseFloat(nivelSensorRaw);
+                if (isNaN(nivelSensorNum)) nivelSensorNum = 0;
+            }
+        } else {
             console.warn("Fetch do sensor falhou no carregamento:", results[0].reason);
         }
-        
-        // Processar resultado da Memória (índice 1)
-        if (results[1].status === 'fulfilled') {
-            const jUltimoValido = await results[1].value.json();
-            if (jUltimoValido && jUltimoValido.nivel_pct) {
-                nivelMemoria = parseFloat(jUltimoValido.nivel_pct);
-                if (isNaN(nivelMemoria)) nivelMemoria = 0;
+        
+        // 2. Tenta carregar o buffer salvo
+        if (results[1].status === 'fulfilled') {
+            const jBuffer = await results[1].value.json();
+            // Verifica se é uma lista válida
+            if (Array.isArray(jBuffer) && jBuffer.length > 0) {
+                ultimasTresLeituras = jBuffer;
+                console.log("Buffer de emergência carregado:", ultimasTresLeituras);
+            } else {
+                 console.warn("Buffer de emergência não encontrado ou inválido:", jBuffer);
             }
-        } else {
-            console.warn("Fetch do ultimo_valor_valido falhou no carregamento:", results[1].reason);
+        } else {
+            console.warn("Fetch do buffer de emergência falhou:", results[1].reason);
         }
 
-        // Se o sensor estiver a funcionar (valor > 0), usa-o.
-        if (nivelSensorNum > 0) {
+        // 3. Decisão Inicial
+        if (nivelSensorNum > 0) {
+            // Sensor está OK
+            nivelAtual = nivelSensorNum;
             console.log(`Nível inicial válido do sensor: ${nivelSensorNum}%`);
-            nivelAtual = nivelSensorNum;
-            ultimoNivelValido = nivelSensorNum;
-            if (nivelSensorNum !== nivelMemoria) {
-                salvarUltimoValorValido(nivelSensorNum);
+            
+            // Se o sensor está ok, atualiza o buffer caso seja um novo valor
+            const ultimaDoBuffer = ultimasTresLeituras.length > 0 ? ultimasTresLeituras[ultimasTresLeituras.length - 1] : -1;
+            if (nivelSensorNum !== ultimaDoBuffer) {
+                ultimasTresLeituras.push(nivelSensorNum);
+                if(ultimasTresLeituras.length > 3) ultimasTresLeituras.shift();
+                salvarLeiturasEmergencia(ultimasTresLeituras); // Salva a atualização
             }
-        } 
-        // Se o sensor falhar (0 ou NaN), mas tivermos um valor na memória...
-        else if (nivelMemoria > 0) {
-            console.log(`Sensor falhou (lido ${nivelSensorNum}). Usando nível da memória: ${nivelMemoria}%`);
-            nivelAtual = nivelMemoria;
-            ultimoNivelValido = nivelMemoria;
-        } 
-        // Se ambos falharem, tenta o "Backup Profundo"
-        else {
-             console.log("Sensor e Memória falharam. Tentando backup profundo no histórico...");
-             const nivelHistorico = await buscarBackupHistorico();
-             if (nivelHistorico > 0) {
-                nivelAtual = nivelHistorico;
-                ultimoNivelValido = nivelHistorico;
-             } else {
-                console.log("Nenhum nível válido encontrado (sensor, memória, histórico). Iniciando em 0.");
-             }
-        }
+        } 
+        else if (ultimasTresLeituras.length > 0) {
+            // Sensor falhou, usa a última válida do buffer
+            const backup = ultimasTresLeituras[ultimasTresLeituras.length - 1];
+            console.log(`Sensor falhou (lido ${nivelSensorNum}). Usando backup do buffer: ${backup}%`);
+            nivelAtual = backup;
+        } 
+        else {
+            // Tudo falhou (sensor e buffer vazio/falhou)
+             console.log("Nenhum nível válido encontrado (sensor ou buffer). Iniciando em 0.");
+            // (Nota: a correção manual para 64% no window.onload deve preencher o buffer)
+        }
 
-    } catch(e) {
-        console.error("Erro crítico na busca de nível inicial:", e);
-        // Fallback final se tudo falhar
-        const nivelHistorico = await buscarBackupHistorico();
-        if (nivelHistorico > 0) {
-            nivelAtual = nivelHistorico;
-            ultimoNivelValido = nivelHistorico;
-        }
-    }
+    } catch(e) {
+        console.error("Erro crítico na busca de nível inicial:", e);
+    }
 }
 
 
 // --- FUNÇÃO PRINCIPAL DE ATUALIZAÇÃO ---
 async function loopDeAtualizacao() {
 	try {
-        // FIX: Definir 'agora' no início do loop
-        const agora = Date.now(); 
-
+        const agora = Date.now(); 
 		let j;
 		let config;	
 		
 		const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
 		const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
 		
-		if (window.location.hostname.includes("192.168.") || window.location.hostname.includes("10.")) {
-			const r = await fetch('/data');
-			j = await r.json();
-			const rConfig = await fetch(configUrl);
-			config = await rConfig.json();
-		} else {
-			const [r, rConfig] = await Promise.all([
-				fetch(dataUrl),
-				fetch(configUrl)
-			]);
-			j = await r.json();
-			config = await rConfig.json();
-		}
+        // Se der erro no fetch, o catch(e) vai pegar
+		const [r, rConfig] = await Promise.all([
+			fetch(dataUrl),
+			fetch(configUrl)
+		]);
+		j = await r.json();
+		config = await rConfig.json();
 		
-        // CORREÇÃO: Lógica de filtro 0% (baseada na memória do Firebase)
-        let nivelRecebidoRaw = j.nivel_pct || j.nivel;
-        let nivelRecebidoNum = parseFloat(nivelRecebidoRaw);
+        let nivelRecebidoRaw = j.nivel_pct || j.nivel;
+        let nivelRecebidoNum = parseFloat(nivelRecebidoRaw);
 
-        // SÓ atualizamos o nível (global) se a leitura for um número válido e > 0
-        if (!isNaN(nivelRecebidoNum) && nivelRecebidoNum > 0) {
-            nivelAtual = nivelRecebidoNum;
-            // Se o novo valor for diferente do último, salva na "memória"
-            if (nivelRecebidoNum !== ultimoNivelValido) {
-                ultimoNivelValido = nivelRecebidoNum; 
-                salvarUltimoValorValido(nivelRecebidoNum);
+        // --- LÓGICA DE 3 ÚLTIMAS LEITURAS ---
+        if (!isNaN(nivelRecebidoNum) && nivelRecebidoNum > 0) {
+            // Leitura Válida
+            nivelAtual = nivelRecebidoNum;
+            
+            // Verifica se mudou em relação ao último salvo no buffer
+            const ultimaSalva = ultimasTresLeituras.length > 0 ? ultimasTresLeituras[ultimasTresLeituras.length - 1] : -1;
+
+            if (nivelRecebidoNum !== ultimaSalva) {
+                // Adiciona nova leitura
+                ultimasTresLeituras.push(nivelRecebidoNum);
+                // Mantém apenas 3
+                if (ultimasTresLeituras.length > 3) {
+                    ultimasTresLeituras.shift(); // Remove a mais antiga
+                }
+                // Salva a lista atualizada no Firebase
+                salvarLeiturasEmergencia(ultimasTresLeituras);
             }
-        } 
-        // Se a leitura for inválida (0, NaN, null), e já temos um valor bom...
-        else if (ultimoNivelValido > 0) {
-            nivelAtual = ultimoNivelValido; // ...reverte para o último bom.
-        }
-        // Se a leitura for inválida e NUNCA tivemos um valor bom (ultimoNivelValido = 0),
-        // nivelAtual continuará 0 (da sua inicialização global).
+        } 
+        else if (ultimasTresLeituras.length > 0) {
+            // Leitura Inválida (0, NaN, null): Usa a última válida do buffer
+            nivelAtual = ultimasTresLeituras[ultimasTresLeituras.length - 1]; 
+        }
 		
 		if (config) {
 			nivelAlertaConfigurado = parseInt(config) || 30;
 		}
 		
-		// --- REQ 1 & 2: LÓGICA DE ALERTA (EMAIL + MODAL) E COR DO STATUS ---
-        const statusDisplay = document.getElementById('status-display');
-        statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
-
-        // REMOVIDA: Lógica de cooldown e envio de e-mail.
-        // const agora = Date.now(); // FIX: Movido para o topo do loop
+		// --- LÓGICA DE ALERTA (EMAIL + MODAL) E COR DO STATUS ---
+        const statusDisplay = document.getElementById('status-display');
+        statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
 
 		if (nivelAtual <= nivelAlertaConfigurado) {
-            statusDisplay.classList.add('level-danger');
-
-            // REMOVIDO: Bloco de envio de e-mail
-            
-            // MANTIDO: Lógica do Modal Visual
-            if (!alertaModalMostrado) {
-                mostrarAlertaModal();
-                alertaModalMostrado = true;
-            }
+            statusDisplay.classList.add('level-danger');
+            // Lógica do Modal Visual
+            if (!alertaModalMostrado) {
+                mostrarAlertaModal();
+                alertaModalMostrado = true;
+            }
 		} else if (nivelAtual <= 60) {
-            statusDisplay.classList.add('level-warn');
-            // REMOVIDO: Reset de timestamp de e-mail
-            if (alertaModalMostrado) {
-                fecharAlertaModal();
-                alertaModalMostrado = false;
-            }
-        } else {
-            statusDisplay.classList.add('level-ok');
-            // REMOVIDO: Reset de timestamp de e-mail
-            if (alertaModalMostrado) {
-                fecharAlertaModal();
-                alertaModalMostrado = false;
-            }
+            statusDisplay.classList.add('level-warn');
+            if (alertaModalMostrado) {
+                fecharAlertaModal();
+                alertaModalMostrado = false;
+            }
+        } else {
+            statusDisplay.classList.add('level-ok');
+            if (alertaModalMostrado) {
+                fecharAlertaModal();
+                alertaModalMostrado = false;
+            }
 		}
 		// --- FIM DA LÓGICA DE ALERTA ---
 
 		atualizarCaixaDOM(nivelAtual);
 
-        // Atualizar o quadro de status
-        if (document.getElementById('caixa-view').style.display !== 'none') {
-            document.getElementById('status-level').innerText = nivelAtual + '%';
-            const litrosAprox = nivelAtual * LITROS_POR_PERCENTO;
-            // REQ 1: Formato "7000 <small>Litros</small>"
-            document.getElementById('status-litros').innerHTML = `${litrosAprox.toFixed(0)} <small>Litros</small>`;
-            document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        }
+        // Atualizar o quadro de status
+        if (document.getElementById('caixa-view').style.display !== 'none') {
+            document.getElementById('status-level').innerText = nivelAtual + '%';
+            const litrosAprox = nivelAtual * LITROS_POR_PERCENTO;
+            document.getElementById('status-litros').innerHTML = `${litrosAprox.toFixed(0)} <small>Litros</small>`;
+            document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
 		
-        // REQ 2: Atualização de gráfico em tempo real (apenas se a view Histórico estiver ativa)
+        // Atualização de gráfico em tempo real
 		if (document.getElementById('grafico-container').style.display !== 'none') {
 			atualizarGraficosHistorico({ labels: historicoLabels, niveis: historicoNiveis });
 		}
 		
-		// const agora = Date.now(); // FIX: Movido para o topo do loop
-		const trintaMinutos = 30 * 60 * 1000; // REQ: Alterado de 5 para 30 min
+		const trintaMinutos = 30 * 60 * 1000; 
 		const datePicker = document.getElementById('dataEscolhida');
-        // FIX: Correção de Fuso Horário
-        const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+        const hojeLocal = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
 		const hoje = hojeLocal.toISOString().split('T')[0];
 
-		if (agora - ultimaAtualizacaoGrafico > trintaMinutos) { // REQ: Alterado de 5 para 30 min
-            ultimaAtualizacaoGrafico = agora; 
+		if (agora - ultimaAtualizacaoGrafico > trintaMinutos) { 
+            ultimaAtualizacaoGrafico = agora; 
 
 			if (currentView === 'diario' && datePicker.value === hoje) {
-                // REQ 3 (ajuste): Formatar para HH:mm
 				const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 				
-                if (historicoLabels[historicoLabels.length - 1] !== hora) {
-                    if (nivelAtual > 0) { // Só salva e bota no gráfico se for > 0
-					    historicoNiveis.push(Number(nivelAtual));
-					    historicoLabels.push(hora);
-                        salvarLeituraNoFirebase(Number(nivelAtual), agora);
-                    }
+                if (historicoLabels[historicoLabels.length - 1] !== hora) {
+                    if (nivelAtual > 0) { // Só salva e bota no gráfico se for > 0
+					    historicoNiveis.push(Number(nivelAtual));
+					    historicoLabels.push(hora);
+                        salvarLeituraNoFirebase(Number(nivelAtual), agora);
+                    }
 				}
 			}
 		}
@@ -1565,72 +1464,64 @@ async function loopDeAtualizacao() {
 // --- INICIALIZAÇÃO E CONTROLE GERAL ---
 window.onload = function() {
 	
-    // --- CORREÇÃO MANUAL PARA "VALOR PRESO" (ex: 50% vs 42%) ---
-    // Esta função força a "memória de emergência" no Firebase para o valor correto.
-    // Use-a UMA VEZ para corrigir um valor antigo que ficou preso.
-    async function forceCorrigirValorEmergencia(valorCorreto) {
-        console.warn(`CORREÇÃO MANUAL: Forçando "ultimo_valor_valido" para ${valorCorreto}%`);
-        const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_valor_valido.json`;
-        try {
-            await fetch(url, {
-                method: 'PUT',
-                body: JSON.stringify({ nivel_pct: valorCorreto })
-            });
-            console.log(`Correção manual enviada: ${valorCorreto}%`);
-            // Atualiza o valor local imediatamente para garantir que o carregamento o use
-            ultimoNivelValido = valorCorreto; 
-            nivelAtual = valorCorreto;
-        } catch (e) {
-            console.error("Erro ao forçar correção manual:", e);
-        }
-    }
-    
-    // --- EXECUTAR A CORREÇÃO MANUAL ---
-    // Define o valor de emergência para 30% IMEDIATAMENTE.
-    // Isto só precisa de ser executado uma vez.
-    // Após a página carregar e mostrar 30%, pode comentar a linha abaixo.
-    forceCorrigirValorEmergencia(30);
-    // -----------------------------------------------------------
+    // --- CORREÇÃO MANUAL: FORÇAR BUFFER DE 64% ---
+    // Esta função força o buffer de segurança para [64, 64, 64]
+    async function forceCorrigirBuffer(valorCorreto) {
+        const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_emergencia.json`;
+        // Cria um buffer inicial com 3 valores iguais
+        const novoBuffer = [valorCorreto, valorCorreto, valorCorreto];
+        try {
+            await fetch(url, {
+                method: 'PUT',
+                body: JSON.stringify(novoBuffer)
+            });
+            console.log(`Correção manual enviada: ${novoBuffer}`);
+            // Atualiza memória local imediatamente
+            ultimasTresLeituras = novoBuffer;
+            nivelAtual = valorCorreto;
+        } catch (e) {
+            console.error("Erro ao forçar correção manual:", e);
+        }
+    }
+    
+    // --- EXECUTAR A CORREÇÃO MANUAL PARA 64% ---
+    // Define o buffer de emergência para [64, 64, 64] IMEDIATAMENTE.
+    forceCorrigirBuffer(64);
+    // -----------------------------------------------------------
 
-
-	// --- INICIALIZAÇÃO EMAILJS ---
-	// REMOVIDO: Bloco de inicialização do EmailJS.
-
-	// --- FIM DA INICIALIZAÇÃO EMAILJS ---
-
-    // REQ 2: Referências de Views e Botões atualizadas
+	// Referências de Views e Botões
 	const views = {
 		caixa: document.getElementById('caixa-view'),
 		grafico: document.getElementById('grafico-container'),
-        abastecimento: document.getElementById('abastecimento-view'),
-        consumo: document.getElementById('consumo-view'),
+        abastecimento: document.getElementById('abastecimento-view'),
+        consumo: document.getElementById('consumo-view'),
 		config: document.getElementById('config-view')
 	};
 	const btns = {
 		caixa: document.getElementById('btn-view-caixa'),
 		grafico: document.getElementById('btn-view-grafico'),
-        abastecimento: document.getElementById('btn-view-abastecimento'),
-        consumo: document.getElementById('btn-view-consumo'),
+        abastecimento: document.getElementById('btn-view-abastecimento'),
+        consumo: document.getElementById('btn-view-consumo'),
 		config: document.getElementById('btn-view-config')
 	};
-    
-    // REQ 2: Referência aos controles de data e seus containers
-    const dateControls = document.getElementById('date-controls');
-    const viewHeaders = {
-        grafico: document.querySelector('#grafico-container header'),
-        abastecimento: document.querySelector('#abastecimento-view header'),
-        consumo: document.querySelector('#consumo-view header')
-    };
+    
+    // Referência aos controles de data e seus containers
+    const dateControls = document.getElementById('date-controls');
+    const viewHeaders = {
+        grafico: document.querySelector('#grafico-container header'),
+        abastecimento: document.querySelector('#abastecimento-view header'),
+        consumo: document.querySelector('#consumo-view header')
+    };
 
-    // REQ 4: Referências aos botões de data
-    const btnDiario = document.getElementById('btn-view-diario');
-    const btnSemanal = document.getElementById('btn-view-semanal');
-    const btnMensal = document.getElementById('btn-view-mensal');
-    const btnIntervalo = document.getElementById('btn-view-intervalo');
-    const viewSelector = document.querySelector('.view-selector'); 
+    // Referências aos botões de data
+    const btnDiario = document.getElementById('btn-view-diario');
+    const btnSemanal = document.getElementById('btn-view-semanal');
+    const btnMensal = document.getElementById('btn-view-mensal');
+    const btnIntervalo = document.getElementById('btn-view-intervalo');
+    const viewSelector = document.querySelector('.view-selector'); 
 
 	function switchView(viewName) {
-        activeTab = viewName; // Salva a aba ativa
+        activeTab = viewName; // Salva a aba ativa
 
 		for (const key in views) {
 			views[key].style.display = 'none';
@@ -1645,83 +1536,75 @@ window.onload = function() {
 			btns[viewName].classList.add('active');
 		}
 
-        // REQ 1 & 4: Mover os controles de data (sem título)
-        dateControls.style.display = 'none'; // Esconde por padrão
+        dateControls.style.display = 'none'; 
 
-        if (viewName === 'grafico' || viewName === 'consumo') {
-            viewHeaders[viewName].appendChild(dateControls);
-            dateControls.style.display = 'flex';
+        if (viewName === 'grafico' || viewName === 'consumo') {
+            viewHeaders[viewName].appendChild(dateControls);
+            dateControls.style.display = 'flex';
 
-            // REQ 4: Mostrar/Ocultar botões
-            btnDiario.style.display = 'flex';
-            btnMensal.style.display = 'flex';
-            btnIntervalo.style.display = 'flex';
-            btnSemanal.style.display = 'none';
+            btnDiario.style.display = 'flex';
+            btnMensal.style.display = 'flex';
+            btnIntervalo.style.display = 'flex';
+            btnSemanal.style.display = 'none';
 
-            // Se a view anterior era 'semanal', volta para 'diario'
-            if (currentView === 'semanal') {
-                currentView = 'diario';
-                viewSelector.querySelector('.view-btn.active').classList.remove('active');
-                btnDiario.classList.add('active');
-                // Atualiza os pickers de data
-                document.getElementById('diario-picker').style.display = 'flex';
-                document.getElementById('mensal-picker').style.display = 'none';
-                document.getElementById('intervalo-picker').style.display = 'none';
-            }
+            if (currentView === 'semanal') {
+                currentView = 'diario';
+                viewSelector.querySelector('.view-btn.active').classList.remove('active');
+                btnDiario.classList.add('active');
+                document.getElementById('diario-picker').style.display = 'flex';
+                document.getElementById('mensal-picker').style.display = 'none';
+                document.getElementById('intervalo-picker').style.display = 'none';
+            }
 
-        } else if (viewName === 'abastecimento') {
-            viewHeaders[viewName].appendChild(dateControls);
-            dateControls.style.display = 'flex';
+        } else if (viewName === 'abastecimento') {
+            viewHeaders[viewName].appendChild(dateControls);
+            dateControls.style.display = 'flex';
 
-            // REQ 4: Mostrar/Ocultar botões
-            btnDiario.style.display = 'none';
-            btnIntervalo.style.display = 'none';
-            btnSemanal.style.display = 'flex';
-            btnMensal.style.display = 'flex';
+            btnDiario.style.display = 'none';
+            btnIntervalo.style.display = 'none';
+            btnSemanal.style.display = 'flex';
+            btnMensal.style.display = 'flex';
 
-            // Se a view anterior era 'diario' ou 'intervalo', muda para 'semanal'
-            if (currentView === 'diario' || currentView === 'intervalo') {
-                currentView = 'semanal';
-                viewSelector.querySelector('.view-btn.active').classList.remove('active');
-                btnSemanal.classList.add('active');
-                // Atualiza os pickers de data
-                document.getElementById('diario-picker').style.display = 'none';
-                document.getElementById('mensal-picker').style.display = 'none';
-                document.getElementById('intervalo-picker').style.display = 'none';
-            }
-        }
+            if (currentView === 'diario' || currentView === 'intervalo') {
+                currentView = 'semanal';
+                viewSelector.querySelector('.view-btn.active').classList.remove('active');
+                btnSemanal.classList.add('active');
+                document.getElementById('diario-picker').style.display = 'none';
+                document.getElementById('mensal-picker').style.display = 'none';
+                document.getElementById('intervalo-picker').style.display = 'none';
+            }
+        }
 
-        // Ações específicas de cada view
-        if (viewName === 'caixa') {
-            carregarHistoricoAbastecimento();
-        } else if (viewName === 'grafico') {
+        // Ações específicas de cada view
+        if (viewName === 'caixa') {
+            carregarHistoricoAbastecimento();
+        } else if (viewName === 'grafico') {
 			if(chartLinha) chartLinha.resize();
 			if(chartBlocos) chartBlocos.resize();
 		} else if (viewName === 'consumo') {
-            if(chartConsumoBloco) chartConsumoBloco.resize();
-            if(chartConsumoLinha) chartConsumoLinha.resize();
-        } else if (viewName === 'abastecimento') {
-            carregarHistoricoAbastecimento();
-            if(chartAbastecimento) chartAbastecimento.resize();
-        } else if (viewName === 'config') {
+            if(chartConsumoBloco) chartConsumoBloco.resize();
+            if(chartConsumoLinha) chartConsumoLinha.resize();
+        } else if (viewName === 'abastecimento') {
+            carregarHistoricoAbastecimento();
+            if(chartAbastecimento) chartAbastecimento.resize();
+        } else if (viewName === 'config') {
 			carregarContatos();	
-			carregarNivelAlertaAtual(); 
+			carregarNivelAlertaAtual(); 
 		}
 	}
 
 	btns.caixa.addEventListener('click', () => switchView('caixa'));
 	btns.grafico.addEventListener('click', () => switchView('grafico'));
-    btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
-    btns.consumo.addEventListener('click', () => switchView('consumo'));
+    btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
+    btns.consumo.addEventListener('click', () => switchView('consumo'));
 	btns.config.addEventListener('click', () => switchView('config'));
 
-    // REQ 2: Event listener do botão de fechar o modal
-    document.getElementById('modal-close-btn').addEventListener('click', fecharAlertaModal);
+    document.getElementById('modal-close-btn').addEventListener('click', fecharAlertaModal);
 
-    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => {
-        const litros = document.getElementById('litros-abastecidos').value;
-        salvarAbastecimento(litros);
-    });
+    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => {
+        const litros = document.getElementById('litros-abastecidos').value;
+        salvarAbastecimento(litros);
+    });
 	
 	document.getElementById('btn-add-contato').addEventListener('click', () => {
 		const valor = document.getElementById('contato-valor').value;
@@ -1770,11 +1653,9 @@ window.onload = function() {
 		}
 	});
 
-    // REQ 1: Event listener para apagar histórico de abastecimento
 	document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
-        // Assegura que estamos a clicar no botão (ou no 'X' dentro dele)
-        const btn = e.target.closest('.delete-abastecimento-btn');
-        if (btn) {
+        const btn = e.target.closest('.delete-abastecimento-btn');
+        if (btn) {
 			const id = btn.dataset.id;
 			
 			if (btn.dataset.confirming) {
@@ -1783,18 +1664,18 @@ window.onload = function() {
 				document.querySelectorAll('#lista-abastecimentos button[data-confirming="true"]').forEach(b => {
 					b.dataset.confirming = 'false';
 					b.innerText = '×';
-                    b.style.width = '30px';
+                    b.style.width = '30px';
 				});
 				
 				btn.dataset.confirming = 'true';
 				btn.innerText = 'Confirmar?';
-                btn.style.width = 'auto'; 
+                btn.style.width = 'auto'; 
 				
 				setTimeout(() => {
 					if (btn.dataset.confirming === 'true') {
 						 btn.dataset.confirming = 'false';
 						 btn.innerText = '×';
-                         btn.style.width = '30px';
+                         btn.style.width = '30px';
 					}
 				}, 3000);
 			}
@@ -1804,38 +1685,32 @@ window.onload = function() {
 
 	criarGraficos();
 	const hoje = new Date();
-    // FIX: Correção de Fuso Horário
-    const dataFimPadrao = new Date(hoje.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"})).toISOString().split('T')[0];
-	// const dataFimPadrao = hoje.toISOString().split('T')[0];
+    const dataFimPadrao = new Date(hoje.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"})).toISOString().split('T')[0];
 	const mesFimPadrao = dataFimPadrao.substring(0, 7);
-	hoje.setDate(hoje.getDate() - 59); 
-    const dataInicioPadrao = new Date(hoje.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"})).toISOString().split('T')[0];
-	// const dataInicioPadrao = hoje.toISOString().split('T')[0];
+	hoje.setDate(hoje.getDate() - 59); 
+    const dataInicioPadrao = new Date(hoje.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"})).toISOString().split('T')[0];
 	document.getElementById('dataEscolhida').value = dataFimPadrao;
 	document.getElementById('mesEscolhido').value = mesFimPadrao;
 	document.getElementById('dataInicio').value = dataInicioPadrao;
 	document.getElementById('dataFim').value = dataFimPadrao;
 	
-	switchView('caixa'); 
+	switchView('caixa'); 
 	
-    // REQ 2: Função de clique do botão "Carregar"
-    document.getElementById('btnAtualizar').onclick = () => {
-        // REQ 4: Só carrega o que for relevante para a aba ativa
-        if (activeTab === 'grafico' || activeTab === 'consumo') {
-            carregarHistoricoEConsumo();
-        } else if (activeTab === 'abastecimento') {
-            carregarDadosAbastecimento();
-        }
-    };
-    
-    // CORREÇÃO: Carregamento inicial com filtro 0% (memória do Firebase)
+    document.getElementById('btnAtualizar').onclick = () => {
+        if (activeTab === 'grafico' || activeTab === 'consumo') {
+            carregarHistoricoEConsumo();
+        } else if (activeTab === 'abastecimento') {
+            carregarDadosAbastecimento();
+        }
+    };
+    
 	carregarHistoricoEConsumo().then(() => {
-        // Fazer uma primeira busca SÓ para inicializar o nível
-        primeiraBuscaDeNivel().then(() => {
-            // Só então, iniciar o loop
-    		loopDeAtualizacao();
-	    	setInterval(loopDeAtualizacao, 2000);
-        });
+        // Faz a primeira busca (que já foi forçada para 64%)
+        primeiraBuscaDeNivel().then(() => {
+            // Só então, iniciar o loop
+    		loopDeAtualizacao();
+	    	setInterval(loopDeAtualizacao, 2000);
+        });
 	});
 
 	
@@ -1846,20 +1721,19 @@ window.onload = function() {
 			e.target.classList.add('active');
 			
 			if (e.target.dataset.view) {
-				currentView = e.target.dataset.view; // Atualiza a vista de data (diario, semanal, etc)
+				currentView = e.target.dataset.view; 
 				const pickers = {
 					diario: document.getElementById('diario-picker'),
 					mensal: document.getElementById('mensal-picker'),
 					intervalo: document.getElementById('intervalo-picker')
-                    // 'semanal' não tem picker
 				};
 				for(const key in pickers) {
 					pickers[key].style.display = 'none';
 				}
 				if (pickers[currentView]) pickers[currentView].style.display = 'flex';
 				
-                // Ao mudar o tipo (diario/mensal), recarrega
-                document.getElementById('btnAtualizar').click();
+                // Ao mudar o tipo (diario/mensal), recarrega
+                document.getElementById('btnAtualizar').click();
 			}
 		});
 	});
@@ -1867,125 +1741,122 @@ window.onload = function() {
 
 // --- Funções de configuração (Restante do código) ---
 
-// REQ 1: Nova função para remover abastecimento
 async function removerAbastecimento(id) {
-    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`;
-    try {
-        const response = await fetch(url, { method: 'DELETE' });
-        if (!response.ok) {
-            throw new Error('Erro ao apagar no Firebase');
-        }
-        carregarHistoricoAbastecimento(); // Recarrega a lista
-    } catch (e) {
-        console.error("Erro ao remover abastecimento:", e);
-    }
+    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`;
+    try {
+        const response = await fetch(url, { method: 'DELETE' });
+        if (!response.ok) {
+            throw new Error('Erro ao apagar no Firebase');
+        }
+        carregarHistoricoAbastecimento(); // Recarrega a lista
+    } catch (e) {
+        console.error("Erro ao remover abastecimento:", e);
+    }
 }
 
 async function carregarHistoricoAbastecimento() {
-    const listaUL = document.getElementById('lista-abastecimentos');
-    listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Carregando histórico...</li>';
-    try {
-        const url = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=5';
-        const r = await fetch(url);
-        const dados = await r.json();
-        
-        listaUL.innerHTML = ''; 
-        if (dados) {
-            const ids = Object.keys(dados).reverse();
-            if (ids.length === 0) {
-               listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>';
-               return;
-            }
-            ids.forEach(id => {
-                const item = dados[id];
-                // FIX: Adiciona verificação para item e item.timestamp
-                if (!item || !item.timestamp) {
-                    console.warn("Item de abastecimento inválido ou sem timestamp:", id, item);
-                    return; // Pula este item
-                }
-                const li = document.createElement('li');
-                const d = new Date(item.timestamp);
-                const dataStr = d.toLocaleDateString('pt-BR');
-                const horaStr = d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-                // REQ 1: Adicionado botão de apagar com data-id
-                li.innerHTML = `
-                    <div class="abastecimento-info">
-                        <span>${dataStr} às ${horaStr}</span>
-                        <strong>${item.litros} L</strong>
-                    </div>
-                    <button class="delete-abastecimento-btn" data-id="${id}">×</button>
-                `;
-                listaUL.appendChild(li);
-            });
-        } else {
-            listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>';
-        }
-    } catch (e) {
-        console.error("Erro ao carregar histórico de abastecimento:", e);
-        listaUL.innerHTML = '<li class="small" style="color:red; border: none; background: none;">Erro ao carregar histórico.</li>';
-    }
+    const listaUL = document.getElementById('lista-abastecimentos');
+    listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Carregando histórico...</li>';
+    try {
+        const url = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=5';
+        const r = await fetch(url);
+        const dados = await r.json();
+        
+        listaUL.innerHTML = ''; 
+        if (dados) {
+            const ids = Object.keys(dados).reverse();
+            if (ids.length === 0) {
+               listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>';
+               return;
+            }
+            ids.forEach(id => {
+                const item = dados[id];
+                if (!item || !item.timestamp) {
+                    console.warn("Item de abastecimento inválido ou sem timestamp:", id, item);
+                    return; 
+                }
+                const li = document.createElement('li');
+                const d = new Date(item.timestamp);
+                const dataStr = d.toLocaleDateString('pt-BR');
+                const horaStr = d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+                li.innerHTML = `
+                    <div class="abastecimento-info">
+                        <span>${dataStr} às ${horaStr}</span>
+                        <strong>${item.litros} L</strong>
+                    </div>
+                    <button class="delete-abastecimento-btn" data-id="${id}">×</button>
+                `;
+                listaUL.appendChild(li);
+            });
+        } else {
+            listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>';
+        }
+    } catch (e) {
+        console.error("Erro ao carregar histórico de abastecimento:", e);
+        listaUL.innerHTML = '<li class="small" style="color:red; border: none; background: none;">Erro ao carregar histórico.</li>';
+    }
 }
 
 
 async function salvarAbastecimento(litros) {
-    const statusDiv = document.getElementById('status-abastecimento');
-    const litrosNum = Number(litros);
+    const statusDiv = document.getElementById('status-abastecimento');
+    const litrosNum = Number(litros);
 
-    if (!litrosNum || litrosNum <= 0) {
-        statusDiv.style.color = 'red';
-        statusDiv.innerText = 'Insira um valor de litros válido.';
-        setTimeout(() => { statusDiv.innerText = ''; }, 3000);
-        return;
-    }
+    if (!litrosNum || litrosNum <= 0) {
+        statusDiv.style.color = 'red';
+        statusDiv.innerText = 'Insira um valor de litros válido.';
+        setTimeout(() => { statusDiv.innerText = ''; }, 3000);
+        return;
+    }
 
-    statusDiv.style.color = '#eab308';
-    statusDiv.innerText = 'Salvando...';
-    
-    const agora = new Date();
-    const dados = {
-        litros: litrosNum,
-        timestamp: agora.getTime(),
-        data_legivel: agora.toISOString() 
-    };
-    
-    const url = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json';
+    statusDiv.style.color = '#eab308';
+    statusDiv.innerText = 'Salvando...';
+    
+    const agora = new Date();
+    const dados = {
+        litros: litrosNum,
+        timestamp: agora.getTime(),
+        data_legivel: agora.toISOString() 
+    };
+    
+    const url = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json';
 
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify(dados)
-        });
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify(dados)
+        });
 
-        if (!response.ok) throw new Error('Erro no Firebase');
+        if (!response.ok) throw new Error('Erro no Firebase');
 
-        statusDiv.style.color = 'green';
-        statusDiv.innerText = 'Abastecimento salvo!';
-        document.getElementById('litros-abastecidos').value = ''; 
-        
-        carregarHistoricoAbastecimento(); 
-    } catch (e) {
-        console.error("Erro ao salvar abastecimento:", e);
-        statusDiv.style.color = 'red';
-        statusDiv.innerText = 'Erro ao salvar.';
-    } finally {
-        setTimeout(() => { statusDiv.innerText = ''; }, 3000);
-    }
+        statusDiv.style.color = 'green';
+        statusDiv.innerText = 'Abastecimento salvo!';
+        document.getElementById('litros-abastecidos').value = ''; 
+        
+        carregarHistoricoAbastecimento(); 
+    } catch (e) {
+        console.error("Erro ao salvar abastecimento:", e);
+        statusDiv.style.color = 'red';
+        statusDiv.innerText = 'Erro ao salvar.';
+    } finally {
+        setTimeout(() => { statusDiv.innerText = ''; }, 3000);
+    }
 }
 
 
 async function salvarNivelAlerta(nivel) {
 	const statusDiv = document.getElementById('status-alerta');
-	statusDiv.style.color = '#eab308'; 
+	statusDiv.style.color = '#eab308'; 
 	statusDiv.innerText = 'Salvando...';
 	try {
 		await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json', {
-			method: 'PUT', 
+			method: 'PUT', 
 			body: JSON.stringify(nivel)
 		});
-		nivelAlertaConfigurado = nivel; 
+		nivelAlertaConfigurado = nivel; 
 		statusDiv.style.color = 'green';
 		statusDiv.innerText = `Nível de alerta salvo em ${nivel}%.`;
-		document.getElementById('nivel-alerta-valor').value = nivel; 
+		document.getElementById('nivel-alerta-valor').value = nivel; 
 	} catch (e) {
 		console.error("Erro ao salvar nível:", e);
 		statusDiv.style.color = 'red';
@@ -2003,7 +1874,7 @@ async function carregarNivelAlertaAtual() {
 			document.getElementById('nivel-alerta-valor').value = nivelSalvo;
 			nivelAlertaConfigurado = parseInt(nivelSalvo);
 		} else {
-			 document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado; 
+			 document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado; 
 		}
 	} catch (e) {
 		console.error("Erro ao carregar nível de alerta:", e);
@@ -2011,8 +1882,8 @@ async function carregarNivelAlertaAtual() {
 }
 
 async function adicionarContato(valor, tipo) {
-	const statusDiv = document.getElementById('status-contato'); 
-	statusDiv.innerText = ''; 
+	const statusDiv = document.getElementById('status-contato'); 
+	statusDiv.innerText = ''; 
 
 	if (!valor || (tipo === 'email' && !valor.includes('@'))) {
 		statusDiv.style.color = 'red';
@@ -2021,50 +1892,50 @@ async function adicionarContato(valor, tipo) {
 		return;
 	}
 	
-	statusDiv.style.color = '#eab308'; 
+	statusDiv.style.color = '#eab308'; 
 	statusDiv.innerText = 'Salvando contato...';
 	
 	const novoContato = { valor, tipo };
 	try {
-		const response = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', { 
-			method: 'POST', 
+		const response = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', { 
+			method: 'POST', 
 			body: JSON.stringify(novoContato)
 		});
 
-		if (!response.ok) { 
+		if (!response.ok) { 
 			throw new Error(`Erro no Firebase: ${response.statusText}`);
 		}
 
-		document.getElementById('contato-valor').value = ''; 
+		document.getElementById('contato-valor').value = ''; 
 		statusDiv.style.color = 'green';
 		statusDiv.innerText = 'Contato salvo com sucesso!';
-		carregarContatos(); 
+		carregarContatos(); 
 	} catch (e) {
 		console.error("Erro ao adicionar contato:", e);
 		statusDiv.style.color = 'red';
 		statusDiv.innerText = 'Erro ao salvar contato.';
 	} finally {
-		setTimeout(() => { statusDiv.innerText = ''; }, 3000); 
+		setTimeout(() => { statusDiv.innerText = ''; }, 3000); 
 	}
 }
 
 async function removerContato(id) {
-	const statusDiv = document.getElementById('status-lista-contatos'); 
+	const statusDiv = document.getElementById('status-lista-contatos'); 
 	statusDiv.innerText = 'Removendo...';
 	statusDiv.style.color = '#eab308';
 
 	try {
-		const response = await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { 
+		const response = await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { 
 			method: 'DELETE'
 		});
 
-		if (!response.ok) { 
+		if (!response.ok) { 
 			 throw new Error(`Erro no Firebase: ${response.statusText}`);
 		}
 
 		statusDiv.innerText = 'Contato removido.';
 		statusDiv.style.color = 'green';
-		carregarContatos(); 
+		carregarContatos(); 
 	} catch (e) {
 		console.error("Erro ao remover contato:", e);
 		statusDiv.innerText = 'Erro ao remover contato.';
@@ -2081,7 +1952,7 @@ async function carregarContatos() {
 		const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
 		const contatos = await r.json();
 		
-		listaUL.innerHTML = ''; 
+		listaUL.innerHTML = ''; 
 		if (contatos) {
 			Object.keys(contatos).forEach(id => {
 				const c = contatos[id];
@@ -2111,5 +1982,3 @@ async function carregarContatos() {
 </script>
 </body>
 </html>
-
-
