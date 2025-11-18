@@ -418,7 +418,12 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 .modal-footer {
     padding: 15px 20px;
     background: #f1f5f9;
+    /* ALTERADO: Alinhado para 'right' para empilhar os botões */
     text-align: right;
+    display: flex;
+    flex-wrap: wrap; /* Permite quebrar linha em telas pequenas */
+    justify-content: flex-end; /* Alinha à direita */
+    gap: 10px;
 }
 #modal-close-btn {
     background: var(--accent-dark);
@@ -592,10 +597,13 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 		<div class="config-card">
 			<h2>Adicionar Novo Contato</h2>
 			<div class="form-group">
-				<input type="text" id="contato-valor" placeholder="Email ou ID do Telegram">
+                <!-- ALTERADO: Placeholder atualizado -->
+				<input type="text" id="contato-valor" placeholder="Email, ID Telegram, ou N° WhatsApp (ex: 5531...)">
 				<select id="contato-tipo">
 					<option value="email">Email</option>
 					<option value="telegram">Telegram</option>
+                    <!-- NOVO: Opção WhatsApp -->
+                    <option value="whatsapp">WhatsApp</option>
 				</select>
 			</div>
 			<button id="btn-add-contato" class="modern-button">Adicionar</button>
@@ -634,7 +642,12 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
             Atenção: Solicitar abastecimento ao CCO.
         </div>
         <div class="modal-footer">
-            <button id="modal-close-btn" class="modern-button">Entendido</button>
+            <!-- NOVO: Botão do WhatsApp (começa escondido) -->
+            <button id="modal-whatsapp-btn" class="modern-button" style="background-color: #25D366; display: none;">
+                Avisar WhatsApp
+            </button>
+            <!-- ALTERADO: Texto do botão "Entendido" -->
+            <button id="modal-close-btn" class="modern-button">Entendido (Soneca 10min)</button>
         </div>
     </div>
 </div>
@@ -680,6 +693,7 @@ let isAlarmPlaying = false;
 let snoozeCount = 0; // 0=inicial, 1=snooze1, 2=snooze2, 3=finalizado
 let snoozeUntil = 0; // Timestamp (em ms) de quando o snooze termina
 const SNOOZE_DURATION_MINUTES = 10; // Duração do "soneca"
+const AUTO_SNOOZE_SECONDS = 30; // Tempo para silenciar sozinho
 
 // VARIÁVEIS DE EMERGÊNCIA
 let ultimoNivelValido = 63; // Inicia em 63% se não houver leitura
@@ -731,7 +745,63 @@ async function enviarEmailAlerta(nivel) {
 	return todosEnviadosComSucesso;
 }
 
+// NOVO: Função para disparar alertas de WhatsApp
+async function enviarAlertaWhatsApp(nivel) {
+    let contatos = {};
+	try {
+		const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
+		contatos = await r.json();
+		if (!contatos) {
+            console.warn("Botão WhatsApp clicado, mas não há contatos cadastrados.");
+            return;
+        }
+	} catch (e) {
+		console.error("Erro ao buscar contatos de WhatsApp:", e);
+		return;
+	}
+
+    // 1. Filtra apenas contatos do tipo WhatsApp
+	const numerosParaEnviar = Object.values(contatos)
+								   .filter(c => c.tipo === 'whatsapp' && c.valor)
+								   .map(c => c.valor.replace(/\D/g, '')); // Limpa (tira +, -, etc)
+
+	if (numerosParaEnviar.length === 0) {
+		console.warn("Botão WhatsApp clicado, mas não há contatos TIPO 'whatsapp' cadastrados.");
+        return;
+	}
+
+    // 2. Prepara a mensagem
+    const mensagem = `💧 ALERTA NÍVEL BAIXO (PP7) 💧\n\nO nível da caixa d'água está em *${nivel}%*.\n\nFavor solicitar abastecimento ao CCO.`;
+
+    // 3. Abre uma nova aba para cada número
+    console.log(`Disparando ${numerosParaEnviar.length} alerta(s) de WhatsApp...`);
+	for (const numero of numerosParaEnviar) {
+        const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+        window.open(url, '_blank'); // Abre em uma nova aba
+	}
+}
+
+
 function mostrarAlertaModal() {
+    // Antes de mostrar o modal, verifica se deve mostrar o botão WhatsApp
+    const btnWpp = document.getElementById('modal-whatsapp-btn');
+    
+    // (Otimização: idealmente, carregar contatos uma vez no início, mas isso funciona)
+    fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json')
+        .then(r => r.json())
+        .then(contatos => {
+            if (contatos) {
+                const temWpp = Object.values(contatos).some(c => c.tipo === 'whatsapp');
+                if (temWpp) {
+                    btnWpp.style.display = 'inline-block'; // Mostra o botão
+                } else {
+                    btnWpp.style.display = 'none'; // Esconde se não houver números
+                }
+            } else {
+                 btnWpp.style.display = 'none';
+            }
+        });
+
     const modal = document.getElementById('alert-modal');
     if (modal) modal.style.display = 'flex';
 }
@@ -793,6 +863,27 @@ function controlarAlarme(play) {
         // Desliga o som (volume 0)
         gainNode.gain.setValueAtTime(0, audioContext.currentTime); 
         isAlarmPlaying = false;
+    }
+}
+
+// NOVO: Função centralizada para iniciar a soneca
+function iniciarSoneca() {
+    // 1. Ações imediatas
+    fecharAlertaModal();    // Esconde o modal
+    controlarAlarme(false); // Para a sirene
+    alertaModalMostrado = false; // Libera o loop para re-verificar
+
+    // 2. Incrementa o contador de "soneca"
+    snoozeCount++; // (vai para 1, 2, ou 3)
+
+    // 3. Se ainda não for o último alerta (1 inicial + 2 snoozes)
+    if (snoozeCount < 3) {
+        const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000;
+        snoozeUntil = Date.now() + snoozeMs;
+        console.log(`Alarme (${snoozeCount}/3) pausado. Próximo alerta em ${SNOOZE_DURATION_MINUTES} min.`);
+    } else {
+        console.log('Todos os 3 alertas exibidos. Silêncio até o nível normalizar.');
+        // Não define snoozeUntil, e 'snoozeCount >= 3' vai bloquear o próximo alerta.
     }
 }
 
@@ -1243,6 +1334,16 @@ async function loopDeAtualizacao() {
                 mostrarAlertaModal();
                 alertaModalMostrado = true;
                 controlarAlarme(true);
+
+                // NOVO GATILHO AUTOMÁTICO (AUTO-SNOOZE):
+                // Define um timer para "clicar" em "Entendido" automaticamente
+                setTimeout(() => {
+                    // Apenas ativa se o modal AINDA estiver visível (usuário não clicou)
+                    if (alertaModalMostrado) { 
+                        console.log(`Auto-Snooze ativado após ${AUTO_SNOOZE_SECONDS}s.`);
+                        iniciarSoneca(); // Chama a mesma função do clique manual
+                    }
+                }, AUTO_SNOOZE_SECONDS * 1000);
             }
 
 		} else if (nivelAtual <= 60) {
@@ -1324,10 +1425,9 @@ window.onload = function() {
 
     // --- INICIALIZAÇÃO EMAILJS ---
 	(function() {
-        // *** ALTERADO: PUBLIC KEY ATUALIZADA ***
+        // *** ALTERADO: IDs ATUALIZADOS ***
 		const PUBLIC_KEY = "I1HnvhgWehPP7EXxX";	
 		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") {
-            console.error("ERRO DE CONFIGURAÇÃO EMAILJS: A 'Public Key' não foi definida.");
 			emailJsInicializado = false; return; 
 		}
 		try { emailjs.init(PUBLIC_KEY); emailJsInicializado = true; } catch(e) { emailJsInicializado = false; }
@@ -1428,23 +1528,21 @@ window.onload = function() {
 
     // *** ALTERADO: Event listener do botão "Entendido" do Modal ***
     document.getElementById('modal-close-btn').addEventListener('click', () => {
-        // 1. Ações imediatas
-        fecharAlertaModal();    // Esconde o modal
-        controlarAlarme(false); // Para a sirene
-        alertaModalMostrado = false; // Libera o loop para re-verificar
+        // Agora apenas chama a função de soneca
+        iniciarSoneca();
+    });
 
-        // 2. Incrementa o contador de "soneca"
-        snoozeCount++; // (vai para 1, 2, ou 3)
+    // NOVO: Event listener para o botão "Avisar WhatsApp"
+    document.getElementById('modal-whatsapp-btn').addEventListener('click', () => {
+        // A função é chamada com o 'nivelAtual' (que é global)
+        enviarAlertaWhatsApp(nivelAtual);
 
-        // 3. Se ainda não for o último alerta (1 inicial + 2 snoozes)
-        if (snoozeCount < 3) {
-            const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000;
-            snoozeUntil = Date.now() + snoozeMs;
-            console.log(`Alarme (${snoozeCount}/3) pausado. Próximo alerta em ${SNOOZE_DURATION_MINUTES} min.`);
-        } else {
-            console.log('Todos os 3 alertas exibidos. Silêncio até o nível normalizar.');
-            // Não define snoozeUntil, e 'snoozeCount >= 3' vai bloquear o próximo alerta.
-        }
+        // Opcional: Você pode querer que clicar em "Avisar" também ative a soneca
+        // Se sim, descomente as 4 linhas abaixo:
+        // fecharAlertaModal();
+        // controlarAlarme(false);
+        // alertaModalMostrado = false;
+        // snoozeCount = 3; // Pula todos os snoozes, já que o usuário agiu
     });
 
     document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => {
