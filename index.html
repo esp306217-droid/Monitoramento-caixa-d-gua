@@ -682,8 +682,9 @@ let dataUltimaLeituraValida = Date.now(); // Marca a hora atual como inicial
 
 const LITROS_POR_PERCENTO = 7000 / 85; 
 
-const SERVICE_ID = "service_txwft9l";
-const TEMPLATE_ID = "template_c5l1j8r";
+// *** ALTERADO: IDs ATUALIZADOS ***
+const SERVICE_ID = "service_lubx0i8";
+const TEMPLATE_ID = "template_ll79qy1";
 
 async function enviarEmailAlerta(nivel) {
 	if (!emailJsInicializado) return false; 
@@ -708,10 +709,13 @@ async function enviarEmailAlerta(nivel) {
 	
 	let todosEnviadosComSucesso = true;
 	for (const email of emailsParaEnviar) {
+        
+        // *** ALTERADO: Variáveis do template atualizadas ***
 		const templateParams = {
-			nivel_agua: nivel,
-			to_email: email	
+			"%": nivel,     // Substitui 'nivel_agua'
+			"email": email	// Substitui 'to_email'
 		};
+
 		try {
 			await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
 		} catch (err) {
@@ -1296,8 +1300,10 @@ window.onload = function() {
 
     // --- INICIALIZAÇÃO EMAILJS ---
 	(function() {
-		const PUBLIC_KEY = "xwk898VhH0VS-PSg9";	
+        // *** ALTERADO: PUBLIC KEY ATUALIZADA ***
+		const PUBLIC_KEY = "I1HnvhgWehPP7EXxX";	
 		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") {
+            console.error("ERRO DE CONFIGURAÇÃO EMAILJS: A 'Public Key' não foi definida.");
 			emailJsInicializado = false; return; 
 		}
 		try { emailjs.init(PUBLIC_KEY); emailJsInicializado = true; } catch(e) { emailJsInicializado = false; }
