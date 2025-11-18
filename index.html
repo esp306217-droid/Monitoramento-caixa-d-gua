@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monitoramento Caixa D’Água PP7</title>
+<title>Monitoramento Caixa D'Água PP7</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
@@ -73,6 +73,44 @@ body {
 	display: block; 
 	margin-left: auto; 
 	margin-right: auto; 
+}
+
+/* Badge de Emergência */
+#emergency-badge {
+    position: fixed;
+    top: 80px; /* Abaixo do header */
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    display: none; /* Oculto por padrão */
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 30px;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.6);
+    z-index: 1500;
+    animation: pulse-red 1.5s infinite;
+    cursor: help;
+}
+#emergency-badge:hover::after {
+    content: "Modo de Emergência (Sem Sinal)";
+    position: absolute;
+    right: 60px;
+    background: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
 /* Quadro de Status */
@@ -419,6 +457,10 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
     padding: 15px 20px;
     background: #f1f5f9;
     text-align: right;
+    display: flex;
+    flex-wrap: wrap; 
+    justify-content: flex-end; 
+    gap: 10px;
 }
 #modal-close-btn {
     background: var(--accent-dark);
@@ -471,6 +513,9 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 </head>
 <body>
 
+<!-- Badge de Emergência -->
+<div id="emergency-badge" title="Modo de Emergência (Sem Sinal)">!</div>
+
 <div class="main-header">
 	<button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
 	<button id="btn-view-grafico" class="nav-button view-btn">Histórico</button>
@@ -499,7 +544,7 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 	<div class="reservatorio-wrapper" id="caixa-container">
 		<svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
 			<defs>
-				<linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+			<linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
 					<stop offset="0%" stop-color="#DADADA"/><stop offset="50%" stop-color="#FAFAFA"/><stop offset="100%" stop-color="#CFCFCF"/>
 				</linearGradient>
 				<clipPath id="mascara-agua">
@@ -527,8 +572,8 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
     </header>
 	<div class="board">
 		<div class="charts">
-			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Intervalos de 5 min)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível (HH:mm) ao longo do dia selecionado.</div></div>
-            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Média de 60 min)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe a média do nível a cada 60 minutos.</div></div>
+			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Horário 00h-23h)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível a cada hora ao longo do dia selecionado.</div></div>
+            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Leituras de 60 em 60 minutos)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe as leituras do nível a cada 60 minutos.</div></div>
 		</div>
 	</div>
 </div>
@@ -553,14 +598,6 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
                 <!-- Histórico será carregado aqui -->
             </ul>
         </div>
-        
-        <div class="charts" style="width: 100%;">
-            <div class="chart-card" id="abastecimento-chart-card" style="display:none;">
-                <strong>Gráfico de Abastecimento Diário (Litros)</strong>
-                <canvas id="chartAbastecimento"></canvas>
-                <div class="small">Exibe o total de litros abastecidos por dia. Aparece nas vistas "Semanal" e "Mensal".</div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -570,12 +607,13 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
     </header>
     <div class="board">
 		<div class="charts">
-            <div class="chart-card" id="consumo-chart-card-bloco" style="display:none;">
+            <div class="chart-card" id="consumo-chart-card-bloco">
                 <strong>Gráfico de Consumo Diário (Litros) - Blocos</strong>
                 <canvas id="chartConsumoBloco"></canvas>
                 <div class="small">Exibe o consumo aproximado em litros por dia (Barras).</div>
+                <div id="consumo-info-texto" style="margin-top: 10px; font-weight: bold; color: #0e7490;"></div>
             </div>
-            <div class="chart-card" id="consumo-chart-card-linha" style="display:none;">
+            <div class="chart-card" id="consumo-chart-card-linha">
                 <strong>Gráfico de Consumo Diário (Litros) - Linha</strong>
                 <canvas id="chartConsumoLinha"></canvas>
                 <div class="small">Exibe o consumo aproximado em litros por dia (Linha).</div>
@@ -592,7 +630,7 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 		<div class="config-card">
 			<h2>Adicionar Novo Contato</h2>
 			<div class="form-group">
-				<input type="text" id="contato-valor" placeholder="Email ou ID do Telegram">
+				<input type="text" id="contato-valor" placeholder="Email ou ID Telegram">
 				<select id="contato-tipo">
 					<option value="email">Email</option>
 					<option value="telegram">Telegram</option>
@@ -657,7 +695,7 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 
 <script>
 // --- VARIÁVEIS GLOBAIS ---
-let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
+let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha; 
 let historicoNiveis = [], historicoLabels = [];
 let ultimaAtualizacaoGrafico = 0;
 let currentView = 'diario'; 
@@ -668,23 +706,39 @@ let alertaEmailEnviado = false;
 let emailJsInicializado = false; 
 let alertaModalMostrado = false; 
 
-// NOVO: Variáveis de Áudio
+// Variáveis de Áudio
 let audioContext;
-let oscillator; // Oscilador principal (o que ouvimos)
-let gainNode;   // Controle de volume principal
-let lfo;        // Oscilador de baixa frequência (para modular a sirene)
-let lfoGain;    // Controle de profundidade (o "quanto" a sirene varia)
+let oscillator; 
+let gainNode;   
+let lfo;        
+let lfoGain;    
 let isAlarmPlaying = false;
 
+// Variáveis de Snooze
+let snoozeCount = 0; 
+let snoozeUntil = 0; 
+const SNOOZE_DURATION_MINUTES = 10; 
+const AUTO_SNOOZE_SECONDS = 30; 
+const ALERTA_RESET_MARGIN = 5; 
+
 // VARIÁVEIS DE EMERGÊNCIA
-let ultimoNivelValido = 63; // Inicia em 63% se não houver leitura
-let dataUltimaLeituraValida = Date.now(); // Marca a hora atual como inicial
+let ultimoNivelValido = 55; 
+let dataUltimaLeituraValida = Date.now(); 
 
 const LITROS_POR_PERCENTO = 7000 / 85; 
 
-// *** ALTERADO: IDs ATUALIZADOS ***
+// EmailJS
 const SERVICE_ID = "service_lubx0i8";
 const TEMPLATE_ID = "template_ll79qy1";
+
+// --- FUNÇÕES AUXILIARES ---
+
+function getLocalISODate(dateObj) {
+    const d = dateObj || new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    const localDate = new Date(d.getTime() - offset);
+    return localDate.toISOString().split('T')[0];
+}
 
 async function enviarEmailAlerta(nivel) {
 	if (!emailJsInicializado) return false; 
@@ -709,11 +763,9 @@ async function enviarEmailAlerta(nivel) {
 	
 	let todosEnviadosComSucesso = true;
 	for (const email of emailsParaEnviar) {
-        
-        // *** ALTERADO: Variáveis do template atualizadas ***
 		const templateParams = {
-			"%": nivel,     // Substitui 'nivel_agua'
-			"email": email	// Substitui 'to_email'
+			"%": nivel,
+			"email": email
 		};
 
 		try {
@@ -736,33 +788,27 @@ function fecharAlertaModal() {
     if (modal) modal.style.display = 'none';
 }
 
-// NOVO: Funções de Controle de Áudio
 function setupAudio() {
     try {
-        // 1. Cria o contexto e os nós de áudio
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        oscillator = audioContext.createOscillator(); // O som que ouvimos
-        gainNode = audioContext.createGain();       // O volume principal
-        lfo = audioContext.createOscillator();        // O "motor" da sirene (LFO)
-        lfoGain = audioContext.createGain();      // A "força" do motor da sirene
+        oscillator = audioContext.createOscillator();
+        gainNode = audioContext.createGain();
+        lfo = audioContext.createOscillator();
+        lfoGain = audioContext.createGain();
 
-        // 2. Configura o LFO (o motor da sirene)
-        lfo.type = 'sine'; // Onda suave para o "woo-woo"
-        lfo.frequency.setValueAtTime(2, audioContext.currentTime); // 2 voltas por segundo (velocidade da sirene)
-        lfoGain.gain.setValueAtTime(400, audioContext.currentTime); // Varia 400Hz para cima e para baixo
+        lfo.type = 'sine';
+        lfo.frequency.setValueAtTime(2, audioContext.currentTime);
+        lfoGain.gain.setValueAtTime(400, audioContext.currentTime);
 
-        // 3. Configura o Oscilador principal (o som)
-        oscillator.type = 'square'; // Um som mais "digital" e de alarme
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // Tom base de 800Hz
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
 
-        // 4. Conecta o gráfico de áudio
-        lfo.connect(lfoGain); // LFO -> Controle de Força
-        lfoGain.connect(oscillator.frequency); // Controle de Força -> Frequência do Oscilador Principal
-        oscillator.connect(gainNode); // Oscilador Principal -> Volume
-        gainNode.connect(audioContext.destination); // Volume -> Saída de Som
+        lfo.connect(lfoGain);
+        lfoGain.connect(oscillator.frequency);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
 
-        // 5. Inicia os osciladores (eles rodam em silêncio)
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime); // Começa mudo
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
         lfo.start();
         oscillator.start();
 
@@ -772,30 +818,40 @@ function setupAudio() {
 }
 
 function controlarAlarme(play) {
-    // Se o contexto ainda não foi criado (ex: erro no setup), não faz nada
     if (!audioContext) return; 
 
-    // Tenta resumir o contexto (necessário se ele iniciou "suspenso")
     if (audioContext.state === 'suspended') {
         audioContext.resume();
     }
 
     if (play && !isAlarmPlaying) {
-        // Liga o som (define o volume para 25%)
         gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); 
         isAlarmPlaying = true;
     } else if (!play && isAlarmPlaying) {
-        // Desliga o som (volume 0)
         gainNode.gain.setValueAtTime(0, audioContext.currentTime); 
         isAlarmPlaying = false;
     }
 }
 
+function iniciarSoneca() {
+    fecharAlertaModal();
+    controlarAlarme(false);
+    alertaModalMostrado = false;
+
+    snoozeCount++;
+    if (snoozeCount < 3) {
+        const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000;
+        snoozeUntil = Date.now() + snoozeMs;
+        console.log(`Alarme (${snoozeCount}/3) pausado. Próximo alerta em ${SNOOZE_DURATION_MINUTES} min.`);
+    } else {
+        console.log('Todos os 3 alertas exibidos. Silêncio até o nível normalizar.');
+    }
+}
 
 function atualizarCaixaDOM(nivel) {
 	const aguaDiv = document.getElementById('agua');
 	aguaDiv.style.height = nivel + '%';
-	aguaDiv.innerText = nivel + '%'; // Texto normal, sem aviso de estimativa
+	aguaDiv.innerText = nivel + '%';
 
 	if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
 	else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
@@ -813,100 +869,100 @@ function atualizarCaixaDOM(nivel) {
 	else ledVermelho.classList.add('aceso');
 }
 
-function agregarDadosPorHora(labels, niveis) {
-    const agregados = {}; 
-    for (let i = 0; i < labels.length; i++) {
-        const label = labels[i]; 
-        const nivel = niveis[i];
-        if (typeof label !== 'string' || !label.includes(':')) continue; 
-        const hora = label.split(':')[0] + ":00"; 
-        if (!agregados[hora]) agregados[hora] = { sum: 0, count: 0 };
-        agregados[hora].sum += nivel;
-        agregados[hora].count++;
-    }
-    const newLabels = Object.keys(agregados).sort();
-    const newNiveis = newLabels.map(hora => agregados[hora].sum / agregados[hora].count);
-    return { labels: newLabels, niveis: newNiveis };
-}
+// --- FUNÇÕES DE GRÁFICOS ---
 
 function atualizarGraficosHistorico(result) {
     if (!chartLinha || !chartBlocos) return;
-    const { labels: labelsHistorico, niveis: niveisHistorico } = result;
-    let displayLabelsLinha = [...labelsHistorico];
-	let displayNiveisLinha = [...niveisHistorico];
-	const datePicker = document.getElementById('dataEscolhida');
-	const hoje = new Date().toISOString().split('T')[0];
-
-	if (currentView === 'diario' && datePicker.value === hoje) {
-		displayLabelsLinha.push("Atual");
-		displayNiveisLinha.push(nivelAtual);
-	}
-
-	chartLinha.data.labels = displayLabelsLinha;
-	chartLinha.data.datasets[0].data = displayNiveisLinha;
-	chartLinha.update('none');
-
-    let labelsBlocos, niveisBlocos;
+    
+    let displayLabels = [];
+    let displayNiveis = [];
+    
     if (currentView === 'diario') {
-		const { labels, niveis } = agregarDadosPorHora(labelsHistorico, niveisHistorico); 
-		labelsBlocos = labels;
-		niveisBlocos = niveis;
+        // Criar array de 24 horas fixas (00:00 até 23:00)
+        for (let h = 0; h < 24; h++) {
+            const horaLabel = String(h).padStart(2, '0') + ':00';
+            displayLabels.push(horaLabel);
+        }
+        
+        // Se temos dados históricos, usá-los, senão criar array vazio
+        if (result && result.labels && result.niveis) {
+            // Mapear os dados históricos para as horas correspondentes
+            const dadosPorHora = {};
+            result.labels.forEach((label, index) => {
+                if (label && result.niveis[index] !== null && result.niveis[index] !== undefined) {
+                    const hora = label.split(':')[0];
+                    dadosPorHora[hora] = result.niveis[index];
+                }
+            });
+            
+            // Preencher o array de níveis com os dados correspondentes
+            displayNiveis = displayLabels.map(label => {
+                const hora = label.split(':')[0];
+                return dadosPorHora[hora] !== undefined ? dadosPorHora[hora] : null;
+            });
+        } else {
+            // Sem dados históricos, criar array de nulos
+            displayNiveis = new Array(24).fill(null);
+        }
     } else {
-		labelsBlocos = [...labelsHistorico]; 
-		niveisBlocos = [...niveisHistorico]; 
+        // Para outros modos, usar os dados normalmente
+        displayLabels = result.labels || [];
+        displayNiveis = result.niveis || [];
     }
-	const cores = 'rgba(6, 182, 212, 0.85)';
-	chartBlocos.data.labels = labelsBlocos;
-	chartBlocos.data.datasets[0].data = niveisBlocos;
-	chartBlocos.data.datasets[0].backgroundColor = cores;
-	chartBlocos.update('none');
+
+    // Atualizar gráfico de linha
+    chartLinha.data.labels = displayLabels;
+    chartLinha.data.datasets[0].data = displayNiveis;
+    chartLinha.update('none');
+
+    // Atualizar gráfico de blocos
+    chartBlocos.data.labels = displayLabels;
+    chartBlocos.data.datasets[0].data = displayNiveis;
+    
+    // Aplicar cores baseadas no nível
+    const cores = displayNiveis.map(nivel => {
+        if (nivel === null || nivel === undefined) return 'rgba(200, 200, 200, 0.3)';
+        if (nivel > 60) return 'rgba(6, 182, 212, 0.85)';
+        if (nivel > nivelAlertaConfigurado) return 'rgba(245, 158, 11, 0.85)';
+        return 'rgba(239, 68, 68, 0.85)';
+    });
+    
+    chartBlocos.data.datasets[0].backgroundColor = cores;
+    chartBlocos.update('none');
 }
 
 function atualizarGraficosConsumo(result) {
     if (!chartConsumoBloco || !chartConsumoLinha) return;
+    
     const consumoData = result.consumo || [];
     const consumoLabels = result.labels || [];
-    const cardBloco = document.getElementById('consumo-chart-card-bloco');
-    const cardLinha = document.getElementById('consumo-chart-card-linha');
 
-    if (currentView === 'diario') {
-        cardBloco.style.display = 'none'; 
-        cardLinha.style.display = 'none'; 
-        chartConsumoBloco.data.labels = [];
-        chartConsumoBloco.data.datasets[0].data = [];
-        chartConsumoLinha.data.labels = [];
-        chartConsumoLinha.data.datasets[0].data = [];
-    } else {
-        cardBloco.style.display = 'block'; 
-        cardLinha.style.display = 'block';
-        chartConsumoBloco.data.labels = consumoLabels;
-        chartConsumoBloco.data.datasets[0].data = consumoData;
-        chartConsumoLinha.data.labels = consumoLabels;
-        chartConsumoLinha.data.datasets[0].data = consumoData;
+    // Atualiza texto de status
+    const infoTexto = document.getElementById('consumo-info-texto');
+    if (infoTexto) {
+        let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
+        let statusConsumo = "Baixo";
+        if (totalConsumo > 4000) statusConsumo = "Alto";
+        else if (totalConsumo > 1000) statusConsumo = "Médio";
+        
+        if (currentView === 'diario') {
+             infoTexto.innerText = `Consumo do Dia: ${totalConsumo.toFixed(0)} L (${statusConsumo})`;
+        } else {
+             infoTexto.innerText = `Consumo Total no Período: ${totalConsumo.toFixed(0)} L`;
+        }
     }
+
+    chartConsumoBloco.data.labels = consumoLabels;
+    chartConsumoBloco.data.datasets[0].data = consumoData;
     chartConsumoBloco.update('none');
+
+    chartConsumoLinha.data.labels = consumoLabels;
+    chartConsumoLinha.data.datasets[0].data = consumoData;
     chartConsumoLinha.update('none');
 }
 
-function atualizarGraficoAbastecimento(result) {
-    if (!chartAbastecimento) return;
-    const abastData = result.litros || [];
-    const abastLabels = result.labels || [];
-    const card = document.getElementById('abastecimento-chart-card');
-
-    if (currentView === 'diario') {
-        card.style.display = 'none'; 
-        chartAbastecimento.data.labels = [];
-        chartAbastecimento.data.datasets[0].data = [];
-    } else {
-        card.style.display = 'block'; 
-        chartAbastecimento.data.labels = abastLabels;
-        chartAbastecimento.data.datasets[0].data = abastData;
-    }
-    chartAbastecimento.update('none');
-}
-
 function criarGraficos() {
+	// Gráfico de Linha
 	const ctxL = document.getElementById('chartLinha').getContext('2d');
 	const gradL = ctxL.createLinearGradient(0, 0, 0, 300);
 	gradL.addColorStop(0, 'rgba(6,182,212,0.28)');
@@ -914,35 +970,82 @@ function criarGraficos() {
 	chartLinha = new Chart(ctxL, {
 		type: 'line',
 		data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: 'rgba(6,182,212,0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
-		options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0, max: 100 } }, maintainAspectRatio: false }
+		options: { 
+            animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                x: { 
+                    ticks: { color: '#666' },
+                    title: {
+                        display: true,
+                        text: 'Horário (00:00 - 23:00)'
+                    }
+                }, 
+                y: { 
+                    ticks: { color: '#666' }, 
+                    min: 0, 
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Nível (%)'
+                    }
+                } 
+            }, 
+            maintainAspectRatio: false 
+        }
 	});
+	
+	// Gráfico de Blocos
 	const ctxB = document.getElementById('chartBlocos').getContext('2d');
 	chartBlocos = new Chart(ctxB, {
 		type: 'bar',
 		data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 6 }] },
-		options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0, max: 100 } }, maintainAspectRatio: false }
+		options: { 
+            animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                x: { 
+                    ticks: { color: '#666' },
+                    title: {
+                        display: true,
+                        text: 'Horário (Leituras de 60 em 60 minutos)'
+                    }
+                }, 
+                y: { 
+                    ticks: { color: '#666' }, 
+                    min: 0, 
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Nível (%)'
+                    }
+                } 
+            }, 
+            maintainAspectRatio: false 
+        }
 	});
 
+    // Gráfico de Consumo Bloco
     const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d');
     chartConsumoBloco = new Chart(ctxCB, {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], backgroundColor: 'rgba(6, 182, 212, 0.85)', borderRadius: 6 }] },
-        options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, maintainAspectRatio: false }
+        options: { 
+            animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                x: { ticks: { color: '#666' } }, 
+                y: { ticks: { color: '#666' }, min: 0, max: 8000 }
+            }, 
+            maintainAspectRatio: false 
+        }
     });
+    
+    // Gráfico de Consumo Linha
     const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
-    const gradC = ctxCL.createLinearGradient(0, 0, 0, 300);
-	gradC.addColorStop(0, 'rgba(6, 182, 212, 0.28)');
-	gradC.addColorStop(1, 'rgba(6, 182, 212, 0.03)');
     chartConsumoLinha = new Chart(ctxCL, {
         type: 'line',
-        data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], fill: true, backgroundColor: gradC, borderColor: 'rgba(6, 182, 212, 0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
-        options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, maintainAspectRatio: false }
-    });
-
-    const ctxA = document.getElementById('chartAbastecimento').getContext('2d');
-    chartAbastecimento = new Chart(ctxA, {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Abastecimento (L)', data: [], backgroundColor: 'rgba(34, 197, 94, 0.85)', borderRadius: 6 }] },
+        data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], fill: true, backgroundColor: 'rgba(6,182,212,0.28)', borderColor: 'rgba(6, 182, 212, 0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
         options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, maintainAspectRatio: false }
     });
 }
@@ -950,12 +1053,95 @@ function criarGraficos() {
 async function salvarLeituraNoFirebase(nivel, timestamp) {
     if (nivel <= 0) return;
     const d = new Date(timestamp);
-    const data = d.toISOString().split('T')[0];
+    const localDate = getLocalISODate(d);
     const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const path = `PP7_config/historico/${data}/${hora}.json`;
+    const path = `PP7_config/historico/${localDate}/${hora}.json`;
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
-    const dados = { nivel_pct: nivel, timestamp: timestamp };
-    try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) { console.error("Erro ao salvar leitura:", e); }
+    
+    const dados = { 
+        nivel_pct: nivel, 
+        timestamp: timestamp
+    };
+    
+    try { 
+        await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); 
+        console.log(`Leitura salva: ${nivel}% às ${hora}`);
+    } catch (e) { 
+        console.error("Erro ao salvar leitura:", e); 
+    }
+}
+
+async function buscarUltimaLeituraHistorico() {
+    if (ultimoNivelValido !== null && Date.now() - dataUltimaLeituraValida < 60000) {
+        return; 
+    }
+
+    const hoje = new Date();
+    const dataHoje = getLocalISODate(hoje);
+    
+    let url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataHoje}.json`;
+    
+    try {
+        let r = await fetch(url);
+        let dados = await r.json();
+        
+        let encontrou = false;
+        
+        if (dados) {
+            const horarios = Object.keys(dados).sort().reverse();
+            for (const h of horarios) {
+                const val = dados[h].nivel_pct ?? dados[h].nivel ?? 0;
+                if (val > 0) {
+                    ultimoNivelValido = val;
+                    const [hh, mm] = h.split(':');
+                    const dataLeitura = new Date(hoje);
+                    dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
+
+                    dataUltimaLeituraValida = dataLeitura.getTime();
+                    encontrou = true;
+                    console.log(`Última leitura válida encontrada HOJE às ${h}: ${val}%`);
+                    break;
+                }
+            }
+        }
+
+        if (!encontrou) {
+            const ontem = new Date(hoje);
+            ontem.setDate(ontem.getDate() - 1);
+            const dataOntem = getLocalISODate(ontem);
+            url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataOntem}.json`;
+            
+            r = await fetch(url);
+            dados = await r.json();
+            
+            if (dados) {
+                const horarios = Object.keys(dados).sort().reverse();
+                for (const h of horarios) {
+                    const val = dados[h].nivel_pct ?? dados[h].nivel ?? 0;
+                    if (val > 0) {
+                        ultimoNivelValido = val;
+                        const [hh, mm] = h.split(':');
+                        const dataLeitura = new Date(ontem);
+                        dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
+                        
+                        dataUltimaLeituraValida = dataLeitura.getTime();
+                        encontrou = true;
+                        console.log(`Última leitura válida encontrada ONTEM às ${h}: ${val}%`);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!encontrou && ultimoNivelValido === null) {
+             ultimoNivelValido = 63;
+             dataUltimaLeituraValida = Date.now();
+             console.warn("Nenhuma leitura histórica encontrada. Usando padrão 63%.");
+        }
+
+    } catch (e) {
+        console.error("Erro ao buscar histórico de emergência:", e);
+    }
 }
 
 async function carregarHistoricoEConsumo() {
@@ -969,11 +1155,39 @@ async function carregarHistoricoEConsumo() {
 		if (!data) return result;
 		url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${data}.json`;
 		processData = (dados) => {
-			const labels = Object.keys(dados).sort(); 
-			const niveis = labels.map(h => dados[h].nivel_pct ?? dados[h].nivel ?? 0);
-			return { labels, niveis, consumo: [] }; 
+            const labelsFixed = [];
+            const niveisFixed = [];
+            
+            // Criar estrutura para 24 horas
+            for(let h = 0; h < 24; h++) {
+                const hora = String(h).padStart(2, '0');
+                labelsFixed.push(hora + ":00");
+                niveisFixed.push(null); // Inicialmente todos nulos
+            }
+            
+            // Preencher com dados existentes
+            if(dados) {
+                Object.keys(dados).forEach(fullTime => {
+                    const horaMinuto = fullTime.split(':');
+                    const hora = horaMinuto[0];
+                    const minuto = horaMinuto[1];
+                    const val = dados[fullTime].nivel_pct ?? dados[fullTime].nivel ?? 0;
+                    
+                    if (val > 0) {
+                        const index = parseInt(hora);
+                        if (index >= 0 && index < 24) {
+                            niveisFixed[index] = val;
+                        }
+                    }
+                });
+            }
+
+            const consumoFinal = new Array(24).fill(0);
+
+			return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal }; 
 		};
 	} else { 
+        // MENSAL
 		let dataInicio, dataFim;
 		if (currentView === 'mensal') {
 			const mesAno = document.getElementById('mesEscolhido').value;
@@ -982,75 +1196,52 @@ async function carregarHistoricoEConsumo() {
 			const [ano, mes] = mesAno.split('-');
 			const ultimoDia = new Date(ano, mes, 0).getDate();
 			dataFim = `${mesAno}-${ultimoDia}`;
-		} else { 
-			dataInicio = document.getElementById('dataInicio').value;
-			dataFim = document.getElementById('dataFim').value;
-			if (!dataInicio || !dataFim) return result;
 		}
 		url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
 		processData = (dados) => {
-            const dailyAverages = {};
             const dailyConsumption = {}; 
             for (const dateKey in dados) {
                 const dailyReadings = dados[dateKey];
-                let sum = 0; let count = 0;
-                const readingKeys = Object.keys(dailyReadings).sort(); 
-                let consumoTotalPct = 0;
-                let ultimoNivel = -1;
-                for (const key of readingKeys) {
-                    const nivelAtual = dailyReadings[key].nivel_pct || 0;
-                    if (ultimoNivel !== -1) {
-                        if (nivelAtual < ultimoNivel) consumoTotalPct += (ultimoNivel - nivelAtual);
-                    }
-                    ultimoNivel = nivelAtual; 
+                const times = Object.keys(dailyReadings).sort();
+                if(times.length < 2) {
+                    dailyConsumption[dateKey] = 0;
+                    continue;
                 }
-                dailyConsumption[dateKey] = consumoTotalPct * LITROS_POR_PERCENTO;
-                for (const timeKey in dailyReadings) {
-                    sum += dailyReadings[timeKey].nivel_pct ?? dailyReadings[timeKey].nivel ?? 0;
-                    count++; 
-                }
-                if (count > 0) dailyAverages[dateKey] = sum / count;
+                
+                const firstTime = times[0];
+                const lastTime = times[times.length - 1];
+                const startLevel = dailyReadings[firstTime].nivel_pct || 0;
+                const endLevel = dailyReadings[lastTime].nivel_pct || 0;
+                
+                const deltaPct = startLevel - endLevel; 
+                const deltaLitros = deltaPct * LITROS_POR_PERCENTO;
+                
+                let totalConsumoDia = deltaLitros;
+                if (totalConsumoDia < 0) totalConsumoDia = 0;
+                
+                dailyConsumption[dateKey] = totalConsumoDia;
             }
-            const labels = Object.keys(dailyAverages).sort(); 
-            const niveis = labels.map(key => dailyAverages[key]);
+            
+            const labels = Object.keys(dailyConsumption).sort(); 
             const consumo = labels.map(key => dailyConsumption[key]); 
-            let displayLabels;
-            if (currentView === 'mensal') {
-                displayLabels = labels.map(d => d.substring(8, 10)); 
-            } else { 
-                displayLabels = labels.map(d => {
-                    const [ano, mes, dia] = d.split('-');
-                    return `${dia}/${mes}`;
-                });
-            }
-            return { labels: displayLabels, niveis, consumo }; 
+            const displayLabels = labels.map(d => d.substring(8, 10));
+            
+            return { labels: displayLabels, niveis: [], consumo: consumo }; 
 		};
 	}
 
 	try {
 		const r = await fetch(url);
 		const dados = await r.json();
-		const isTodayDiario = (currentView === 'diario' && document.getElementById('dataEscolhida').value === new Date().toISOString().split('T')[0]);
-
-		if (!dados) {
-            historicoLabels = [];
-            historicoNiveis = [];
-            result = { labels: [], niveis: [], consumo: [] };
-		} else {
+		
+        if (!dados && currentView === 'diario') {
+             const labelsFixed = [];
+             for(let h=0; h<24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00");
+             result = { labels: labelsFixed, niveis: new Array(24).fill(null), consumo: new Array(24).fill(0) };
+        } else if (!dados) {
+             result = { labels: [], niveis: [], consumo: [] };
+        } else {
 			result = processData(dados);
-			if (!isTodayDiario) {
-				historicoLabels = result.labels;
-				historicoNiveis = result.niveis;
-			} else {
-				const firebaseLabels = result.labels || [];
-				const firebaseNiveis = result.niveis || [];
-				const sessionOnlyLabels = historicoLabels.filter(label => !firebaseLabels.includes(label));
-				const sessionOnlyNiveis = sessionOnlyLabels.map(label => historicoNiveis[historicoLabels.indexOf(label)]);
-				historicoLabels = [...firebaseLabels, ...sessionOnlyLabels];
-				historicoNiveis = [...firebaseNiveis, ...sessionOnlyNiveis];
-                result.labels = historicoLabels;
-                result.niveis = historicoNiveis;
-			}
 		}
         atualizarGraficosHistorico(result);
         atualizarGraficosConsumo(result);
@@ -1058,471 +1249,7 @@ async function carregarHistoricoEConsumo() {
 	} catch (e) { console.error("Erro ao carregar histórico:", e); }
 }
 
-async function carregarDadosAbastecimento() {
-    let result = { labels: [], litros: [] };
-    let dataInicio, dataFim;
-
-    if (currentView === 'diario') {
-        atualizarGraficoAbastecimento(result); 
-        return;
-    }
-    
-    if (currentView === 'semanal') {
-        const hoje = new Date();
-        const fim = new Date(hoje);
-        const inicio = new Date(hoje.setDate(hoje.getDate() - 6)); 
-        dataInicio = inicio.toISOString().split('T')[0];
-        dataFim = fim.toISOString().split('T')[0];
-    } else if (currentView === 'mensal') {
-        const mesAno = document.getElementById('mesEscolhido').value;
-        if (!mesAno) return;
-        dataInicio = `${mesAno}-01`;
-        const [ano, mes] = mesAno.split('-');
-        const ultimoDia = new Date(ano, mes, 0).getDate();
-        dataFim = `${mesAno}-${ultimoDia}`;
-    } else { 
-        dataInicio = document.getElementById('dataInicio').value;
-        dataFim = document.getElementById('dataFim').value;
-        if (!dataInicio || !dataFim) return;
-    }
-
-    const startAt = new Date(dataInicio + "T00:00:00").getTime();
-    const endAt = new Date(dataFim + "T23:59:59").getTime();
-    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="timestamp"&startAt=${startAt}&endAt=${endAt}`;
-    
-    try {
-        const r = await fetch(url);
-        const dados = await r.json();
-
-        if (!dados) {
-            atualizarGraficoAbastecimento(result);
-            return;
-        }
-
-        const dailyTotals = {}; 
-
-        for (const key in dados) {
-            const item = dados[key];
-            if (!item || !item.data_legivel) continue; 
-            const dataKey = item.data_legivel.split('T')[0]; 
-            if (!dailyTotals[dataKey]) dailyTotals[dataKey] = 0;
-            dailyTotals[dataKey] += item.litros;
-        }
-
-        let displayLabels;
-        let finalData;
-        
-        if (currentView === 'semanal') {
-            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
-            const labelsTemp = [];
-            const dataTemp = [];
-            let d = new Date(dataInicio + 'T12:00:00'); 
-            
-            for (let i = 0; i < 7; i++) {
-                const dataKey = d.toISOString().split('T')[0];
-                const diaDaSemana = diasSemana[d.getDay()];
-                labelsTemp.push(diaDaSemana); 
-                dataTemp.push(dailyTotals[dataKey] || 0); 
-                d.setDate(d.getDate() + 1); 
-            }
-            displayLabels = labelsTemp;
-            finalData = dataTemp;
-
-        } else { 
-            const labels = Object.keys(dailyTotals).sort();
-            finalData = labels.map(key => dailyTotals[key]);
-            if (currentView === 'mensal') {
-                displayLabels = labels.map(d => d.substring(8, 10)); 
-            } else { 
-                displayLabels = labels.map(d => {
-                    const [ano, mes, dia] = d.split('-');
-                    return `${dia}/${mes}`;
-                });
-            }
-        }
-        result = { labels: displayLabels, litros: finalData };
-        atualizarGraficoAbastecimento(result);
-
-    } catch (e) {
-        console.error("Erro ao carregar dados de abastecimento:", e);
-        atualizarGraficoAbastecimento(result);
-    }
-}
-
-// --- LOOP PRINCIPAL COM LÓGICA PROPORCIONAL ---
-async function loopDeAtualizacao() {
-	try {
-		let j;
-		let config;	
-		const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
-		const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
-		
-		const [r, rConfig] = await Promise.all([
-			fetch(dataUrl),
-			fetch(configUrl)
-		]);
-		j = await r.json();
-		config = await rConfig.json();
-		
-        let nivelRecebido = j.nivel_pct || j.nivel || 0;
-
-        // === NOVA LÓGICA PROPORCIONAL DE EMERGÊNCIA ===
-        if (nivelRecebido > 0) {
-            // Sensor funcionando: Atualiza e reseta o cronômetro
-            nivelAtual = nivelRecebido;
-            ultimoNivelValido = nivelRecebido;
-            dataUltimaLeituraValida = Date.now(); 
-        } else {
-            // Sensor com erro (0%): Usa a lógica proporcional baseada na última leitura
-            const diffHoras = (Date.now() - dataUltimaLeituraValida) / (1000 * 60 * 60);
-
-            if (ultimoNivelValido > 50) {
-                // Caso: Estava acima de 50% (ex: 60%)
-                // Segue a escada completa: 12h(Manter) -> 12h(50%) -> 8h(40%) -> 6h(30%)
-                if (diffHoras < 12) nivelAtual = ultimoNivelValido; 
-                else if (diffHoras < 24) nivelAtual = 50; // 12h + 12h = 24h
-                else if (diffHoras < 32) nivelAtual = 40; // 24h + 8h = 32h
-                else if (diffHoras < 38) nivelAtual = 30; // 32h + 6h = 38h
-                else nivelAtual = 20;
-            } 
-            else if (ultimoNivelValido > 40) {
-                // Caso: Estava entre 41% e 50% (ex: 47%)
-                // Pula direto para o degrau de 40%
-                if (diffHoras < 8) nivelAtual = 40; // Degrau de 40% dura 8h
-                else if (diffHoras < 14) nivelAtual = 30; // 8h + 6h = 14h
-                else nivelAtual = 20;
-            }
-            else if (ultimoNivelValido > 30) {
-                // Caso: Estava entre 31% e 40% (ex: 35%)
-                // Pula direto para o degrau de 30%
-                if (diffHoras < 6) nivelAtual = 30; // Degrau de 30% dura 6h
-                else nivelAtual = 20;
-            }
-            else {
-                // Caso: Já estava crítico (<=30%)
-                nivelAtual = 20;
-            }
-        }
-        // ===============================================
-		
-		if (config) { nivelAlertaConfigurado = parseInt(config) || 30; }
-		
-        const statusDisplay = document.getElementById('status-display');
-        statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
-
-		if (nivelAtual <= nivelAlertaConfigurado) {
-            statusDisplay.classList.add('level-danger');
-			if (!alertaEmailEnviado) {
-				alertaEmailEnviado = true; 
-				enviarEmailAlerta(nivelAtual).then(success => {
-					if (!success) alertaEmailEnviado = false;	
-				});
-			}
-            if (!alertaModalMostrado) {
-                mostrarAlertaModal();
-                alertaModalMostrado = true;
-            }
-            // NOVO: Tocar alarme
-            controlarAlarme(true);
-
-		} else if (nivelAtual <= 60) {
-            statusDisplay.classList.add('level-warn');
-            if (alertaEmailEnviado) alertaEmailEnviado = false;
-            if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; }
-            
-            // NOVO: Parar alarme
-            controlarAlarme(false);
-
-        } else {
-            statusDisplay.classList.add('level-ok');
-            if (alertaEmailEnviado) alertaEmailEnviado = false;
-            if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; }
-            
-            // NOVO: Parar alarme
-            controlarAlarme(false);
-		}
-
-		atualizarCaixaDOM(nivelAtual);
-
-        if (document.getElementById('caixa-view').style.display !== 'none') {
-            document.getElementById('status-level').innerText = nivelAtual + '%';
-            const litrosAprox = nivelAtual * LITROS_POR_PERCENTO;
-            document.getElementById('status-litros').innerHTML = `${litrosAprox.toFixed(0)} <small>Litros</small>`;
-            document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        }
-		
-		if (document.getElementById('grafico-container').style.display !== 'none') {
-			atualizarGraficosHistorico({ labels: historicoLabels, niveis: historicoNiveis });
-		}
-		
-		const agora = Date.now();
-		const cincoMinutos = 5 * 60 * 1000;
-		const datePicker = document.getElementById('dataEscolhida');
-		const hoje = new Date().toISOString().split('T')[0];
-
-		if (agora - ultimaAtualizacaoGrafico > cincoMinutos) {
-            ultimaAtualizacaoGrafico = agora; 
-			if (currentView === 'diario' && datePicker.value === hoje) {
-				const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                if (historicoLabels[historicoLabels.length - 1] !== hora) {
-                    if (nivelAtual > 0) {
-                        historicoNiveis.push(Number(nivelAtual));
-                        historicoLabels.push(hora);
-                        salvarLeituraNoFirebase(Number(nivelAtual), agora);
-                    }
-				}
-			}
-		}
-	} catch(e) { console.error("Erro no loop de atualização:", e); }
-}
-
-window.onload = function() {
-	
-    // NOVO: Inicia o setup de áudio (ele ficará 'suspenso' até o primeiro clique)
-    setupAudio();
-
-    // NOVO: Adiciona listeners de clique/toque para 'acordar' o áudio
-    // Isso é necessário pela política de autoplay dos navegadores
-    function despertarAudio() {
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                console.log("Contexto de áudio 'acordado' pela interação do usuário.");
-                // Remove os listeners após a primeira interação
-                document.body.removeEventListener('click', despertarAudio);
-                document.body.removeEventListener('touchstart', despertarAudio);
-            });
-        }
-    }
-    // Ouve o primeiro clique ou toque em qualquer lugar da tela
-    document.body.addEventListener('click', despertarAudio, { once: true });
-    document.body.addEventListener('touchstart', despertarAudio, { once: true });
-
-
-    // --- INICIALIZAÇÃO EMAILJS ---
-	(function() {
-        // *** ALTERADO: PUBLIC KEY ATUALIZADA ***
-		const PUBLIC_KEY = "I1HnvhgWehPP7EXxX";	
-		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") {
-            console.error("ERRO DE CONFIGURAÇÃO EMAILJS: A 'Public Key' não foi definida.");
-			emailJsInicializado = false; return; 
-		}
-		try { emailjs.init(PUBLIC_KEY); emailJsInicializado = true; } catch(e) { emailJsInicializado = false; }
-	})();
-
-	const views = {
-		caixa: document.getElementById('caixa-view'),
-		grafico: document.getElementById('grafico-container'),
-        abastecimento: document.getElementById('abastecimento-view'),
-        consumo: document.getElementById('consumo-view'),
-		config: document.getElementById('config-view')
-	};
-	const btns = {
-		caixa: document.getElementById('btn-view-caixa'),
-		grafico: document.getElementById('btn-view-grafico'),
-        abastecimento: document.getElementById('btn-view-abastecimento'),
-        consumo: document.getElementById('btn-view-consumo'),
-		config: document.getElementById('btn-view-config')
-	};
-    
-    const dateControls = document.getElementById('date-controls');
-    const viewHeaders = {
-        grafico: document.querySelector('#grafico-container header'),
-        abastecimento: document.querySelector('#abastecimento-view header'),
-        consumo: document.querySelector('#consumo-view header')
-    };
-
-    const btnDiario = document.getElementById('btn-view-diario');
-    const btnSemanal = document.getElementById('btn-view-semanal');
-    const btnMensal = document.getElementById('btn-view-mensal');
-    const btnIntervalo = document.getElementById('btn-view-intervalo');
-    const viewSelector = document.querySelector('.view-selector'); 
-
-	function switchView(viewName) {
-        activeTab = viewName; 
-		for (const key in views) { views[key].style.display = 'none'; }
-		if (views[viewName]) { views[viewName].style.display = 'flex'; }
-
-		document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
-		if (btns[viewName]) { btns[viewName].classList.add('active'); }
-
-        dateControls.style.display = 'none'; 
-
-        if (viewName === 'grafico' || viewName === 'consumo') {
-            viewHeaders[viewName].appendChild(dateControls);
-            dateControls.style.display = 'flex';
-            btnDiario.style.display = 'flex';
-            btnMensal.style.display = 'flex';
-            btnIntervalo.style.display = 'flex';
-            btnSemanal.style.display = 'none';
-            if (currentView === 'semanal') {
-                currentView = 'diario';
-                viewSelector.querySelector('.view-btn.active').classList.remove('active');
-                btnDiario.classList.add('active');
-                document.getElementById('diario-picker').style.display = 'flex';
-                document.getElementById('mensal-picker').style.display = 'none';
-                document.getElementById('intervalo-picker').style.display = 'none';
-            }
-        } else if (viewName === 'abastecimento') {
-            viewHeaders[viewName].appendChild(dateControls);
-            dateControls.style.display = 'flex';
-            btnDiario.style.display = 'none';
-            btnIntervalo.style.display = 'none';
-            btnSemanal.style.display = 'flex';
-            btnMensal.style.display = 'flex';
-            if (currentView === 'diario' || currentView === 'intervalo') {
-                currentView = 'semanal';
-                viewSelector.querySelector('.view-btn.active').classList.remove('active');
-                btnSemanal.classList.add('active');
-                document.getElementById('diario-picker').style.display = 'none';
-                document.getElementById('mensal-picker').style.display = 'none';
-                document.getElementById('intervalo-picker').style.display = 'none';
-            }
-        }
-
-        if (viewName === 'caixa') {
-            carregarHistoricoAbastecimento();
-        } else if (viewName === 'grafico') {
-			if(chartLinha) chartLinha.resize();
-			if(chartBlocos) chartBlocos.resize();
-		} else if (viewName === 'consumo') {
-            if(chartConsumoBloco) chartConsumoBloco.resize();
-            if(chartConsumoLinha) chartConsumoLinha.resize();
-        } else if (viewName === 'abastecimento') {
-            carregarHistoricoAbastecimento();
-            if(chartAbastecimento) chartAbastecimento.resize();
-        } else if (viewName === 'config') {
-			carregarContatos();	
-			carregarNivelAlertaAtual(); 
-		}
-	}
-
-	btns.caixa.addEventListener('click', () => switchView('caixa'));
-	btns.grafico.addEventListener('click', () => switchView('grafico'));
-    btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
-    btns.consumo.addEventListener('click', () => switchView('consumo'));
-	btns.config.addEventListener('click', () => switchView('config'));
-
-    document.getElementById('modal-close-btn').addEventListener('click', fecharAlertaModal);
-
-    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => {
-        const litros = document.getElementById('litros-abastecidos').value;
-        salvarAbastecimento(litros);
-    });
-	
-	document.getElementById('btn-add-contato').addEventListener('click', () => {
-		const valor = document.getElementById('contato-valor').value;
-		const tipo = document.getElementById('contato-tipo').value;
-		adicionarContato(valor, tipo);
-	});
-
-	document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => {
-		const nivel = document.getElementById('nivel-alerta-valor').value;
-		const statusDiv = document.getElementById('status-alerta');
-		if (nivel && nivel >= 1 && nivel <= 99) {
-			salvarNivelAlerta(parseInt(nivel));
-		} else {
-			statusDiv.style.color = 'red';
-			statusDiv.innerText = 'Insira um valor válido (1-99).';
-			setTimeout(() => { statusDiv.innerText = ''; }, 3000);
-		}
-	});
-
-	document.getElementById('lista-contatos').addEventListener('click', (e) => {
-		if (e.target.tagName === 'BUTTON') {
-			const id = e.target.dataset.id;
-			const btn = e.target;
-			if (btn.dataset.confirming) {
-				removerContato(id);
-				btn.dataset.confirming = 'false';
-				btn.innerText = 'Remover';
-			} else {
-				document.querySelectorAll('#lista-contatos button[data-confirming="true"]').forEach(b => {
-					b.dataset.confirming = 'false';
-					b.innerText = 'Remover';
-				});
-				btn.dataset.confirming = 'true';
-				btn.innerText = 'Confirmar?';
-				setTimeout(() => {
-					if (btn.dataset.confirming === 'true') {
-						 btn.dataset.confirming = 'false';
-						 btn.innerText = 'Remover';
-					}
-				}, 3000);
-			}
-		}
-	});
-
-	document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-abastecimento-btn')) {
-			const id = e.target.dataset.id;
-			const btn = e.target;
-			if (btn.dataset.confirming) {
-				removerAbastecimento(id);
-			} else {
-				document.querySelectorAll('#lista-abastecimentos button[data-confirming="true"]').forEach(b => {
-					b.dataset.confirming = 'false';
-					b.innerText = '×';
-                    b.style.width = '30px';
-				});
-				btn.dataset.confirming = 'true';
-				btn.innerText = 'Confirmar?';
-                btn.style.width = 'auto'; 
-				setTimeout(() => {
-					if (btn.dataset.confirming === 'true') {
-						 btn.dataset.confirming = 'false';
-						 btn.innerText = '×';
-                         btn.style.width = '30px';
-					}
-				}, 3000);
-			}
-		}
-	});
-
-	criarGraficos();
-	const hoje = new Date();
-	const dataFimPadrao = hoje.toISOString().split('T')[0];
-	const mesFimPadrao = hoje.toISOString().substring(0, 7);
-	hoje.setDate(hoje.getDate() - 59); 
-	const dataInicioPadrao = hoje.toISOString().split('T')[0];
-	document.getElementById('dataEscolhida').value = dataFimPadrao;
-	document.getElementById('mesEscolhido').value = mesFimPadrao;
-	document.getElementById('dataInicio').value = dataInicioPadrao;
-	document.getElementById('dataFim').value = dataFimPadrao;
-	
-	switchView('caixa'); 
-	
-    document.getElementById('btnAtualizar').onclick = () => {
-        if (activeTab === 'grafico' || activeTab === 'consumo') {
-            carregarHistoricoEConsumo();
-        } else if (activeTab === 'abastecimento') {
-            carregarDadosAbastecimento();
-        }
-    };
-    
-	carregarHistoricoEConsumo().then(() => {
-		loopDeAtualizacao();
-		setInterval(loopDeAtualizacao, 2000);
-	});
-
-	document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
-		btn.addEventListener('click', (e) => {
-			const parent = e.target.parentElement;
-			parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-			e.target.classList.add('active');
-			if (e.target.dataset.view) {
-				currentView = e.target.dataset.view; 
-				const pickers = {
-					diario: document.getElementById('diario-picker'),
-					mensal: document.getElementById('mensal-picker'),
-					intervalo: document.getElementById('intervalo-picker')
-				};
-				for(const key in pickers) { pickers[key].style.display = 'none'; }
-				if (pickers[currentView]) pickers[currentView].style.display = 'flex';
-                document.getElementById('btnAtualizar').click();
-			}
-		});
-	});
-};
+// --- FUNÇÕES DE ABASTECIMENTO ---
 
 async function removerAbastecimento(id) {
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`;
@@ -1595,6 +1322,8 @@ async function salvarAbastecimento(litros) {
         statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.';
     } finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
 }
+
+// --- FUNÇÕES DE CONFIGURAÇÃO ---
 
 async function salvarNivelAlerta(nivel) {
 	const statusDiv = document.getElementById('status-alerta');
@@ -1676,14 +1405,399 @@ async function carregarContatos() {
 					listaUL.appendChild(li);
 				}
 			});
-		}
-		if (listaUL.innerHTML === '') { listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>'; }
+			if (listaUL.innerHTML === '') { 
+                listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>'; 
+            }
+		} else {
+            listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>';
+        }
 	} catch (e) {
 		console.error("Erro ao carregar contatos:", e);
 		listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar contatos.</li>';
 	}
 }
+
+// --- LOOP PRINCIPAL ---
+async function loopDeAtualizacao() {
+	try {
+		let j;
+		let config;	
+		const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
+		const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
+		
+		const [r, rConfig] = await Promise.all([
+			fetch(dataUrl),
+			fetch(configUrl)
+		]);
+		j = await r.json();
+		config = await rConfig.json();
+		
+        let nivelRecebido = j.nivel_pct || j.nivel || 0;
+
+        // LÓGICA DE EMERGÊNCIA
+        if (nivelRecebido > 0) {
+            nivelAtual = nivelRecebido;
+            ultimoNivelValido = nivelRecebido;
+            dataUltimaLeituraValida = Date.now(); 
+            document.getElementById('emergency-badge').style.display = 'none';
+        } else {
+            if (ultimoNivelValido === null || dataUltimaLeituraValida === null) {
+                await buscarUltimaLeituraHistorico();
+            }
+
+            document.getElementById('emergency-badge').style.display = 'flex';
+
+            const diffHoras = (Date.now() - dataUltimaLeituraValida) / (1000 * 60 * 60);
+            console.log(`Modo Emergência: ${diffHoras.toFixed(2)}h desde a última leitura (${ultimoNivelValido}%).`);
+
+            if (ultimoNivelValido > 50) {
+                if (diffHoras < 12) nivelAtual = ultimoNivelValido; 
+                else if (diffHoras < 24) nivelAtual = 55;
+                else if (diffHoras < 32) nivelAtual = 40; 
+                else if (diffHoras < 38) nivelAtual = 30; 
+                else nivelAtual = 20;
+            } 
+            else if (ultimoNivelValido > 40) {
+                if (diffHoras < 8) nivelAtual = 40; 
+                else if (diffHoras < 14) nivelAtual = 30; 
+                else nivelAtual = 20;
+            }
+            else if (ultimoNivelValido > 30) {
+                if (diffHoras < 6) nivelAtual = 30; 
+                else nivelAtual = 20;
+            }
+            else {
+                nivelAtual = 20;
+            }
+        }
+		
+		if (config) { nivelAlertaConfigurado = parseInt(config) || 30; }
+		
+        const statusDisplay = document.getElementById('status-display');
+        statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
+
+		if (nivelAtual <= nivelAlertaConfigurado) {
+            statusDisplay.classList.add('level-danger');
+
+            if (Date.now() < snoozeUntil) {
+                // Em snooze - não faz nada
+            } 
+            else if (alertaModalMostrado) {
+                // Modal já está aberto - não faz nada
+            }
+            else if (snoozeCount >= 3) {
+                // Todos os alertas já foram usados
+            }
+            else {
+                if (!alertaEmailEnviado) { 
+                    alertaEmailEnviado = true;
+                    enviarEmailAlerta(nivelAtual);
+                }
+                mostrarAlertaModal();
+                alertaModalMostrado = true;
+                controlarAlarme(true);
+
+                setTimeout(() => {
+                    if (alertaModalMostrado) { 
+                        console.log(`Auto-Snooze ativado após ${AUTO_SNOOZE_SECONDS}s.`);
+                        iniciarSoneca();
+                    }
+                }, AUTO_SNOOZE_SECONDS * 1000);
+            }
+
+		} else { 
+            const resetLevel = nivelAlertaConfigurado + ALERTA_RESET_MARGIN;
+            if (nivelAtual >= resetLevel && alertaEmailEnviado) {
+                console.log(`Nível (${nivelAtual}%) está acima da margem de reset (${resetLevel}%). Re-armando o e-mail.`);
+                alertaEmailEnviado = false;
+            }
+
+            if (nivelAtual <= 60) {
+                 statusDisplay.classList.add('level-warn');
+            } else {
+                 statusDisplay.classList.add('level-ok');
+            }
+            
+            if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; }
+            controlarAlarme(false); 
+            snoozeCount = 0; 
+            snoozeUntil = 0;
+		}
+
+		atualizarCaixaDOM(nivelAtual);
+
+        if (document.getElementById('caixa-view').style.display !== 'none') {
+            document.getElementById('status-level').innerText = nivelAtual + '%';
+            const litrosAprox = nivelAtual * LITROS_POR_PERCENTO;
+            document.getElementById('status-litros').innerHTML = `${litrosAprox.toFixed(0)} <small>Litros</small>`;
+            document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+		
+		const agora = Date.now();
+		const intervaloGravacao = 60 * 60 * 1000; // 60 minutos
+		const datePicker = document.getElementById('dataEscolhida');
+		const hoje = getLocalISODate(new Date());
+
+		if (agora - ultimaAtualizacaoGrafico > intervaloGravacao) {
+            ultimaAtualizacaoGrafico = agora; 
+			if (currentView === 'diario' && datePicker.value === hoje) {
+				const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                if (historicoLabels[historicoLabels.length - 1] !== hora) {
+                    if (nivelAtual > 0) {
+                        historicoNiveis.push(Number(nivelAtual));
+                        historicoLabels.push(hora);
+                        salvarLeituraNoFirebase(Number(nivelAtual), agora);
+                    }
+				}
+			}
+		}
+	} catch(e) { console.error("Erro no loop de atualização:", e); }
+}
+
+// --- INICIALIZAÇÃO ---
+window.onload = function() {
+    const views = {
+		caixa: document.getElementById('caixa-view'),
+		grafico: document.getElementById('grafico-container'),
+        abastecimento: document.getElementById('abastecimento-view'),
+        consumo: document.getElementById('consumo-view'),
+		config: document.getElementById('config-view')
+	};
+	const btns = {
+		caixa: document.getElementById('btn-view-caixa'),
+		grafico: document.getElementById('btn-view-grafico'),
+        abastecimento: document.getElementById('btn-view-abastecimento'),
+        consumo: document.getElementById('btn-view-consumo'),
+		config: document.getElementById('btn-view-config')
+	};
+    
+    const dateControls = document.getElementById('date-controls');
+    const viewHeaders = {
+        grafico: document.querySelector('#grafico-container header'),
+        abastecimento: document.querySelector('#abastecimento-view header'),
+        consumo: document.querySelector('#consumo-view header')
+    };
+
+    const btnDiario = document.getElementById('btn-view-diario');
+    const btnSemanal = document.getElementById('btn-view-semanal');
+    const btnMensal = document.getElementById('btn-view-mensal');
+    const btnIntervalo = document.getElementById('btn-view-intervalo');
+
+    // Setup Audio
+    setupAudio();
+    function despertarAudio() {
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                console.log("Contexto de áudio 'acordado' pela interação do usuário.");
+                document.body.removeEventListener('click', despertarAudio);
+                document.body.removeEventListener('touchstart', despertarAudio);
+            });
+        }
+    }
+    document.body.addEventListener('click', despertarAudio, { once: true });
+    document.body.addEventListener('touchstart', despertarAudio, { once: true });
+
+    // EmailJS Init
+	(function() {
+		const PUBLIC_KEY = "I1HnvhgWehPP7EXxX";	
+		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") {
+			emailJsInicializado = false; return; 
+		}
+		try { emailjs.init(PUBLIC_KEY); emailJsInicializado = true; } catch(e) { emailJsInicializado = false; }
+	})();
+    
+    const btnIntervaloElem = document.getElementById('btn-view-intervalo');
+    
+    function switchView(viewName) {
+        activeTab = viewName; 
+		for (const key in views) { views[key].style.display = 'none'; }
+		if (views[viewName]) { views[viewName].style.display = 'flex'; }
+
+		document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
+		if (btns[viewName]) { btns[viewName].classList.add('active'); }
+
+        dateControls.style.display = 'none'; 
+
+        if (viewName === 'grafico' || viewName === 'consumo') {
+            viewHeaders[viewName].appendChild(dateControls);
+            dateControls.style.display = 'flex';
+            btnDiario.style.display = 'flex';
+            btnMensal.style.display = 'flex';
+            if (viewName === 'consumo') {
+                btnIntervaloElem.style.display = 'none';
+            } else {
+                btnIntervaloElem.style.display = 'flex';
+            }
+            btnSemanal.style.display = 'none';
+            
+            if (currentView === 'semanal') {
+                 currentView = 'diario';
+                 document.querySelector('.view-selector .view-btn.active').classList.remove('active');
+                 btnDiario.classList.add('active');
+                 document.getElementById('diario-picker').style.display = 'flex';
+                 document.getElementById('mensal-picker').style.display = 'none';
+                 document.getElementById('intervalo-picker').style.display = 'none';
+            }
+        } else if (viewName === 'abastecimento') {
+            viewHeaders[viewName].appendChild(dateControls);
+            dateControls.style.display = 'flex';
+            btnDiario.style.display = 'none';
+            btnIntervalo.style.display = 'none';
+            btnSemanal.style.display = 'flex';
+            btnMensal.style.display = 'flex';
+            if (currentView === 'diario' || currentView === 'intervalo') {
+                 currentView = 'semanal';
+                 document.querySelector('.view-selector .view-btn.active').classList.remove('active');
+                 btnSemanal.classList.add('active');
+                 document.getElementById('diario-picker').style.display = 'none';
+                 document.getElementById('mensal-picker').style.display = 'none';
+                 document.getElementById('intervalo-picker').style.display = 'none';
+            }
+        }
+
+        if (viewName === 'caixa') {
+            carregarHistoricoAbastecimento();
+        } else if (viewName === 'grafico') {
+			if(chartLinha) chartLinha.resize();
+			if(chartBlocos) chartBlocos.resize();
+		} else if (viewName === 'consumo') {
+            if(chartConsumoBloco) chartConsumoBloco.resize();
+            if(chartConsumoLinha) chartConsumoLinha.resize();
+        } else if (viewName === 'abastecimento') {
+            carregarHistoricoAbastecimento();
+        } else if (viewName === 'config') {
+			carregarContatos();	
+			carregarNivelAlertaAtual(); 
+		}
+    }
+    
+    // Event listeners
+    btns.caixa.addEventListener('click', () => switchView('caixa'));
+	btns.grafico.addEventListener('click', () => switchView('grafico'));
+    btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
+    btns.consumo.addEventListener('click', () => switchView('consumo'));
+	btns.config.addEventListener('click', () => switchView('config'));
+
+    document.getElementById('modal-close-btn').addEventListener('click', iniciarSoneca);
+
+    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => {
+        const litros = document.getElementById('litros-abastecidos').value;
+        salvarAbastecimento(litros);
+    });
+	
+	document.getElementById('btn-add-contato').addEventListener('click', () => {
+		const valor = document.getElementById('contato-valor').value;
+		const tipo = document.getElementById('contato-tipo').value;
+		adicionarContato(valor, tipo);
+	});
+
+	document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => {
+		const nivel = document.getElementById('nivel-alerta-valor').value;
+		const statusDiv = document.getElementById('status-alerta');
+		if (nivel && nivel >= 1 && nivel <= 99) {
+			salvarNivelAlerta(parseInt(nivel));
+		} else {
+			statusDiv.style.color = 'red';
+			statusDiv.innerText = 'Insira um valor válido (1-99).';
+			setTimeout(() => { statusDiv.innerText = ''; }, 3000);
+		}
+	});
+
+	document.getElementById('lista-contatos').addEventListener('click', (e) => {
+		if (e.target.tagName === 'BUTTON') {
+			const id = e.target.dataset.id;
+			const btn = e.target;
+			if (btn.dataset.confirming) {
+				removerContato(id);
+				btn.dataset.confirming = 'false';
+				btn.innerText = 'Remover';
+			} else {
+				document.querySelectorAll('#lista-contatos button[data-confirming="true"]').forEach(b => {
+					b.dataset.confirming = 'false';
+					b.innerText = 'Remover';
+				});
+				btn.dataset.confirming = 'true';
+				btn.innerText = 'Confirmar?';
+				setTimeout(() => {
+					if (btn.dataset.confirming === 'true') {
+						 btn.dataset.confirming = 'false';
+						 btn.innerText = 'Remover';
+					}
+				}, 3000);
+			}
+		}
+	});
+
+	document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-abastecimento-btn')) {
+			const id = e.target.dataset.id;
+			const btn = e.target;
+			if (btn.dataset.confirming) {
+				removerAbastecimento(id);
+			} else {
+				document.querySelectorAll('#lista-abastecimentos button[data-confirming="true"]').forEach(b => {
+					b.dataset.confirming = 'false';
+					b.innerText = '×';
+                    b.style.width = '30px';
+				});
+				btn.dataset.confirming = 'true';
+				btn.innerText = 'Confirmar?';
+                btn.style.width = 'auto'; 
+				setTimeout(() => {
+					if (btn.dataset.confirming === 'true') {
+						 btn.dataset.confirming = 'false';
+						 btn.innerText = '×';
+                         btn.style.width = '30px';
+					}
+				}, 3000);
+			}
+		}
+	});
+
+	criarGraficos();
+	const hoje = new Date();
+	const dataFimPadrao = getLocalISODate(hoje);
+	const mesFimPadrao = dataFimPadrao.substring(0, 7);
+	hoje.setDate(hoje.getDate() - 59); 
+	const dataInicioPadrao = getLocalISODate(hoje);
+	document.getElementById('dataEscolhida').value = dataFimPadrao;
+	document.getElementById('mesEscolhido').value = mesFimPadrao;
+	document.getElementById('dataInicio').value = dataInicioPadrao;
+	document.getElementById('dataFim').value = dataFimPadrao;
+	
+	switchView('caixa'); 
+	
+    document.getElementById('btnAtualizar').onclick = () => {
+        if (activeTab === 'grafico' || activeTab === 'consumo') {
+            carregarHistoricoEConsumo();
+        }
+    };
+    
+	carregarHistoricoEConsumo().then(() => {
+		loopDeAtualizacao();
+		setInterval(loopDeAtualizacao, 2000);
+	});
+
+	document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
+		btn.addEventListener('click', (e) => {
+			const parent = e.target.parentElement;
+			parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+			e.target.classList.add('active');
+			if (e.target.dataset.view) {
+				currentView = e.target.dataset.view; 
+				const pickers = {
+					diario: document.getElementById('diario-picker'),
+					mensal: document.getElementById('mensal-picker'),
+					intervalo: document.getElementById('intervalo-picker')
+				};
+				for(const key in pickers) { pickers[key].style.display = 'none'; }
+				if (pickers[currentView]) pickers[currentView].style.display = 'flex';
+                document.getElementById('btnAtualizar').click();
+			}
+		});
+	});
+};
+
 </script>
 </body>
 </html>
-
