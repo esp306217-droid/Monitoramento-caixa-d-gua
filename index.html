@@ -676,6 +676,11 @@ let lfo;        // Oscilador de baixa frequência (para modular a sirene)
 let lfoGain;    // Controle de profundidade (o "quanto" a sirene varia)
 let isAlarmPlaying = false;
 
+// NOVO: Variáveis de Snooze
+let snoozeCount = 0; // 0=inicial, 1=snooze1, 2=snooze2, 3=finalizado
+let snoozeUntil = 0; // Timestamp (em ms) de quando o snooze termina
+const SNOOZE_DURATION_MINUTES = 10; // Duração do "soneca"
+
 // VARIÁVEIS DE EMERGÊNCIA
 let ultimoNivelValido = 63; // Inicia em 63% se não houver leitura
 let dataUltimaLeituraValida = Date.now(); // Marca a hora atual como inicial
@@ -684,7 +689,7 @@ const LITROS_POR_PERCENTO = 7000 / 85;
 
 // *** ALTERADO: IDs ATUALIZADOS ***
 const SERVICE_ID = "service_lubx0i8";
-const TEMPLATE_ID = "template_ll79qy1";
+const TEMPLATE_ID = "template_ll79qy1"; // ID do modelo trocado
 
 async function enviarEmailAlerta(nivel) {
 	if (!emailJsInicializado) return false; 
@@ -1207,39 +1212,58 @@ async function loopDeAtualizacao() {
 		
 		if (config) { nivelAlertaConfigurado = parseInt(config) || 30; }
 		
+        // Limpa classes de status antes de reavaliar
         const statusDisplay = document.getElementById('status-display');
         statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
 
 		if (nivelAtual <= nivelAlertaConfigurado) {
+            // --- NÍVEL CRÍTICO ---
             statusDisplay.classList.add('level-danger');
-			if (!alertaEmailEnviado) {
-				alertaEmailEnviado = true; 
-				enviarEmailAlerta(nivelAtual).then(success => {
-					if (!success) alertaEmailEnviado = false;	
-				});
-			}
-            if (!alertaModalMostrado) {
+
+            // 1. Estamos em período de snooze?
+            if (Date.now() < snoozeUntil) {
+                // Sim. Não faz nada. Sirene já está desligada.
+            } 
+            // 2. O alerta já está visível? (loop está rodando mas modal está aberto)
+            else if (alertaModalMostrado) {
+                // Sim. Não faz nada. Deixa o alarme tocando.
+            }
+            // 3. Já usamos todos os 3 alertas (1 + 2 snoozes)?
+            else if (snoozeCount >= 3) {
+                // Sim. Não faz nada. Fica em silêncio.
+            }
+            // 4. Se NENHUM dos acima for verdadeiro... DISPARAR ALERTA
+            else {
+                if (!alertaEmailEnviado) {
+                    alertaEmailEnviado = true; 
+                    enviarEmailAlerta(nivelAtual).then(success => {
+                        if (!success) alertaEmailEnviado = false;	
+                    });
+                }
                 mostrarAlertaModal();
                 alertaModalMostrado = true;
+                controlarAlarme(true);
             }
-            // NOVO: Tocar alarme
-            controlarAlarme(true);
 
 		} else if (nivelAtual <= 60) {
+            // --- NÍVEL DE ATENÇÃO (NÃO CRÍTICO) ---
             statusDisplay.classList.add('level-warn');
             if (alertaEmailEnviado) alertaEmailEnviado = false;
             if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; }
             
-            // NOVO: Parar alarme
-            controlarAlarme(false);
+            controlarAlarme(false); // Para alarme
+            snoozeCount = 0; // Reseta snooze
+            snoozeUntil = 0;
 
         } else {
+            // --- NÍVEL OK ---
             statusDisplay.classList.add('level-ok');
             if (alertaEmailEnviado) alertaEmailEnviado = false;
             if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; }
             
-            // NOVO: Parar alarme
-            controlarAlarme(false);
+            controlarAlarme(false); // Para alarme
+            snoozeCount = 0; // Reseta snooze
+            snoozeUntil = 0;
 		}
 
 		atualizarCaixaDOM(nivelAtual);
@@ -1402,7 +1426,26 @@ window.onload = function() {
     btns.consumo.addEventListener('click', () => switchView('consumo'));
 	btns.config.addEventListener('click', () => switchView('config'));
 
-    document.getElementById('modal-close-btn').addEventListener('click', fecharAlertaModal);
+    // *** ALTERADO: Event listener do botão "Entendido" do Modal ***
+    document.getElementById('modal-close-btn').addEventListener('click', () => {
+        // 1. Ações imediatas
+        fecharAlertaModal();    // Esconde o modal
+        controlarAlarme(false); // Para a sirene
+        alertaModalMostrado = false; // Libera o loop para re-verificar
+
+        // 2. Incrementa o contador de "soneca"
+        snoozeCount++; // (vai para 1, 2, ou 3)
+
+        // 3. Se ainda não for o último alerta (1 inicial + 2 snoozes)
+        if (snoozeCount < 3) {
+            const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000;
+            snoozeUntil = Date.now() + snoozeMs;
+            console.log(`Alarme (${snoozeCount}/3) pausado. Próximo alerta em ${SNOOZE_DURATION_MINUTES} min.`);
+        } else {
+            console.log('Todos os 3 alertas exibidos. Silêncio até o nível normalizar.');
+            // Não define snoozeUntil, e 'snoozeCount >= 3' vai bloquear o próximo alerta.
+        }
+    });
 
     document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => {
         const litros = document.getElementById('litros-abastecidos').value;
