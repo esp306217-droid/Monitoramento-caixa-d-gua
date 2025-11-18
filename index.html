@@ -500,7 +500,6 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 	.controls { flex-direction: column; align-items: stretch;}	
 	.view-selector { justify-content: center;}	
 	.config-board { grid-template-columns: 1fr; }
-	.chart-card { padding: 10px; }
 	canvas { height: 250px !important; }
     #status-display { grid-template-rows: auto auto; padding: 12px 15px; }
     .status-item.item-time { margin-top: 8px; }
@@ -573,8 +572,8 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
     </header>
 	<div class="board">
 		<div class="charts">
-			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Horário 00h-23h)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível a cada hora ao longo do dia selecionado.</div></div>
-            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Leituras de 60 em 60 minutos)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe as leituras do nível a cada 60 minutos.</div></div>
+			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Leituras Horárias/Semanais)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível a cada hora (Diário) ou a média semanal (Mensal).</div></div>
+            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Leituras Horárias/Semanais)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe as leituras do nível a cada hora (Diário) ou a média semanal (Mensal).</div></div>
 		</div>
 	</div>
 </div>
@@ -726,6 +725,8 @@ const ALERTA_RESET_MARGIN = 5;
 // AJUSTE: Nível inicial para simular uma última leitura válida de 45%
 let ultimoNivelValido = 45; 
 let dataUltimaLeituraValida = Date.now(); 
+// NOVO: Variável para controlar o envio de e-mail por dia
+let dataUltimoEmailAlerta = null; 
 
 const LITROS_POR_PERCENTO = 7000 / 85; 
 
@@ -743,6 +744,13 @@ function getLocalISODate(dateObj) {
 }
 
 async function enviarEmailAlerta(nivel) {
+    // 1. VERIFICAÇÃO DO LIMITE DE ENVIO DIÁRIO
+    const hoje = getLocalISODate(new Date());
+    if (dataUltimoEmailAlerta === hoje) {
+        console.log(`Alerta de e-mail bloqueado: Já foi enviado um e-mail hoje (${hoje}).`);
+        return false; 
+    }
+
 	if (!emailJsInicializado) return false; 
 
 	let contatos = {};
@@ -777,6 +785,14 @@ async function enviarEmailAlerta(nivel) {
 			todosEnviadosComSucesso = false; 
 		}
 	}
+
+    // 2. REGISTRA O ENVIO APÓS TENTAR ENVIAR PARA TODOS
+    // Mantendo a lógica de que o bloqueio diário ocorre se pelo menos uma tentativa for feita.
+    if (emailsParaEnviar.length > 0) { 
+        dataUltimoEmailAlerta = hoje;
+        console.log(`E-mail de alerta tentado. Bloqueio diário ativado: ${dataUltimoEmailAlerta}`);
+    }
+
 	return todosEnviadosComSucesso;
 }
 
@@ -879,35 +895,66 @@ function atualizarGraficosHistorico(result) {
     let displayLabels = [];
     let displayNiveis = [];
     
+    // O modo diário agora garante 24 pontos fixos (leitura por hora)
     if (currentView === 'diario') {
-        // Criar array de 24 horas fixas (00:00 até 23:00)
+        const dataSelecionada = document.getElementById('dataEscolhida').value;
+        const hoje = getLocalISODate(new Date());
+        const horaAtual = new Date().getHours();
+        
         for (let h = 0; h < 24; h++) {
             const horaLabel = String(h).padStart(2, '0') + ':00';
             displayLabels.push(horaLabel);
         }
         
-        // Se temos dados históricos, usá-los, senão criar array vazio
-        if (result && result.labels && result.niveis) {
-            // Mapear os dados históricos para as horas correspondentes
+        if (result && result.niveis) {
             const dadosPorHora = {};
             result.labels.forEach((label, index) => {
-                if (label && result.niveis[index] !== null && result.niveis[index] !== undefined) {
-                    const hora = label.split(':')[0];
+                // Mapeia a hora (ex: "08:00") para o array de 24h
+                const hora = parseInt(label.split(':')[0]);
+                if (!isNaN(hora) && hora >= 0 && hora < 24) {
                     dadosPorHora[hora] = result.niveis[index];
                 }
             });
             
-            // Preencher o array de níveis com os dados correspondentes
-            displayNiveis = displayLabels.map(label => {
-                const hora = label.split(':')[0];
-                return dadosPorHora[hora] !== undefined ? dadosPorHora[hora] : null;
+            displayNiveis = displayLabels.map((_, index) => {
+                let nivel = dadosPorHora[index] !== undefined ? dadosPorHora[index] : null;
+                
+                // NOVO AJUSTE: Preencher lacunas (null) com a lógica de simulação para o dia atual (hoje) e horas passadas
+                if (dataSelecionada === hoje && index <= horaAtual && nivel === null) {
+                     // Lógica de simulação de nível para preencher buracos (baseado na hora do índice)
+                    let h = index; // h é o índice/hora
+                    if (h >= 0 && h <= 3) {
+                        nivel = 63; // 0h até 3h (patamar 63%)
+                    } 
+                    else if (h >= 4 && h <= 11) {
+                        nivel = 61; // 4h até 11h (patamar 61%)
+                    } 
+                    else if (h >= 12 && h <= 15) {
+                        nivel = 55; // 12h até 15h (patamar 55%)
+                    }
+                    else if (h >= 16 && h <= 23) {
+                        nivel = 40; // 16h até 23h (patamar 40%)
+                    }
+                }
+
+                // Regra final para ocultar leituras futuras (forçando a null)
+                if (dataSelecionada === hoje && index > horaAtual) {
+                    nivel = null; 
+                }
+                
+                return nivel;
             });
         } else {
-            // Sem dados históricos, criar array de nulos
-            displayNiveis = new Array(24).fill(null);
+            // Se não houver dados, garante que apenas horas passadas ou atuais são mostradas.
+            displayNiveis = displayLabels.map((_, index) => {
+                if (dataSelecionada === hoje && index > horaAtual) {
+                    return null;
+                }
+                return null; // Alterado para null para não mostrar 0% se não houver dados
+            });
         }
     } else {
-        // Para outros modos, usar os dados normalmente
+        // Para modos Mensal/Intervalo
         displayLabels = result.labels || [];
         displayNiveis = result.niveis || [];
     }
@@ -1056,7 +1103,8 @@ async function salvarLeituraNoFirebase(nivel, timestamp) {
     if (nivel <= 0) return;
     const d = new Date(timestamp);
     const localDate = getLocalISODate(d);
-    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    // Salva apenas a hora cheia (ex: "16:00")
+    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).substring(0, 3) + "00";
     const path = `PP7_config/historico/${localDate}/${hora}.json`;
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
     
@@ -1066,6 +1114,7 @@ async function salvarLeituraNoFirebase(nivel, timestamp) {
     };
     
     try { 
+        // Usando PUT para garantir apenas uma leitura por hora
         await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); 
         console.log(`Leitura salva: ${nivel}% às ${hora}`);
     } catch (e) { 
@@ -1074,6 +1123,7 @@ async function salvarLeituraNoFirebase(nivel, timestamp) {
 }
 
 async function buscarUltimaLeituraHistorico() {
+    // Se já tivermos um nível válido recente, não precisa buscar no histórico
     if (ultimoNivelValido !== null && Date.now() - dataUltimaLeituraValida < 60000) {
         return; 
     }
@@ -1161,37 +1211,79 @@ async function carregarHistoricoEConsumo() {
             const labelsFixed = [];
             const niveisFixed = [];
             
-            // Criar estrutura para 24 horas
+            const dataSelecionada = document.getElementById('dataEscolhida').value;
+            const hoje = getLocalISODate(new Date());
+            const horaAtual = new Date().getHours();
+
+            // Cria estrutura para 24 horas (00:00 a 23:00)
             for(let h = 0; h < 24; h++) {
                 const hora = String(h).padStart(2, '0');
                 labelsFixed.push(hora + ":00");
-                niveisFixed.push(null); // Inicialmente todos nulos
+                niveisFixed.push(null); 
             }
             
-            // Preencher com dados existentes
             if(dados) {
                 Object.keys(dados).forEach(fullTime => {
-                    const horaMinuto = fullTime.split(':');
-                    const hora = horaMinuto[0];
-                    const minuto = horaMinuto[1];
+                    // Espera formato HH:00
+                    const hora = parseInt(fullTime.substring(0, 2)); 
                     const val = dados[fullTime].nivel_pct ?? dados[fullTime].nivel ?? 0;
                     
                     if (val > 0) {
-                        const index = parseInt(hora);
-                        if (index >= 0 && index < 24) {
-                            niveisFixed[index] = val;
+                        // O índice no array de 24h é a própria hora
+                        if (hora >= 0 && hora < 24) {
+                            // Apenas preenche se a hora for anterior ou igual à hora atual (se for hoje)
+                            if (dataSelecionada === hoje && hora > horaAtual) {
+                                // Ignora leituras futuras mesmo que estejam no banco (para consistência do gráfico)
+                            } else {
+                                niveisFixed[hora] = val;
+                            }
                         }
                     }
                 });
             }
 
+            // NOVO AJUSTE: Passagem 2 para preencher lacunas de horas passadas do dia atual com a simulação
+            if (dataSelecionada === hoje) {
+                for (let h = 0; h <= horaAtual; h++) {
+                    // Se o valor for nulo (lacuna de dados), aplica a lógica de simulação para preencher
+                    if (niveisFixed[h] === null || niveisFixed[h] === undefined) {
+                        let nivelSimulado = 0;
+                        
+                        // Lógica de simulação de nível para preencher buracos (baseado na hora do índice h)
+                        if (h >= 0 && h <= 3) {
+                            nivelSimulado = 63; // 0h até 3h (patamar 63%)
+                        } 
+                        else if (h >= 4 && h <= 11) {
+                            nivelSimulado = 61; // 4h até 11h (patamar 61%)
+                        } 
+                        else if (h >= 12 && h <= 15) {
+                            nivelSimulado = 55; // 12h até 15h (patamar 55%)
+                        }
+                        else if (h >= 16 && h <= 23) {
+                            nivelSimulado = 40; // 16h até 23h (patamar 40%)
+                        }
+                        
+                        if (nivelSimulado > 0) {
+                            niveisFixed[h] = nivelSimulado;
+                        } else {
+                            // Se a simulação falhar (nunca deve acontecer aqui), usa o valor do último ponto válido anterior
+                             niveisFixed[h] = h > 0 ? niveisFixed[h - 1] : 0;
+                        }
+                    }
+                }
+            }
+            
+            // Para o modo diário, o consumo e o nível são agregados de forma simples.
             const consumoFinal = new Array(24).fill(0);
 
 			return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal }; 
 		};
 	} else { 
-        // MENSAL ou INTERVALO (usando mesma lógica para buscar várias datas)
+        // MENSAL ou INTERVALO (Agrupado por Semana)
 		let dataInicio, dataFim;
+        const hoje = new Date();
+        const umDiaEmMs = 24 * 60 * 60 * 1000;
+
 		if (currentView === 'mensal') {
 			const mesAno = document.getElementById('mesEscolhido').value;
 			if (!mesAno) return result;
@@ -1212,38 +1304,90 @@ async function carregarHistoricoEConsumo() {
 
 		url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
 		processData = (dados) => {
-            const dailyConsumption = {}; 
-            for (const dateKey in dados) {
-                const dailyReadings = dados[dateKey];
-                const times = Object.keys(dailyReadings).sort();
-                if(times.length < 2) {
-                    dailyConsumption[dateKey] = 0;
-                    continue;
-                }
-                
-                const firstTime = times[0];
-                const lastTime = times[times.length - 1];
-                const startLevel = dailyReadings[firstTime].nivel_pct || 0;
-                const endLevel = dailyReadings[lastTime].nivel_pct || 0;
-                
-                let deltaPct = startLevel - endLevel; 
-                
-                // Se o nível final for muito maior que o inicial (ex: abastecimento no meio), o delta é 0
-                if (deltaPct < 0) deltaPct = 0; 
+            const weeklyConsumption = {}; 
+            const weeklyLevels = {}; 
+            
+            const start = new Date(dataInicio + "T00:00:00");
+            const end = new Date(dataFim + "T23:59:59");
+            
+            let currentDay = new Date(start);
+            let currentWeek = 1;
 
-                const deltaLitros = deltaPct * LITROS_POR_PERCENTO;
+            while (currentDay <= end) {
+                const dateKey = getLocalISODate(currentDay);
+                const dayOfWeek = currentDay.getDay(); // 0 = Domingo, 6 = Sábado
                 
-                let totalConsumoDia = deltaLitros;
+                // Se for domingo, reinicia a contagem da semana, exceto se for o dia inicial
+                // A contagem começa a partir do primeiro Domingo no período.
+                if (dayOfWeek === 0 && currentDay.getTime() !== start.getTime()) {
+                     currentWeek++;
+                }
+
+                const weekLabel = `${currentWeek}ª Semana`;
                 
-                dailyConsumption[dateKey] = totalConsumoDia;
+                // Inicializa as estruturas da semana
+                if (!weeklyConsumption[weekLabel]) {
+                    weeklyConsumption[weekLabel] = [];
+                    weeklyLevels[weekLabel] = [];
+                }
+
+                // Processa o consumo diário
+                if (dados && dados[dateKey]) {
+                    const dailyReadings = dados[dateKey];
+                    const times = Object.keys(dailyReadings).sort();
+                    
+                    if(times.length >= 2) {
+                        const firstTime = times[0];
+                        const lastTime = times[times.length - 1];
+                        const startLevel = dailyReadings[firstTime].nivel_pct || 0;
+                        const endLevel = dailyReadings[lastTime].nivel_pct || 0;
+                        
+                        let deltaPct = startLevel - endLevel; 
+                        // Se o nível final for maior que o inicial (abastecimento), considera consumo zero
+                        if (deltaPct < 0) deltaPct = 0; 
+
+                        const deltaLitros = deltaPct * LITROS_POR_PERCENTO;
+                        
+                        weeklyConsumption[weekLabel].push(deltaLitros);
+                    }
+                    // Para o gráfico de nível, pega o nível no final do dia
+                    if (times.length > 0) {
+                        const lastTime = times[times.length - 1];
+                        const endLevel = dailyReadings[lastTime].nivel_pct || 0;
+                        weeklyLevels[weekLabel].push(endLevel);
+                    }
+                }
+
+                // Avança para o próximo dia
+                currentDay.setDate(currentDay.getDate() + 1);
             }
             
-            const labels = Object.keys(dailyConsumption).sort(); 
-            const consumo = labels.map(key => dailyConsumption[key]); 
-            // Mostra o dia do mês como label (ex: 18)
-            const displayLabels = labels.map(d => d.substring(8, 10));
+            const labels = Object.keys(weeklyConsumption);
+            const consumoSemanal = labels.map(weekLabel => {
+                if (weeklyConsumption[weekLabel].length === 0) return 0;
+                return weeklyConsumption[weekLabel].reduce((sum, val) => sum + val, 0);
+            });
             
-            return { labels: displayLabels, niveis: [], consumo: consumo }; 
+            // Para o nível semanal, calcula a média dos níveis diários
+            const niveisSemanais = labels.map(weekLabel => {
+                 if (weeklyLevels[weekLabel].length === 0) return null;
+                 const sum = weeklyLevels[weekLabel].reduce((sum, val) => sum + val, 0);
+                 return sum / weeklyLevels[weekLabel].length;
+            });
+            
+            // Se for modo Mensal, garante apenas 4 semanas
+            let finalLabels = labels;
+            let finalConsumo = consumoSemanal;
+            let finalNiveis = niveisSemanais;
+
+            if (currentView === 'mensal') {
+                 // Pega as primeiras 4 semanas válidas.
+                 finalLabels = labels.slice(0, 4);
+                 finalConsumo = consumoSemanal.slice(0, 4);
+                 finalNiveis = niveisSemanais.slice(0, 4);
+            }
+            
+            return { labels: finalLabels, niveis: finalNiveis, consumo: finalConsumo }; 
 		};
 	}
 
@@ -1263,18 +1407,27 @@ async function carregarHistoricoEConsumo() {
         
         // Atualiza gráficos de Histórico (apenas se a view for 'grafico')
         if (activeTab === 'grafico') {
-            atualizarGraficosHistorico(result);
+            // Garante que o título do eixo X esteja correto para a visualização Mensal/Intervalo
+            chartLinha.options.scales.x.title.text = currentView === 'diario' ? 'Horário (00:00 - 23:00)' : 'Semanas do Período';
+            chartBlocos.options.scales.x.title.text = currentView === 'diario' ? 'Horário (00:00 - 23:00)' : 'Semanas do Período';
+            
+            const niveisParaGrafico = result.niveis;
+            atualizarGraficosHistorico({labels: result.labels, niveis: niveisParaGrafico});
         }
         
         // Atualiza gráficos de Consumo (apenas se a view for 'consumo')
         if (activeTab === 'consumo') {
+            // Garante que o título do eixo X esteja correto para a visualização Mensal/Intervalo
+            chartConsumoBloco.options.scales.x.title.text = currentView === 'diario' ? 'Horário (00:00 - 23:00)' : 'Semanas do Período';
+            chartConsumoLinha.options.scales.x.title.text = currentView === 'diario' ? 'Horário (00:00 - 23:00)' : 'Semanas do Período';
+
             atualizarGraficosConsumo(result);
         }
 
 	} catch (e) { console.error("Erro ao carregar histórico:", e); }
 }
 
-// --- FUNÇÕES DE ABASTECIMENTO ---
+// --- FUNÇÕES DE ABASTECIMENTO (NÃO ALTERADAS NESTA REVISÃO) ---
 
 async function removerAbastecimento(id) {
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`;
@@ -1350,7 +1503,7 @@ async function salvarAbastecimento(litros) {
     } finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
 }
 
-// --- FUNÇÕES DE CONFIGURAÇÃO ---
+// --- FUNÇÕES DE CONFIGURAÇÃO (NÃO ALTERADAS NESTA REVISÃO) ---
 
 async function salvarNivelAlerta(nivel) {
 	const statusDiv = document.getElementById('status-alerta');
@@ -1452,49 +1605,72 @@ async function loopDeAtualizacao() {
 		const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
 		const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
 		
-		const [r, rConfig] = await Promise.all([
-			fetch(dataUrl),
-			fetch(configUrl)
-		]);
-		j = await r.json();
+		// Use try-catch individual para buscar dados em tempo real
+        try {
+            const r = await fetch(dataUrl);
+            j = await r.json();
+        } catch(e) {
+            console.warn("Erro ao buscar dados do PP7 em tempo real. Entrando em Modo de Emergência.");
+            j = { nivel_pct: 0 }; // Simula falha do sensor
+        }
+
+        // Busca configuração do alerta
+        const rConfig = await fetch(configUrl);
 		config = await rConfig.json();
 		
         let nivelRecebido = j.nivel_pct || j.nivel || 0;
+        const agora = Date.now();
+        const diffHoras = (agora - dataUltimaLeituraValida) / (1000 * 60 * 60);
 
         // LÓGICA DE EMERGÊNCIA
         if (nivelRecebido > 0) {
+            // Se a leitura for válida
             nivelAtual = nivelRecebido;
             ultimoNivelValido = nivelRecebido;
-            dataUltimaLeituraValida = Date.now(); 
+            dataUltimaLeituraValida = agora; 
             document.getElementById('emergency-badge').style.display = 'none';
         } else {
+            // Modo de Emergência (Leitura <= 0 ou falha de comunicação)
             if (ultimoNivelValido === null || dataUltimaLeituraValida === null) {
                 await buscarUltimaLeituraHistorico();
             }
 
             document.getElementById('emergency-badge').style.display = 'flex';
-
-            const diffHoras = (Date.now() - dataUltimaLeituraValida) / (1000 * 60 * 60);
             console.log(`Modo Emergência: ${diffHoras.toFixed(2)}h desde a última leitura (${ultimoNivelValido}%).`);
 
-            if (ultimoNivelValido > 50) {
-                if (diffHoras < 12) nivelAtual = ultimoNivelValido; 
-                else if (diffHoras < 24) nivelAtual = 55;
-                else if (diffHoras < 32) nivelAtual = 40; 
-                else if (diffHoras < 38) nivelAtual = 30; 
-                else nivelAtual = 20;
+            // 1. Lógica para último nível acima de 60%
+            if (ultimoNivelValido > 60) {
+                if (diffHoras < 8) {
+                    nivelAtual = ultimoNivelValido; // Mantém o último valor por 8h
+                } else if (diffHoras < 16) { // 8 + 8 = 16h
+                    nivelAtual = 50;
+                } else if (diffHoras < 24) { // 16 + 8 = 24h
+                    nivelAtual = 40;
+                } else if (diffHoras < 32) { // 24 + 8 = 32h
+                    nivelAtual = 30;
+                } else { // 32 + 6 = 38h ou mais
+                    nivelAtual = 20;
+                }
             } 
+            // 2. Lógica para último nível entre 41% e 60%
             else if (ultimoNivelValido > 40) { 
-                // Última leitura válida estava entre 41% e 50%.
-                // A degradação simulada é mais rápida.
-                if (diffHoras < 8) nivelAtual = 40; // 40% é o patamar por 8 horas
-                else if (diffHoras < 14) nivelAtual = 30; // 30% é o patamar entre 8 e 14 horas
-                else nivelAtual = 20; // 20% após 14 horas
+                if (diffHoras < 8) {
+                    nivelAtual = 40; 
+                } else if (diffHoras < 14) { // 8 + 6 = 14h
+                    nivelAtual = 30; 
+                } else { 
+                    nivelAtual = 20; 
+                }
             }
+            // 3. Lógica para último nível entre 31% e 40%
             else if (ultimoNivelValido > 30) {
-                if (diffHoras < 6) nivelAtual = 30; 
-                else nivelAtual = 20;
+                if (diffHoras < 6) {
+                    nivelAtual = 30; 
+                } else {
+                    nivelAtual = 20;
+                }
             }
+            // 4. Lógica para último nível 30% ou menos
             else {
                 nivelAtual = 20;
             }
@@ -1505,6 +1681,7 @@ async function loopDeAtualizacao() {
         const statusDisplay = document.getElementById('status-display');
         statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
 
+        // LÓGICA DE ALERTA E NOTIFICAÇÃO
 		if (nivelAtual <= nivelAlertaConfigurado) {
             statusDisplay.classList.add('level-danger');
 
@@ -1518,10 +1695,14 @@ async function loopDeAtualizacao() {
                 // Todos os alertas já foram usados
             }
             else {
-                if (!alertaEmailEnviado) { 
-                    alertaEmailEnviado = true;
+                // Verifica se o e-mail já foi enviado hoje antes de tentar enviar
+                const hoje = getLocalISODate(new Date());
+                if (dataUltimoEmailAlerta !== hoje) { 
                     enviarEmailAlerta(nivelAtual);
+                } else {
+                    console.log("Alerta de e-mail bloqueado: Limite de 1 por dia atingido.");
                 }
+
                 mostrarAlertaModal();
                 alertaModalMostrado = true;
                 controlarAlarme(true);
@@ -1536,9 +1717,13 @@ async function loopDeAtualizacao() {
 
 		} else { 
             const resetLevel = nivelAlertaConfigurado + ALERTA_RESET_MARGIN;
-            if (nivelAtual >= resetLevel && alertaEmailEnviado) {
-                console.log(`Nível (${nivelAtual}%) está acima da margem de reset (${resetLevel}%). Re-armando o e-mail.`);
-                alertaEmailEnviado = false;
+            if (nivelAtual >= resetLevel) {
+                // Reinicia as flags de alerta quando o nível está seguro
+                if (alertaEmailEnviado) {
+                    console.log(`Nível (${nivelAtual}%) está acima da margem de reset (${resetLevel}%). Re-armando o e-mail.`);
+                    alertaEmailEnviado = false;
+                    dataUltimoEmailAlerta = null; // Zera o bloqueio diário
+                }
             }
 
             if (nivelAtual <= 60) {
@@ -1562,22 +1747,43 @@ async function loopDeAtualizacao() {
             document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
 		
-		const agora = Date.now();
 		const intervaloGravacao = 60 * 60 * 1000; // 60 minutos
 		const datePicker = document.getElementById('dataEscolhida');
 		const hoje = getLocalISODate(new Date());
+        const horaAtual = new Date().getHours();
+        const horaAtualMinuto = new Date().getMinutes();
 
-		if (agora - ultimaAtualizacaoGrafico > intervaloGravacao) {
+		// LÓGICA DE GRAVAÇÃO/SIMULAÇÃO (APENAS PARA O MODO DIÁRIO)
+        // Só tenta gravar se estiver na virada da hora (minuto 0) e se a última atualização de gravação
+        // foi há mais de 59 minutos para evitar gravações duplicadas.
+		if (horaAtualMinuto === 0 && (agora - ultimaAtualizacaoGrafico > 59 * 60 * 1000)) {
             ultimaAtualizacaoGrafico = agora; 
 			if (currentView === 'diario' && datePicker.value === hoje) {
-				const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                if (historicoLabels[historicoLabels.length - 1] !== hora) {
-                    if (nivelAtual > 0) {
-                        historicoNiveis.push(Number(nivelAtual));
-                        historicoLabels.push(hora);
-                        salvarLeituraNoFirebase(Number(nivelAtual), agora);
-                    }
-				}
+                let nivelSimulado = nivelAtual;
+                
+                // Simulação da queda de nível conforme o pedido (para propósitos de demonstração em histórico)
+                
+                // 0h até 3h (patamar 63%)
+                if (horaAtual >= 0 && horaAtual <= 3) {
+                    nivelSimulado = 63;
+                } 
+                // 4h até 11h (patamar 61%) - Começa em 4h
+                else if (horaAtual >= 4 && horaAtual <= 11) {
+                    nivelSimulado = 61;
+                } 
+                // 12h até 15h (patamar 55%)
+                else if (horaAtual >= 12 && horaAtual <= 15) {
+                    nivelSimulado = 55;
+                }
+                // 16h até 23h (patamar 40%)
+                else if (horaAtual >= 16 && horaAtual <= 23) {
+                    nivelSimulado = 40; 
+                }
+
+                // Salva a leitura simulada/atual (apenas o nível) no Firebase no formato HH:00
+                if (nivelSimulado > 0) {
+                    salvarLeituraNoFirebase(Number(nivelSimulado), agora);
+                }
 			}
 		}
 	} catch(e) { console.error("Erro no loop de atualização:", e); }
@@ -1696,9 +1902,15 @@ window.onload = function() {
         } else if (viewName === 'grafico') {
 			if(chartLinha) chartLinha.resize();
 			if(chartBlocos) chartBlocos.resize();
+            // Garante que a legenda do eixo X seja atualizada
+            chartLinha.options.scales.x.title.text = currentView === 'diario' ? 'Horário (00:00 - 23:00)' : 'Semanas do Período';
+            chartBlocos.options.scales.x.title.text = currentView === 'diario' ? 'Horário (00:00 - 23:00)' : 'Semanas do Período';
 		} else if (viewName === 'consumo') {
             if(chartConsumoBloco) chartConsumoBloco.resize();
             if(chartConsumoLinha) chartConsumoLinha.resize();
+            // Garante que a legenda do eixo X seja atualizada
+            chartConsumoBloco.options.scales.x.title.text = currentView === 'diario' ? 'Horário (00:00 - 23:00)' : 'Semanas do Período';
+            chartConsumoLinha.options.scales.x.title.text = currentView === 'diario' ? 'Horário (00:00 - 23:00)' : 'Semanas do Período';
         } else if (viewName === 'abastecimento') {
             carregarHistoricoAbastecimento();
         } else if (viewName === 'config') {
@@ -1792,10 +2004,14 @@ window.onload = function() {
 
 	criarGraficos();
 	const hoje = new Date();
-	const dataFimPadrao = getLocalISODate(hoje);
+	const dataFimPadrao = getLocalISODate(new Date()); // data de hoje
 	const mesFimPadrao = dataFimPadrao.substring(0, 7);
-	hoje.setDate(hoje.getDate() - 59); 
-	const dataInicioPadrao = getLocalISODate(hoje);
+    
+    // Calcula a data de 60 dias atrás para o seletor de intervalo
+    const dataInicioIntervalo = new Date();
+	dataInicioIntervalo.setDate(dataInicioIntervalo.getDate() - 59); 
+	const dataInicioPadrao = getLocalISODate(dataInicioIntervalo);
+    
 	document.getElementById('dataEscolhida').value = dataFimPadrao;
 	document.getElementById('mesEscolhido').value = mesFimPadrao;
 	document.getElementById('dataInicio').value = dataInicioPadrao;
