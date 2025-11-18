@@ -962,9 +962,11 @@ async function salvarLeituraNoFirebase(nivel, timestamp) {
     if (nivel <= 0) return;
     const d = new Date(timestamp);
     const localDate = getLocalISODate(d);
-    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const path = `PP7_config/historico/${localDate}/${hora}.json`;
+    // Grava a cada hora cheia para manter 24 pontos fixos
+    const horaCheia = String(d.getHours()).padStart(2, '0') + ":00";
+    const path = `PP7_config/historico/${localDate}/${horaCheia}.json`;
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
+    // Salvamos a leitura atual para a hora cheia mais próxima
     const dados = { nivel_pct: nivel, timestamp: timestamp };
     try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) { console.error("Erro ao salvar leitura:", e); }
 }
@@ -1082,6 +1084,7 @@ async function carregarHistoricoEConsumo() {
             const hojeISO = getLocalISODate(new Date());
             const isToday = (selecionada === hojeISO);
             const currentTime = Date.now();
+            const currentHour = new Date().getHours();
             
             const niveisFinal = labelsFixed.map((lbl, i) => {
                 const h = String(i).padStart(2, '0');
@@ -1092,23 +1095,29 @@ async function carregarHistoricoEConsumo() {
                     return sum / nivelHourly[h].length; // Média real
                 }
                 
-                // 2. É o dia de hoje?
-                if(isToday && ultimoNivelValido !== null) {
-                     const horaTs = new Date(hojeISO);
-                     horaTs.setHours(i, 0, 0, 0); // Timestamp para a hora 00:00, 01:00, etc.
+                // 2. É hora futura? -> FICA NULO (Ex: 13:00 se agora é 12:00)
+                if (isToday && i > currentHour) {
+                    return null;
+                }
+                
+                // 3. Não tem dado e a hora já passou (OU é a hora atual) -> Aplica Emergência
+                if(ultimoNivelValido !== null) {
+                     const horaTs = new Date(selecionada);
+                     horaTs.setHours(i, 0, 0, 0); 
                      
-                     // Se a hora já passou (i.e. <= hora atual do relógio)
+                     // Se a hora já passou (ou é a hora atual) E não é dado real
                      if(horaTs.getTime() <= currentTime) {
                           return calcularNivelEmergencia(ultimoNivelValido, dataUltimaLeituraValida, horaTs.getTime());
                      }
                 }
                 
-                // 3. Não é hoje, não tem dado, ou é hora futura -> Deixa NULO
+                // 4. Se não houver último nível válido ou for buraco no passado, deixa nulo.
                 return null;
             });
             
             // Atualiza o array global para uso no loop de tempo real
             if(isToday) {
+                // Filtra nulls para o loop de atualização do display (que só atualiza a posição atual)
                 dadosGraficoDiario = niveisFinal; 
             }
 
@@ -1359,9 +1368,15 @@ async function loopDeAtualizacao() {
         // Gravação periódica (60 min)
 		const agora = Date.now();
 		const intervaloGravacao = 60 * 60 * 1000; 
+        // Arredonda para a hora cheia para garantir que a leitura seja gravada na posição 00:00, 01:00, etc.
+        const horaCheia = new Date();
+        horaCheia.setMinutes(0, 0, 0);
+
 		if (agora - ultimaAtualizacaoGrafico > intervaloGravacao) {
             ultimaAtualizacaoGrafico = agora; 
-            if(nivelRecebido > 0) { // Só salva se for leitura real
+            
+            // Verifica se a hora atual já foi salva
+            if (nivelRecebido > 0) { // Só salva se for leitura real
                 salvarLeituraNoFirebase(Number(nivelRecebido), agora);
             }
 		}
