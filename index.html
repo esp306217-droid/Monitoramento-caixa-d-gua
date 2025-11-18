@@ -75,7 +75,7 @@ body {
 	margin-right: auto; 
 }
 
-/* NOVO: Indicador de Emergência */
+/* Badge de Emergência */
 #emergency-badge {
     position: fixed;
     top: 80px; /* Abaixo do header */
@@ -745,6 +745,44 @@ const TEMPLATE_ID = "template_ll79qy1"; // ID do modelo trocado
 
 // --- FUNÇÕES AUXILIARES (HOISTED GLOBALMENTE) ---
 
+// Função auxiliar para obter a data local correta (YYYY-MM-DD)
+function getLocalISODate(dateObj) {
+    const d = dateObj || new Date();
+    // Ajusta o fuso horário subtraindo o offset
+    const offset = d.getTimezoneOffset() * 60000;
+    const localDate = new Date(d.getTime() - offset);
+    return localDate.toISOString().split('T')[0];
+}
+
+// Função auxiliar para calcular nível de emergência baseado no tempo
+function calcularNivelEmergencia(ultimoValido, timestampUltimaLeitura) {
+    if (!ultimoValido || !timestampUltimaLeitura) return 0;
+    
+    const diffHoras = (Date.now() - timestampUltimaLeitura) / (1000 * 60 * 60);
+    let nivelCalculado = 0;
+
+    if (ultimoValido > 50) {
+        if (diffHoras < 12) nivelCalculado = ultimoValido; 
+        else if (diffHoras < 24) nivelCalculado = 55; 
+        else if (diffHoras < 32) nivelCalculado = 40; 
+        else if (diffHoras < 38) nivelCalculado = 30; 
+        else nivelCalculado = 20;
+    } 
+    else if (ultimoValido > 40) {
+        if (diffHoras < 8) nivelCalculado = 40; 
+        else if (diffHoras < 14) nivelCalculado = 30; 
+        else nivelCalculado = 20;
+    }
+    else if (ultimoValido > 30) {
+        if (diffHoras < 6) nivelCalculado = 30; 
+        else nivelCalculado = 20;
+    }
+    else {
+        nivelCalculado = 20;
+    }
+    return nivelCalculado;
+}
+
 async function enviarEmailAlerta(nivel) {
 	if (!emailJsInicializado) return false; 
 
@@ -913,12 +951,13 @@ function atualizarGraficosHistorico(result) {
     let displayLabelsLinha = [...labelsHistorico];
 	let displayNiveisLinha = [...niveisHistorico];
 	const datePicker = document.getElementById('dataEscolhida');
-	const hoje = new Date().toISOString().split('T')[0];
-
-	if (currentView === 'diario' && datePicker.value === hoje) {
-		displayLabelsLinha.push("Atual");
-		displayNiveisLinha.push(nivelAtual);
-	}
+	const hojeLocal = getLocalISODate(new Date());
+    
+    // CORREÇÃO CRÍTICA:
+    // Se o usuário selecionou um dia que NÃO é hoje, NÃO atualiza com dados de tempo real.
+    // 'result' já deve conter os dados históricos corretos passados por carregarHistoricoEConsumo.
+    
+    // Se for hoje, o loop de atualização chama esta função com dados acumulados.
 
 	chartLinha.data.labels = displayLabelsLinha;
 	chartLinha.data.datasets[0].data = displayNiveisLinha;
@@ -926,9 +965,9 @@ function atualizarGraficosHistorico(result) {
 
     let labelsBlocos, niveisBlocos;
     if (currentView === 'diario') {
-		const { labels, niveis } = agregarDadosPorHora(labelsHistorico, niveisHistorico); 
-		labelsBlocos = labels;
-		niveisBlocos = niveis;
+        // No modo diário, já vem com labels fixos 00-23h
+        labelsBlocos = displayLabelsLinha;
+        niveisBlocos = displayNiveisLinha;
     } else {
 		labelsBlocos = [...labelsHistorico]; 
 		niveisBlocos = [...niveisHistorico]; 
@@ -981,9 +1020,6 @@ function atualizarGraficoAbastecimento(result) {
     const card = document.getElementById('abastecimento-chart-card');
 
     // MOSTRAR SEMPRE SE HOUVER DADOS
-    // Se estiver em 'diario' mas a função for chamada para exibir, vamos mostrar
-    // O switchView já cuida de mudar para 'mensal'
-    
     card.style.display = 'block'; // Força mostrar
     
     chartAbastecimento.data.labels = abastLabels;
@@ -1042,9 +1078,10 @@ function criarGraficos() {
 async function salvarLeituraNoFirebase(nivel, timestamp) {
     if (nivel <= 0) return;
     const d = new Date(timestamp);
-    const data = d.toISOString().split('T')[0];
+    // Ajusta para local date na chave
+    const localDate = getLocalISODate(d);
     const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const path = `PP7_config/historico/${data}/${hora}.json`;
+    const path = `PP7_config/historico/${localDate}/${hora}.json`;
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
     const dados = { nivel_pct: nivel, timestamp: timestamp };
     try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) { console.error("Erro ao salvar leitura:", e); }
@@ -1056,7 +1093,7 @@ async function buscarUltimaLeituraHistorico() {
     }
 
     const hoje = new Date();
-    const dataHoje = hoje.toISOString().split('T')[0];
+    const dataHoje = getLocalISODate(hoje);
     
     let url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataHoje}.json`;
     
@@ -1072,7 +1109,12 @@ async function buscarUltimaLeituraHistorico() {
                 const val = dados[h].nivel_pct ?? dados[h].nivel ?? 0;
                 if (val > 0) {
                     ultimoNivelValido = val;
-                    const dataLeitura = new Date(`${dataHoje}T${h}:00`);
+                    // Reconstrói a data completa dessa leitura (aproximada para hoje)
+                    // Formato h é HH:MM
+                    const [hh, mm] = h.split(':');
+                    const dataLeitura = new Date(hoje);
+                    dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
+
                     dataUltimaLeituraValida = dataLeitura.getTime();
                     encontrou = true;
                     console.log(`Última leitura válida encontrada HOJE às ${h}: ${val}%`);
@@ -1084,7 +1126,7 @@ async function buscarUltimaLeituraHistorico() {
         if (!encontrou) {
             const ontem = new Date(hoje);
             ontem.setDate(ontem.getDate() - 1);
-            const dataOntem = ontem.toISOString().split('T')[0];
+            const dataOntem = getLocalISODate(ontem);
             url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataOntem}.json`;
             
             r = await fetch(url);
@@ -1096,7 +1138,10 @@ async function buscarUltimaLeituraHistorico() {
                     const val = dados[h].nivel_pct ?? dados[h].nivel ?? 0;
                     if (val > 0) {
                         ultimoNivelValido = val;
-                        const dataLeitura = new Date(`${dataOntem}T${h}:00`);
+                        const [hh, mm] = h.split(':');
+                        const dataLeitura = new Date(ontem);
+                        dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
+                        
                         dataUltimaLeituraValida = dataLeitura.getTime();
                         encontrou = true;
                         console.log(`Última leitura válida encontrada ONTEM às ${h}: ${val}%`);
@@ -1122,28 +1167,60 @@ async function carregarHistoricoEConsumo() {
 	let url = '';
 	let processData;
     let result = { labels: [], niveis: [], consumo: [] };
+    
+    // Busca TAMBÉM abastecimentos do período para o cálculo de consumo (range largo)
+    const hoje = new Date();
+    // Vamos buscar de 30 dias atras até hoje para cobrir qualquer seleção
+    const startRange = new Date(hoje);
+    startRange.setDate(startRange.getDate() - 40);
+    const startAtAbs = startRange.getTime();
+    const endAtAbs = hoje.getTime();
+    
+    let abastecimentosMap = {}; // YYYY-MM-DD -> Litros
+
+    try {
+         const urlAbs = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="timestamp"&startAt=${startAtAbs}&endAt=${endAtAbs}`;
+         const rAbs = await fetch(urlAbs);
+         const dadosAbs = await rAbs.json();
+         if (dadosAbs) {
+             Object.values(dadosAbs).forEach(item => {
+                 if(item.timestamp) {
+                     const d = new Date(item.timestamp);
+                     const k = getLocalISODate(d);
+                     if(!abastecimentosMap[k]) abastecimentosMap[k] = 0;
+                     abastecimentosMap[k] += (item.litros || 0);
+                 }
+             });
+         }
+    } catch(e) { console.error("Erro ao buscar abastecimentos para consumo:", e); }
+
 
 	if (currentView === 'diario') {
 		const data = document.getElementById('dataEscolhida').value;
 		if (!data) return result;
 		url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${data}.json`;
 		processData = (dados) => {
-            // Eixo X Fixo 24h para Consumo e Nível
             const labelsFixed = [];
             for(let h=0; h<24; h++) {
                 labelsFixed.push(String(h).padStart(2, '0') + " horas");
             }
             
-            const hourlyMap = {};
-            
             const nivelHourly = {}; 
-            
             if(dados) {
                 Object.keys(dados).forEach(fullTime => {
+                    // fullTime ex: "10:42"
                     const hour = fullTime.split(':')[0];
                     const val = dados[fullTime].nivel_pct ?? dados[fullTime].nivel ?? 0;
-                    if(!nivelHourly[hour]) nivelHourly[hour] = [];
-                    nivelHourly[hour].push(val);
+                    
+                    // Se val for 0, tenta aplicar lógica de emergência local
+                    // (Mas idealmente o Firebase já tem o valor corrigido salvo pelo loop)
+                    if (val > 0) {
+                        if(!nivelHourly[hour]) nivelHourly[hour] = [];
+                        nivelHourly[hour].push(val);
+                    } else {
+                        // Lógica de preenchimento de gap?
+                        // Vamos confiar que o loop salvou a emergência
+                    }
                 });
             }
 
@@ -1156,6 +1233,10 @@ async function carregarHistoricoEConsumo() {
                 return null;
             });
 
+            // Cálculo de Consumo Diário:
+            // Consumo = (Nível Inicial - Nível Final) + Abastecimento
+            // Problema: Horário a horário, não temos abastecimento horário.
+            // Então horário = Apenas queda de nível.
             const consumoFinal = labelsFixed.map((lbl, i) => {
                 const h = String(i).padStart(2, '0');
                 if(!nivelHourly[h] || nivelHourly[h].length < 2) return 0;
@@ -1187,19 +1268,35 @@ async function carregarHistoricoEConsumo() {
             const dailyConsumption = {}; 
             for (const dateKey in dados) {
                 const dailyReadings = dados[dateKey];
-                // Lógica de consumo diário (soma das quedas)
-                let consumoTotalPct = 0;
-                let ultimoNivel = -1;
-                const readingKeys = Object.keys(dailyReadings).sort();
-                for (const key of readingKeys) {
-                    const nivelAtual = dailyReadings[key].nivel_pct || 0;
-                    if (ultimoNivel !== -1) {
-                        if (nivelAtual < ultimoNivel) consumoTotalPct += (ultimoNivel - nivelAtual);
-                    }
-                    ultimoNivel = nivelAtual; 
+                
+                const times = Object.keys(dailyReadings).sort();
+                if(times.length < 2) {
+                    dailyConsumption[dateKey] = 0;
+                    continue;
                 }
-                dailyConsumption[dateKey] = consumoTotalPct * LITROS_POR_PERCENTO;
+                
+                const firstTime = times[0];
+                const lastTime = times[times.length - 1];
+                const startLevel = dailyReadings[firstTime].nivel_pct || 0;
+                const endLevel = dailyReadings[lastTime].nivel_pct || 0;
+                
+                // Formula CORRETA DE CONSUMO: 
+                // Consumo = (Nível Inicial - Nível Final) + Total Abastecido no Dia
+                // Ex: Começou 50%, Terminou 80%. Abasteceu 40%.
+                // Delta = 50 - 80 = -30%.
+                // Consumo = -30% + 40% = 10% consumidos.
+                
+                const deltaPct = startLevel - endLevel; 
+                const deltaLitros = deltaPct * LITROS_POR_PERCENTO;
+                const suppliedLitros = abastecimentosMap[dateKey] || 0;
+                
+                let totalConsumoDia = deltaLitros + suppliedLitros;
+                
+                if (totalConsumoDia < 0) totalConsumoDia = 0; // Erro de leitura ou ajuste
+                
+                dailyConsumption[dateKey] = totalConsumoDia;
             }
+            
             const labels = Object.keys(dailyConsumption).sort(); 
             const consumo = labels.map(key => dailyConsumption[key]); 
             const displayLabels = labels.map(d => d.substring(8, 10)); // Dia do mês
@@ -1231,24 +1328,20 @@ async function carregarDadosAbastecimento() {
     let result = { labels: [], litros: [] };
     let dataInicio, dataFim;
     
-    // Se for semanal, pega os ultimos 30 dias para garantir que pegue os dados recentes
-    // Se for mensal, pega o mes todo
-    // A API do firebase filtra por startAt endAt
-
     if (currentView === 'semanal') {
         // Pega ultimos 7 dias
         const hoje = new Date();
         const fim = new Date(hoje);
         const inicio = new Date(hoje.setDate(hoje.getDate() - 6)); 
-        dataInicio = inicio.toISOString().split('T')[0];
-        dataFim = fim.toISOString().split('T')[0];
+        dataInicio = getLocalISODate(inicio);
+        dataFim = getLocalISODate(fim);
     } else { 
-        // Mensal (ou fallback para diario/intervalo que vira mensal)
+        // Mensal (fallback para diario/intervalo)
         const picker = document.getElementById('mesEscolhido');
         let mesAno = picker.value;
          if (!mesAno) {
             const hoje = new Date();
-            mesAno = hoje.toISOString().substring(0, 7);
+            mesAno = getLocalISODate(hoje).substring(0, 7);
             picker.value = mesAno;
         }
         dataInicio = `${mesAno}-01`;
@@ -1257,16 +1350,13 @@ async function carregarDadosAbastecimento() {
         dataFim = `${mesAno}-${ultimoDia}`;
     }
 
-    // Tenta buscar um range maior caso o usuario tenha salvo dados antigos
-    // Mas para visualizacao semanal/mensal, devemos respeitar o range visual
-    // O usuario disse "ja tem 3 abastecimentos salvos". Se eles forem de datas antigas,
-    // só aparecerão se a dataInicio cobrir. Vou assumir que são recentes.
-
-    const startAt = new Date(dataInicio + "T00:00:00").getTime();
-    const endAt = new Date(dataFim + "T23:59:59").getTime();
+    // Consulta LARGA para garantir que pegamos tudo (ajuste de UTC)
+    const dStart = new Date(dataInicio + "T00:00:00");
+    const dEnd = new Date(dataFim + "T23:59:59");
+    // Recua 1 dia e avança 1 dia no timestamp para garantir cobertura de timezone
+    const startAt = dStart.getTime() - 86400000;
+    const endAt = dEnd.getTime() + 86400000;
     
-    // URL larga para pegar tudo se precisar debug, mas vamos manter range correto
-    // Se nao aparecer nada, pode ser que os dados no firebase estejam com timestamp errado ou fora do range
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="timestamp"&startAt=${startAt}&endAt=${endAt}`;
     
     try {
@@ -1278,11 +1368,23 @@ async function carregarDadosAbastecimento() {
         if (dados) {
             for (const key in dados) {
                 const item = dados[key];
-                // item.data_legivel deve ser usado para agrupar
-                if (!item || !item.data_legivel) continue; 
-                const dataKey = item.data_legivel.split('T')[0]; 
-                if (!dailyTotals[dataKey]) dailyTotals[dataKey] = 0;
-                dailyTotals[dataKey] += item.litros;
+                if (!item) continue;
+                
+                let dataKey;
+                if (item.timestamp) {
+                    const d = new Date(item.timestamp);
+                    dataKey = getLocalISODate(d);
+                } else if (item.data_legivel) {
+                     dataKey = item.data_legivel.split('T')[0];
+                } else {
+                    continue;
+                }
+
+                // Filtra manualmente para garantir que está no range visual desejado (dataInicio - dataFim)
+                if (dataKey >= dataInicio && dataKey <= dataFim) {
+                    if (!dailyTotals[dataKey]) dailyTotals[dataKey] = 0;
+                    dailyTotals[dataKey] += (item.litros || 0);
+                }
             }
         }
 
@@ -1290,32 +1392,34 @@ async function carregarDadosAbastecimento() {
         let finalData = [];
         
         if (currentView === 'semanal') {
-            // SEMANAL: Dias da Semana (Seg, Ter...)
             const diasSemanaMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
-            // Pega últimos 7 dias a partir de dataInicio
-            let d = new Date(dataInicio + 'T12:00:00');
+            let loopDate = new Date(dataInicio + "T12:00:00"); 
             
             for (let i = 0; i < 7; i++) {
-                const dataKey = d.toISOString().split('T')[0];
-                const diaDaSemana = diasSemanaMap[d.getDay()];
+                const dataKey = getLocalISODate(loopDate);
+                const diaDaSemana = diasSemanaMap[loopDate.getDay()];
                 
                 displayLabels.push(diaDaSemana); 
                 finalData.push(dailyTotals[dataKey] || 0); 
-                d.setDate(d.getDate() + 1); 
+                
+                loopDate.setDate(loopDate.getDate() + 1); 
             }
 
         } else { 
-            // MENSAL - Agrupado por Semana (1ª, 2ª...)
+            // MENSAL
              const weeklyTotals = [0, 0, 0, 0, 0];
-             Object.keys(dailyTotals).forEach(date => {
-                 const day = parseInt(date.split('-')[2]);
+             
+             Object.keys(dailyTotals).forEach(dateKey => {
+                 const day = parseInt(dateKey.split('-')[2]);
                  const weekIndex = Math.floor((day - 1) / 7);
+                 
                  if (weeklyTotals[weekIndex] !== undefined) {
-                     weeklyTotals[weekIndex] += dailyTotals[date];
+                     weeklyTotals[weekIndex] += dailyTotals[dateKey];
                  } else if(weekIndex >= 5) {
-                     weeklyTotals[4] += dailyTotals[date]; // soma na ultima se passar
+                     weeklyTotals[4] += dailyTotals[dateKey]; 
                  }
              });
+             
              displayLabels = ["1ª Semana", "2ª Semana", "3ª Semana", "4ª Semana", "5ª Semana"];
              finalData = weeklyTotals;
         }
@@ -1334,7 +1438,7 @@ async function removerAbastecimento(id) {
         const response = await fetch(url, { method: 'DELETE' });
         if (!response.ok) throw new Error('Erro ao apagar no Firebase');
         carregarHistoricoAbastecimento(); 
-        carregarDadosAbastecimento(); // Atualiza gráfico também
+        carregarDadosAbastecimento(); 
     } catch (e) { console.error("Erro ao remover abastecimento:", e); }
 }
 
@@ -1395,7 +1499,7 @@ async function salvarAbastecimento(litros) {
         statusDiv.style.color = 'green'; statusDiv.innerText = 'Abastecimento salvo!';
         document.getElementById('litros-abastecidos').value = ''; 
         carregarHistoricoAbastecimento(); 
-        carregarDadosAbastecimento(); // Atualiza gráfico
+        carregarDadosAbastecimento(); 
     } catch (e) {
         console.error("Erro ao salvar abastecimento:", e);
         statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.';
@@ -1639,13 +1743,21 @@ async function loopDeAtualizacao() {
         }
 		
 		if (document.getElementById('grafico-container').style.display !== 'none') {
-			atualizarGraficosHistorico({ labels: historicoLabels, niveis: historicoNiveis });
+			// CORREÇÃO PARA EVITAR SOBRESCRITA DO HISTÓRICO ANTIGO
+            // Só chama atualização SE estiver vendo o dia de hoje
+            const datePicker = document.getElementById('dataEscolhida');
+            const hoje = getLocalISODate(new Date());
+
+            if (currentView === 'diario' && datePicker.value === hoje) {
+                // Passa os dados globais que contém o histórico de hoje + leituras em tempo real
+			    atualizarGraficosHistorico({ labels: historicoLabels, niveis: historicoNiveis });
+            }
 		}
 		
 		const agora = Date.now();
 		const intervaloGravacao = 60 * 60 * 1000; // 60 minutos
 		const datePicker = document.getElementById('dataEscolhida');
-		const hoje = new Date().toISOString().split('T')[0];
+		const hoje = getLocalISODate(new Date());
 
 		if (agora - ultimaAtualizacaoGrafico > intervaloGravacao) {
             ultimaAtualizacaoGrafico = agora; 
@@ -1761,14 +1873,12 @@ window.onload = function() {
             btnIntervalo.style.display = 'none';
             btnSemanal.style.display = 'flex';
             btnMensal.style.display = 'flex';
-            
-            // Forçar mensal se estiver em diário
             if (currentView === 'diario' || currentView === 'intervalo') {
-                 currentView = 'mensal';
+                 currentView = 'semanal';
                  viewSelector.querySelector('.view-btn.active').classList.remove('active');
-                 btnMensal.classList.add('active');
+                 btnSemanal.classList.add('active');
                  document.getElementById('diario-picker').style.display = 'none';
-                 document.getElementById('mensal-picker').style.display = 'flex';
+                 document.getElementById('mensal-picker').style.display = 'none';
                  document.getElementById('intervalo-picker').style.display = 'none';
             }
         }
@@ -1879,10 +1989,10 @@ window.onload = function() {
 
 	criarGraficos();
 	const hoje = new Date();
-	const dataFimPadrao = hoje.toISOString().split('T')[0];
-	const mesFimPadrao = hoje.toISOString().substring(0, 7);
+	const dataFimPadrao = getLocalISODate(hoje);
+	const mesFimPadrao = dataFimPadrao.substring(0, 7);
 	hoje.setDate(hoje.getDate() - 59); 
-	const dataInicioPadrao = hoje.toISOString().split('T')[0];
+	const dataInicioPadrao = getLocalISODate(hoje);
 	document.getElementById('dataEscolhida').value = dataFimPadrao;
 	document.getElementById('mesEscolhido').value = mesFimPadrao;
 	document.getElementById('dataInicio').value = dataInicioPadrao;
