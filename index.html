@@ -349,7 +349,20 @@ input[type="date"], input[type="month"] {
 }
 .chart-card strong { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.1rem;}
 
-canvas { width: 100%!important; height: 340px!important; display: block; }
+/* Ajuste para scroll horizontal em mobile */
+.chart-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 5px; /* Espaço para a barra de rolagem não colar */
+}
+.chart-container-inner {
+    position: relative;
+    min-width: 700px; /* Largura mínima forçada para o gráfico se esticar */
+    height: 340px;
+}
+
+canvas { width: 100%!important; height: 100%!important; display: block; }
 .small { font-size: .9rem; color: #666; margin-top: 4px; }
 
 .view-selector { display: flex; gap: 5px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
@@ -501,7 +514,10 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 	.view-selector { justify-content: center;}	
 	.config-board { grid-template-columns: 1fr; }
 	.chart-card { padding: 10px; }
-	canvas { height: 250px !important; }
+    
+    /* Ajuste de altura do wrapper interno no mobile */
+	.chart-container-inner { height: 250px !important; }
+    
     #status-display { grid-template-rows: auto auto; padding: 12px 15px; }
     .status-item.item-time { margin-top: 8px; }
     .status-value { font-size: 1.8rem; }
@@ -572,8 +588,24 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
     </header>
 	<div class="board">
 		<div class="charts">
-			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Horário 00h-23h)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível a cada hora ao longo do dia selecionado.</div></div>
-            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Leituras de 60 em 60 minutos)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe as leituras do nível a cada 60 minutos.</div></div>
+			<div class="chart-card">
+                <strong>Gráfico de Linha — Nível (%) (Horário 00h-23h)</strong>
+                <div class="chart-scroll-wrapper">
+                    <div class="chart-container-inner">
+                        <canvas id="chartLinha"></canvas>
+                    </div>
+                </div>
+                <div class="small">Exibe o histórico de nível a cada hora ao longo do dia selecionado.</div>
+            </div>
+            <div class="chart-card">
+                <strong>Gráfico em Blocos — Nível (%) (Leituras de 60 em 60 minutos)</strong>
+                <div class="chart-scroll-wrapper">
+                    <div class="chart-container-inner">
+                        <canvas id="chartBlocos"></canvas>
+                    </div>
+                </div>
+                <div class="small">Exibe as leituras do nível a cada 60 minutos.</div>
+            </div>
 		</div>
 	</div>
 </div>
@@ -609,13 +641,21 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 		<div class="charts">
             <div class="chart-card" id="consumo-chart-card-bloco">
                 <strong>Gráfico de Consumo Diário (Litros) - Blocos</strong>
-                <canvas id="chartConsumoBloco"></canvas>
+                <div class="chart-scroll-wrapper">
+                    <div class="chart-container-inner">
+                        <canvas id="chartConsumoBloco"></canvas>
+                    </div>
+                </div>
                 <div class="small">Exibe o consumo aproximado em litros por dia (Barras).</div>
                 <div id="consumo-info-texto" style="margin-top: 10px; font-weight: bold; color: #0e7490;"></div>
             </div>
             <div class="chart-card" id="consumo-chart-card-linha">
                 <strong>Gráfico de Consumo Diário (Litros) - Linha</strong>
-                <canvas id="chartConsumoLinha"></canvas>
+                 <div class="chart-scroll-wrapper">
+                    <div class="chart-container-inner">
+                        <canvas id="chartConsumoLinha"></canvas>
+                    </div>
+                </div>
                 <div class="small">Exibe o consumo aproximado em litros por dia (Linha).</div>
             </div>
 		</div>
