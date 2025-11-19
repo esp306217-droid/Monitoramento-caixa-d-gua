@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Monitoramento Caixa D'Água PP7</title>
 
+<!-- Chart.js Core -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<!-- Dependência para gestos de toque (Zoom) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<!-- Plugin de Zoom do Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 <style>
@@ -349,20 +355,7 @@ input[type="date"], input[type="month"] {
 }
 .chart-card strong { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.1rem;}
 
-/* Ajuste para scroll horizontal em mobile */
-.chart-scroll-wrapper {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 5px; /* Espaço para a barra de rolagem não colar */
-}
-.chart-container-inner {
-    position: relative;
-    min-width: 700px; /* Largura mínima forçada para o gráfico se esticar */
-    height: 340px;
-}
-
-canvas { width: 100%!important; height: 100%!important; display: block; }
+canvas { width: 100%!important; height: 340px!important; display: block; }
 .small { font-size: .9rem; color: #666; margin-top: 4px; }
 
 .view-selector { display: flex; gap: 5px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
@@ -514,10 +507,7 @@ canvas { width: 100%!important; height: 100%!important; display: block; }
 	.view-selector { justify-content: center;}	
 	.config-board { grid-template-columns: 1fr; }
 	.chart-card { padding: 10px; }
-    
-    /* Ajuste de altura do wrapper interno no mobile */
-	.chart-container-inner { height: 250px !important; }
-    
+	canvas { height: 250px !important; }
     #status-display { grid-template-rows: auto auto; padding: 12px 15px; }
     .status-item.item-time { margin-top: 8px; }
     .status-value { font-size: 1.8rem; }
@@ -588,24 +578,8 @@ canvas { width: 100%!important; height: 100%!important; display: block; }
     </header>
 	<div class="board">
 		<div class="charts">
-			<div class="chart-card">
-                <strong>Gráfico de Linha — Nível (%) (Horário 00h-23h)</strong>
-                <div class="chart-scroll-wrapper">
-                    <div class="chart-container-inner">
-                        <canvas id="chartLinha"></canvas>
-                    </div>
-                </div>
-                <div class="small">Exibe o histórico de nível a cada hora ao longo do dia selecionado.</div>
-            </div>
-            <div class="chart-card">
-                <strong>Gráfico em Blocos — Nível (%) (Leituras de 60 em 60 minutos)</strong>
-                <div class="chart-scroll-wrapper">
-                    <div class="chart-container-inner">
-                        <canvas id="chartBlocos"></canvas>
-                    </div>
-                </div>
-                <div class="small">Exibe as leituras do nível a cada 60 minutos.</div>
-            </div>
+			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Horário 00h-23h)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível a cada hora ao longo do dia selecionado.</div></div>
+            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Leituras de 60 em 60 minutos)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe as leituras do nível a cada 60 minutos.</div></div>
 		</div>
 	</div>
 </div>
@@ -641,21 +615,13 @@ canvas { width: 100%!important; height: 100%!important; display: block; }
 		<div class="charts">
             <div class="chart-card" id="consumo-chart-card-bloco">
                 <strong>Gráfico de Consumo Diário (Litros) - Blocos</strong>
-                <div class="chart-scroll-wrapper">
-                    <div class="chart-container-inner">
-                        <canvas id="chartConsumoBloco"></canvas>
-                    </div>
-                </div>
+                <canvas id="chartConsumoBloco"></canvas>
                 <div class="small">Exibe o consumo aproximado em litros por dia (Barras).</div>
                 <div id="consumo-info-texto" style="margin-top: 10px; font-weight: bold; color: #0e7490;"></div>
             </div>
             <div class="chart-card" id="consumo-chart-card-linha">
                 <strong>Gráfico de Consumo Diário (Litros) - Linha</strong>
-                 <div class="chart-scroll-wrapper">
-                    <div class="chart-container-inner">
-                        <canvas id="chartConsumoLinha"></canvas>
-                    </div>
-                </div>
+                <canvas id="chartConsumoLinha"></canvas>
                 <div class="small">Exibe o consumo aproximado em litros por dia (Linha).</div>
             </div>
 		</div>
@@ -975,6 +941,19 @@ function atualizarGraficosConsumo(result) {
 }
 
 function criarGraficos() {
+    // Configuração comum de zoom
+    const zoomOptions = {
+        pan: {
+            enabled: true,
+            mode: 'x',
+        },
+        zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x',
+        }
+    };
+
 	// Gráfico de Linha
 	const ctxL = document.getElementById('chartLinha').getContext('2d');
 	const gradL = ctxL.createLinearGradient(0, 0, 0, 300);
@@ -995,7 +974,10 @@ function criarGraficos() {
         }] },
 		options: { 
             animation: false, 
-            plugins: { legend: { display: false } }, 
+            plugins: { 
+                legend: { display: false },
+                zoom: zoomOptions 
+            }, 
             scales: { 
                 x: { 
                     ticks: { color: '#666' },
@@ -1025,7 +1007,10 @@ function criarGraficos() {
 		data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 6 }] },
 		options: { 
             animation: false, 
-            plugins: { legend: { display: false } }, 
+            plugins: { 
+                legend: { display: false },
+                zoom: zoomOptions 
+            }, 
             scales: { 
                 x: { 
                     ticks: { color: '#666' },
@@ -1055,7 +1040,10 @@ function criarGraficos() {
         data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], backgroundColor: 'rgba(6, 182, 212, 0.85)', borderRadius: 6 }] },
         options: { 
             animation: false, 
-            plugins: { legend: { display: false } }, 
+            plugins: { 
+                legend: { display: false },
+                zoom: zoomOptions 
+            }, 
             scales: { 
                 x: { ticks: { color: '#666' } }, 
                 y: { ticks: { color: '#666' }, min: 0, max: 8000 }
@@ -1069,7 +1057,14 @@ function criarGraficos() {
     chartConsumoLinha = new Chart(ctxCL, {
         type: 'line',
         data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], fill: true, backgroundColor: 'rgba(6,182,212,0.28)', borderColor: 'rgba(6, 182, 212, 0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
-        options: { animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, maintainAspectRatio: false }
+        options: { 
+            animation: false, 
+            plugins: { 
+                legend: { display: false },
+                zoom: zoomOptions
+            }, 
+            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, maintainAspectRatio: false 
+        }
     });
 }
 
