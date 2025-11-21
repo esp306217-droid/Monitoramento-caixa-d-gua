@@ -713,6 +713,7 @@ let alertaModalMostrado = false;
 // Variáveis de Bloqueio e Inicialização
 let verificacaoInicialConcluida = false;
 let bloqueioEmailDiario = false; // TRUE se o email de hoje JÁ FOI enviado
+let alertaConfirmadoPeloUsuario = false; // Flag para silenciar alerta permanentemente até reset
 
 // Variável de Controle de Horário
 let ultimoHorarioSalvo = -1; 
@@ -726,7 +727,7 @@ let lfo;
 let lfoGain;    
 let isAlarmPlaying = false;
 
-// Variáveis de Snooze
+// Variáveis de Snooze (Fallback)
 let snoozeCount = 0; 
 let snoozeUntil = 0; 
 const SNOOZE_DURATION_MINUTES = 10; 
@@ -756,24 +757,38 @@ function getLocalISODate(dateObj) {
 async function enviarEmailAlerta(nivel) {
 	if (!emailJsInicializado) return false; 
 
-    // --- VERIFICAÇÃO DUPLA (DOUBLE CHECK) NO MOMENTO DO ENVIO ---
-    // Apenas para garantir que nenhuma condição de corrida passou pela verificação inicial
+    // --- VERIFICAÇÃO SÍNCRONA DE MEMÓRIA + LOCALSTORAGE + FIREBASE ---
     const hoje = getLocalISODate(new Date()); 
-    const urlCheck = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_envios/${hoje}.json?t=${Date.now()}`;
+    
+    // 1. Memória
+    if (bloqueioEmailDiario) {
+        console.log("Bloqueio Memória: E-mail já enviado hoje.");
+        return false; 
+    }
+
+    // 2. LocalStorage (Backup Rápido)
+    if (localStorage.getItem('pp7_last_email_date') === hoje) {
+        console.log("Bloqueio LocalStorage: E-mail já enviado hoje.");
+        bloqueioEmailDiario = true;
+        return false;
+    }
+
+    // 3. Firebase (Verdade Absoluta)
+    // Usando um nó simplificado e único para armazenar a data como string
+    const urlCheck = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/data_ultimo_envio.json?t=${Date.now()}`;
 
     try {
         const r = await fetch(urlCheck);
-        const jaEnviouHoje = await r.json();
+        const dataUltimoEnvio = await r.json(); // Deve retornar string ex: "2023-10-27"
         
-        if (jaEnviouHoje === true) {
-            console.log(`BLOQUEIO FINAL: Tentativa de envio abortada. Já consta envio para ${hoje} no Firebase.`);
-            bloqueioEmailDiario = true; // Garante que a flag local também trave
+        if (dataUltimoEnvio === hoje) {
+            console.log(`BLOQUEIO FIREBASE: Já consta envio para data ${hoje}.`);
+            bloqueioEmailDiario = true;
+            localStorage.setItem('pp7_last_email_date', hoje);
             return false; 
         }
     } catch(e) {
-        console.error("Erro ao verificar histórico de envios (Double Check):", e);
-        // Se der erro de rede aqui, melhor abortar para não arriscar spam
-        return false; 
+        console.error("Erro ao verificar histórico de envios (Firebase):", e);
     }
 
 	let contatos = {};
@@ -809,16 +824,21 @@ async function enviarEmailAlerta(nivel) {
 		}
 	}
 
-    // Se enviou (ou tentou enviar), TRAVA O DIA NO FIREBASE
+    // SE ENVIOU (OU TENTOU), TRAVA TUDO IMEDIATAMENTE
     if (todosEnviadosComSucesso) {
+         // 1. Trava LocalStorage
+         localStorage.setItem('pp7_last_email_date', hoje);
+         
+         // 2. Trava Memória
+         bloqueioEmailDiario = true;
+
+         // 3. Trava Firebase (Grava a data de hoje como string simples)
          try {
-             // Grava TRUE na chave da data de hoje
-             await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_envios/${hoje}.json`, {
+             await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/data_ultimo_envio.json`, {
                  method: 'PUT',
-                 body: JSON.stringify(true)
+                 body: JSON.stringify(hoje)
              });
-             console.log(`SUCESSO: Data ${hoje} travada no Firebase.`);
-             bloqueioEmailDiario = true; // Trava localmente também
+             console.log(`SUCESSO: Data ${hoje} gravada no Firebase.`);
          } catch(e) {
              console.error("Erro ao gravar confirmação no Firebase:", e);
          }
@@ -835,6 +855,28 @@ function mostrarAlertaModal() {
 function fecharAlertaModal() {
     const modal = document.getElementById('alert-modal');
     if (modal) modal.style.display = 'none';
+}
+
+// --- NOVA FUNÇÃO DE CONFIRMAÇÃO DO USUÁRIO ---
+function confirmarAlerta() {
+    fecharAlertaModal();
+    controlarAlarme(false);
+    alertaModalMostrado = false;
+    alertaConfirmadoPeloUsuario = true; // Silencia permanentemente até reset
+    console.log("Alerta confirmado pelo usuário. Silenciado até o nível atingir 60%.");
+}
+
+// --- MANTIDO APENAS PARA AUTO-TIMEOUT (FALLBACK) ---
+function iniciarSoneca() {
+    // Se o usuário não clicar, silencia temporariamente
+    fecharAlertaModal();
+    controlarAlarme(false);
+    alertaModalMostrado = false;
+    snoozeCount++;
+    if (snoozeCount < 3) {
+        const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000;
+        snoozeUntil = Date.now() + snoozeMs;
+    }
 }
 
 function setupAudio() {
@@ -879,21 +921,6 @@ function controlarAlarme(play) {
     } else if (!play && isAlarmPlaying) {
         gainNode.gain.setValueAtTime(0, audioContext.currentTime); 
         isAlarmPlaying = false;
-    }
-}
-
-function iniciarSoneca() {
-    fecharAlertaModal();
-    controlarAlarme(false);
-    alertaModalMostrado = false;
-
-    snoozeCount++;
-    if (snoozeCount < 3) {
-        const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000;
-        snoozeUntil = Date.now() + snoozeMs;
-        console.log(`Alarme (${snoozeCount}/3) pausado. Próximo alerta em ${SNOOZE_DURATION_MINUTES} min.`);
-    } else {
-        console.log('Todos os 3 alertas exibidos. Silêncio até o nível normalizar.');
     }
 }
 
@@ -1679,9 +1706,10 @@ async function loopDeAtualizacao() {
 
             if (bloqueioEmailDiario) {
                 // Se já bloqueou o dia, não faz nada de envio
-                console.log("Alerta ativo, mas e-mail diário já foi enviado.");
             }
-            else if (Date.now() < snoozeUntil) { /* Snooze */ } 
+            else if (alertaConfirmadoPeloUsuario) {
+                // Usuário silenciou manualmente
+            }
             else if (alertaModalMostrado) { /* Modal Aberto */ }
             else if (snoozeCount >= 3) { /* Limite */ }
             else {
@@ -1701,8 +1729,11 @@ async function loopDeAtualizacao() {
             }
 
         } else { 
-            // REMOVIDO: O código que resetava o envio de e-mail.
-            // Se enviou hoje, enviou hoje. Só reseta amanhã quando a data mudar.
+            // Se o nível voltar ao normal (> 60%), desarma a confirmação do usuário
+            if (nivelAtual > 60 && alertaConfirmadoPeloUsuario) {
+                console.log("Nível recuperado acima de 60%. Alerta rearmado.");
+                alertaConfirmadoPeloUsuario = false;
+            }
 
             if (nivelAtual <= 60) {
                  statusDisplay.classList.add('level-warn');
@@ -1800,11 +1831,12 @@ window.onload = function() {
     // --- BLOQUEIO PREVENTIVO AO INICIAR ---
     (async function verificarBloqueioInicial() {
         const hoje = getLocalISODate(new Date());
-        const urlCheck = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_envios/${hoje}.json?t=${Date.now()}`;
+        const urlCheck = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/data_ultimo_envio.json?t=${Date.now()}`;
         try {
             const r = await fetch(urlCheck);
-            const jaEnviouHoje = await r.json();
-            if (jaEnviouHoje === true) {
+            const dataUltimoEnvio = await r.json();
+            // Se a data gravada for igual à data de hoje, bloqueia!
+            if (dataUltimoEnvio === hoje) {
                 console.log("INICIALIZAÇÃO: E-mail já enviado hoje. Bloqueio ativado.");
                 bloqueioEmailDiario = true;
             }
@@ -1886,7 +1918,8 @@ window.onload = function() {
     btns.consumo.addEventListener('click', () => switchView('consumo'));
 	btns.config.addEventListener('click', () => switchView('config'));
 
-    document.getElementById('modal-close-btn').addEventListener('click', iniciarSoneca);
+    // CORREÇÃO: Mapeia o botão "Entendido" para a nova função de silenciamento
+    document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta);
 
     document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => {
         const litros = document.getElementById('litros-abastecidos').value;
