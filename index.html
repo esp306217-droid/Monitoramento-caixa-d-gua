@@ -754,23 +754,24 @@ async function enviarEmailAlerta(nivel) {
 	if (!emailJsInicializado) return false; 
 
     // --- VERIFICAÇÃO DE COTA DIÁRIA NO FIREBASE ---
-    const hoje = new Date().toLocaleDateString('pt-BR');
+    // Use ISO date YYYY-MM-DD for consistency
+    const hoje = getLocalISODate(new Date()); 
     let ultimoEnvio = null;
     
     try {
-        // Busca a data do último envio no Firebase
         const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_aviso_email.json');
         ultimoEnvio = await r.json();
+        console.log(`Verificação de Email: Hoje=${hoje}, Último=${ultimoEnvio}`);
     } catch(e) {
         console.error("Erro ao checar cota de email:", e);
-        // Se falhar a checagem, por segurança, não bloqueia (ou bloqueia, dependendo da politica. Aqui deixo passar se der erro de rede)
     }
 
+    // Compare strings
     if (ultimoEnvio === hoje) {
-        console.log("Limite de e-mails diários atingido (verificado no Firebase). Nenhum novo e-mail será enviado hoje.");
+        console.log("BLOQUEIO: Já foi enviado um e-mail hoje.");
         return false; 
     }
-    // -----------------------------------
+    // ...
 
 	let contatos = {};
 	try {
@@ -805,16 +806,16 @@ async function enviarEmailAlerta(nivel) {
 		}
 	}
 
-    // Se enviou (ou tentou enviar para todos), marca o dia como "ENVIADO" no Firebase
+    // After sending:
     if (todosEnviadosComSucesso) {
          try {
              await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_aviso_email.json', {
                  method: 'PUT',
                  body: JSON.stringify(hoje)
              });
-             console.log("Data de envio de e-mail atualizada no Firebase.");
+             console.log(`Sucesso: Data ${hoje} gravada no Firebase.`);
          } catch(e) {
-             console.error("Erro ao salvar data de envio de email no Firebase:", e);
+             console.error("Erro ao gravar data no Firebase:", e);
          }
     }
 
