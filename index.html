@@ -707,9 +707,12 @@ let currentView = 'diario';
 let activeTab = 'caixa'; 
 let nivelAtual = 0;
 let nivelAlertaConfigurado = 30; 
-let alertaEmailEnviado = false; 
 let emailJsInicializado = false; 
 let alertaModalMostrado = false; 
+
+// Variáveis de Bloqueio e Inicialização
+let verificacaoInicialConcluida = false;
+let bloqueioEmailDiario = false; // TRUE se o email de hoje JÁ FOI enviado
 
 // Variável de Controle de Horário
 let ultimoHorarioSalvo = -1; 
@@ -753,25 +756,25 @@ function getLocalISODate(dateObj) {
 async function enviarEmailAlerta(nivel) {
 	if (!emailJsInicializado) return false; 
 
-    // --- VERIFICAÇÃO DE COTA DIÁRIA NO FIREBASE ---
-    // Use ISO date YYYY-MM-DD for consistency
+    // --- VERIFICAÇÃO DUPLA (DOUBLE CHECK) NO MOMENTO DO ENVIO ---
+    // Apenas para garantir que nenhuma condição de corrida passou pela verificação inicial
     const hoje = getLocalISODate(new Date()); 
-    let ultimoEnvio = null;
-    
-    try {
-        const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_aviso_email.json');
-        ultimoEnvio = await r.json();
-        console.log(`Verificação de Email: Hoje=${hoje}, Último=${ultimoEnvio}`);
-    } catch(e) {
-        console.error("Erro ao checar cota de email:", e);
-    }
+    const urlCheck = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_envios/${hoje}.json?t=${Date.now()}`;
 
-    // Compare strings
-    if (ultimoEnvio === hoje) {
-        console.log("BLOQUEIO: Já foi enviado um e-mail hoje.");
+    try {
+        const r = await fetch(urlCheck);
+        const jaEnviouHoje = await r.json();
+        
+        if (jaEnviouHoje === true) {
+            console.log(`BLOQUEIO FINAL: Tentativa de envio abortada. Já consta envio para ${hoje} no Firebase.`);
+            bloqueioEmailDiario = true; // Garante que a flag local também trave
+            return false; 
+        }
+    } catch(e) {
+        console.error("Erro ao verificar histórico de envios (Double Check):", e);
+        // Se der erro de rede aqui, melhor abortar para não arriscar spam
         return false; 
     }
-    // ...
 
 	let contatos = {};
 	try {
@@ -789,7 +792,7 @@ async function enviarEmailAlerta(nivel) {
 
 	if (emailsParaEnviar.length === 0) return false;
 
-	console.log(`Tentando enviar e-mail de alerta para o nível: ${nivel}%`);
+	console.log(`ENVIANDO E-MAIL DE ALERTA (Nível: ${nivel}%)`);
 	
 	let todosEnviadosComSucesso = true;
 	for (const email of emailsParaEnviar) {
@@ -806,16 +809,18 @@ async function enviarEmailAlerta(nivel) {
 		}
 	}
 
-    // After sending:
+    // Se enviou (ou tentou enviar), TRAVA O DIA NO FIREBASE
     if (todosEnviadosComSucesso) {
          try {
-             await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/ultimo_aviso_email.json', {
+             // Grava TRUE na chave da data de hoje
+             await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_envios/${hoje}.json`, {
                  method: 'PUT',
-                 body: JSON.stringify(hoje)
+                 body: JSON.stringify(true)
              });
-             console.log(`Sucesso: Data ${hoje} gravada no Firebase.`);
+             console.log(`SUCESSO: Data ${hoje} travada no Firebase.`);
+             bloqueioEmailDiario = true; // Trava localmente também
          } catch(e) {
-             console.error("Erro ao gravar data no Firebase:", e);
+             console.error("Erro ao gravar confirmação no Firebase:", e);
          }
     }
 
@@ -1584,6 +1589,9 @@ async function carregarContatos() {
 // --- LOOP PRINCIPAL ---
 async function loopDeAtualizacao() {
     try {
+        // --- BLOQUEIO CRÍTICO: SE NÃO TERMINOU VERIFICAÇÃO INICIAL, NÃO FAZ NADA ---
+        if (!verificacaoInicialConcluida) return;
+
         let j;
         let config; 
         const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
@@ -1669,14 +1677,18 @@ async function loopDeAtualizacao() {
         if (nivelAtual <= nivelAlertaConfigurado) {
             statusDisplay.classList.add('level-danger');
 
-            if (Date.now() < snoozeUntil) { /* Snooze */ } 
+            if (bloqueioEmailDiario) {
+                // Se já bloqueou o dia, não faz nada de envio
+                console.log("Alerta ativo, mas e-mail diário já foi enviado.");
+            }
+            else if (Date.now() < snoozeUntil) { /* Snooze */ } 
             else if (alertaModalMostrado) { /* Modal Aberto */ }
             else if (snoozeCount >= 3) { /* Limite */ }
             else {
-                if (!alertaEmailEnviado) { 
-                    alertaEmailEnviado = true;
-                    enviarEmailAlerta(nivelAtual);
-                }
+                // A função enviarEmailAlerta já tem a trava interna, mas a flag 'bloqueioEmailDiario' 
+                // evita chamadas desnecessárias
+                enviarEmailAlerta(nivelAtual);
+                
                 mostrarAlertaModal();
                 alertaModalMostrado = true;
                 controlarAlarme(true);
@@ -1689,10 +1701,8 @@ async function loopDeAtualizacao() {
             }
 
         } else { 
-            const resetLevel = nivelAlertaConfigurado + ALERTA_RESET_MARGIN;
-            if (nivelAtual >= resetLevel && alertaEmailEnviado) {
-                alertaEmailEnviado = false;
-            }
+            // REMOVIDO: O código que resetava o envio de e-mail.
+            // Se enviou hoje, enviou hoje. Só reseta amanhã quando a data mudar.
 
             if (nivelAtual <= 60) {
                  statusDisplay.classList.add('level-warn');
@@ -1787,6 +1797,23 @@ window.onload = function() {
 		try { emailjs.init(PUBLIC_KEY); emailJsInicializado = true; } catch(e) { emailJsInicializado = false; }
 	})();
      
+    // --- BLOQUEIO PREVENTIVO AO INICIAR ---
+    (async function verificarBloqueioInicial() {
+        const hoje = getLocalISODate(new Date());
+        const urlCheck = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico_envios/${hoje}.json?t=${Date.now()}`;
+        try {
+            const r = await fetch(urlCheck);
+            const jaEnviouHoje = await r.json();
+            if (jaEnviouHoje === true) {
+                console.log("INICIALIZAÇÃO: E-mail já enviado hoje. Bloqueio ativado.");
+                bloqueioEmailDiario = true;
+            }
+        } catch(e) { console.error("Erro verificação inicial:", e); }
+        
+        // Só libera o loop principal DEPOIS de verificar
+        verificacaoInicialConcluida = true;
+    })();
+
     const btnIntervaloElem = document.getElementById('btn-view-intervalo');
      
     function switchView(viewName) {
