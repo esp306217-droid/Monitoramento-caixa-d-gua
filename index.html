@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monitoramento Caixa D'Água PP7</title>
+<title>Monitoramento Caixa D'Água PP7 - V.Final</title>
 
 <!-- Chart.js Core -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
@@ -713,6 +713,7 @@ let alertaModalMostrado = false;
 
 // Variável de Controle de Horário
 let ultimoHorarioSalvo = -1; 
+let ultimoTempoSalvo = 0; // Para controlar save a cada 5 min
 
 // Variáveis de Áudio
 let audioContext;
@@ -1142,16 +1143,20 @@ async function buscarUltimaLeituraHistorico() {
         let encontrou = false;
         
         if (dados) {
-            // CORREÇÃO: Ordenação numérica para garantir que 10h venha depois de 9h
+            // Ordena por hora decrescente (mais recente primeiro)
             const horarios = Object.keys(dados).sort((a, b) => {
                 const hA = parseInt(a.split(':')[0]);
                 const hB = parseInt(b.split(':')[0]);
-                return hA - hB; // Ordem crescente
-            }).reverse(); // Inverte para decrescente (mais recente primeiro)
+                return hA - hB;
+            }).reverse();
 
             for (const h of horarios) {
-                const val = dados[h].nivel_pct ?? dados[h].nivel ?? 0;
-                if (val > 0) {
+                const leitura = dados[h];
+                const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
+                const tipo = leitura.tipo || 'real';
+
+                // CORREÇÃO: Ignora leituras que são "estimadas"
+                if (val > 0 && tipo !== 'estimado') {
                     ultimoNivelValido = val;
                     let hh = 0, mm = 0;
                     if (h.includes(':')) {
@@ -1165,7 +1170,10 @@ async function buscarUltimaLeituraHistorico() {
 
                     dataUltimaLeituraValida = dataLeitura.getTime();
                     encontrou = true;
-                    console.log(`Última leitura válida encontrada HOJE às ${h}: ${val}%`);
+                    console.log(`Última leitura REAL válida encontrada HOJE às ${h}: ${val}%`);
+                    
+                    // Popula o histórico de memória
+                    historicoLeiturasValidas.push(val);
                     break;
                 }
             }
@@ -1181,7 +1189,6 @@ async function buscarUltimaLeituraHistorico() {
             dados = await r.json();
              
             if (dados) {
-                // CORREÇÃO: Ordenação numérica aqui também
                 const horarios = Object.keys(dados).sort((a, b) => {
                     const hA = parseInt(a.split(':')[0]);
                     const hB = parseInt(b.split(':')[0]);
@@ -1189,8 +1196,11 @@ async function buscarUltimaLeituraHistorico() {
                 }).reverse();
 
                 for (const h of horarios) {
-                    const val = dados[h].nivel_pct ?? dados[h].nivel ?? 0;
-                    if (val > 0) {
+                    const leitura = dados[h];
+                    const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
+                    const tipo = leitura.tipo || 'real';
+
+                    if (val > 0 && tipo !== 'estimado') {
                         ultimoNivelValido = val;
                         let hh = 0, mm = 0;
                         if (h.includes(':')) {
@@ -1203,18 +1213,19 @@ async function buscarUltimaLeituraHistorico() {
                         
                         dataUltimaLeituraValida = dataLeitura.getTime();
                         encontrou = true;
-                        console.log(`Última leitura válida encontrada ONTEM às ${h}: ${val}%`);
+                        console.log(`Última leitura REAL válida encontrada ONTEM às ${h}: ${val}%`);
+                        historicoLeiturasValidas.push(val);
                         break;
                     }
                 }
             }
         }
         
-        // Se ainda assim não encontrar nada, define um valor padrão (mas isso deve ser raro)
         if (!encontrou && ultimoNivelValido === null) {
              ultimoNivelValido = 63;
              dataUltimaLeituraValida = Date.now();
-             console.warn("Nenhuma leitura histórica encontrada. Usando padrão 63%.");
+             historicoLeiturasValidas.push(63);
+             console.warn("Nenhuma leitura histórica REAL encontrada. Usando padrão 63%.");
         }
 
     } catch (e) {
@@ -1703,12 +1714,17 @@ async function loopDeAtualizacao() {
             document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
         
+        // GRAVAÇÃO NO HISTÓRICO
         const agora = new Date();
         const horaAtual = agora.getHours(); 
+        const agoraMs = agora.getTime();
 
-        if (horaAtual !== ultimoHorarioSalvo) {
-            await salvarLeituraNoFirebase(Number(nivelAtual), agora.getTime());
+        // Salva se mudou de hora OU se passou 5 minutos desde o último save
+        // Isso garante que a "última leitura válida" no banco seja recente (max 5 min de atraso)
+        if (horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) { 
+            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs);
             ultimoHorarioSalvo = horaAtual; 
+            ultimoTempoSalvo = agoraMs;
             
             if (currentView === 'diario' && activeTab === 'grafico') {
                  carregarHistoricoEConsumo();
