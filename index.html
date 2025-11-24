@@ -1392,7 +1392,7 @@ async function carregarHistoricoEConsumo() {
                  for (const dateKey in dailyConsumption) {
                      const day = parseInt(dateKey.split('-')[2]);
                      let idx = 0;
-                     if (day <= 7) idx = 0;       
+                     if (day <= 7) idx = 0;        
                      else if (day <= 14) idx = 1;  
                      else if (day <= 21) idx = 2;  
                      else idx = 3;                  
@@ -1674,22 +1674,39 @@ async function loopDeAtualizacao() {
 
             document.getElementById('emergency-badge').style.display = 'flex';
 
-            // CÁLCULO DE DECAIMENTO (5% a cada 8 HORAS)
+            // --- NOVA LÓGICA DE DECAIMENTO ESCALONADO ---
             const msPassados = Date.now() - dataUltimaLeituraValida;
             const horasPassadas = msPassados / (1000 * 60 * 60); // Converte ms em horas
             
-            // Quantos blocos de 8 horas se passaram? (Arredonda para baixo)
-            // Ex: 7h = 0 blocos. 8h = 1 bloco. 16h = 2 blocos.
-            const blocosDeOitoHoras = Math.floor(horasPassadas / 8);
-            
-            // Calcula quanto deve subtrair (5% por bloco)
-            const reducaoTotal = blocosDeOitoHoras * 5;
+            let reducaoTotal = 0;
+
+            if (horasPassadas < 4) {
+                // 0 a 4 horas: FIXO (Sem redução)
+                reducaoTotal = 0;
+            } else if (horasPassadas < 8) {
+                // 4 a 8 horas: Desce 5%
+                reducaoTotal = 5;
+            } else if (horasPassadas < 12) {
+                // 8 a 12 horas: Desce mais 5% (Total 10%)
+                reducaoTotal = 10;
+            } else if (horasPassadas < 16) {
+                // 12 a 16 horas: Desce mais 5% (Total 15%)
+                reducaoTotal = 15;
+            } else {
+                // Acima de 16 horas: Desce 10% a cada bloco de 4 horas
+                // Já começamos com 15% de redução das primeiras 16h
+                // Calculamos quantos blocos de 4h se passaram APÓS as 16h iniciais
+                const horasExtras = horasPassadas - 16;
+                // O "+ 1" garante que logo ao bater 16h já aplique os primeiros 10% extras
+                const blocosExtras = Math.floor(horasExtras / 4) + 1; 
+                reducaoTotal = 15 + (blocosExtras * 10);
+            }
             
             // Aplica a redução sobre a ÚLTIMA leitura válida
             nivelAtual = ultimoNivelValido - reducaoTotal;
 
-            // Trava de segurança: não deixa ficar negativo ou zerado absurdamente se passar dias
-            if (nivelAtual < 10) nivelAtual = 10; 
+            // Trava de segurança para não ficar negativo
+            if (nivelAtual < 0) nivelAtual = 0; 
             
             console.log(`Modo Emergência: Sem sinal há ${horasPassadas.toFixed(2)}h.`);
             console.log(`Última leitura real: ${ultimoNivelValido}%. Redução aplicada: -${reducaoTotal}%`);
