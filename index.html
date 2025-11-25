@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monitoramento Caixa D'Água PP7 - V.Final</title>
+<title>Monitoramento Caixa D'Água PP7 - V.Final Corrigida</title>
 
 <!-- Chart.js Core -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
@@ -616,7 +616,7 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
             <div class="chart-card" id="consumo-chart-card-bloco">
                 <strong>Gráfico de Consumo Diário (Litros) - Blocos</strong>
                 <canvas id="chartConsumoBloco"></canvas>
-                <div class="small">Exibe o consumo aproximado em litros por dia (Barras).</div>
+                <div class="small">Exibe o consumo aproximado em litros por dia (Barras). Soma de TODAS as variações.</div>
                 <div id="consumo-info-texto" style="margin-top: 10px; font-weight: bold; color: #0e7490;"></div>
             </div>
             <div class="chart-card" id="consumo-chart-card-linha">
@@ -632,7 +632,37 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 <div id="config-view" style="display:none;">
 	<h1>Configurações de Notificação</h1>
 	<div class="config-board">
-		
+        
+        <!-- NOVA CONFIGURAÇÃO DE CAPACIDADE -->
+		<div class="config-card">
+			<h2>Capacidade Total da Caixa (L)</h2>
+			<p class="small" style="margin-top:-10px; margin-bottom:15px;">
+				Define o volume total para calcular litros (100% = ? Litros).
+			</p>
+			<div class="form-group">
+				<input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000">
+				<button id="btn-salvar-capacidade" class="modern-button">Salvar</button>
+			</div>
+			<div id="status-capacidade" class="small" style="font-weight:bold;"></div>
+		</div>
+        
+        <!-- NOVA CONFIGURAÇÃO DE GEOMETRIA -->
+        <div class="config-card">
+			<h2>Formato da Caixa</h2>
+			<p class="small" style="margin-top:-10px; margin-bottom:15px;">
+				Define como o volume é calculado.
+			</p>
+			<div class="form-group">
+				<select id="geometria-caixa">
+                    <!-- ATENÇÃO: Padrão alterado para Cilindrica (Linear) para garantir proporcionalidade -->
+                    <option value="cilindrica" selected>Cilíndrica / Linear (Padrão)</option>
+                    <option value="taca">Taça / Cone</option>
+                </select>
+				<button id="btn-salvar-geometria" class="modern-button">Salvar</button>
+			</div>
+			<div id="status-geometria" class="small" style="font-weight:bold;"></div>
+		</div>
+
 		<div class="config-card">
 			<h2>Adicionar Novo Contato</h2>
 			<div class="form-group">
@@ -707,17 +737,21 @@ let currentView = 'diario';
 let activeTab = 'caixa'; 
 let nivelAtual = 0;
 let nivelAlertaConfigurado = 30; 
+
+let capacidadeTotal = 8000; 
+let geometriaCaixa = 'cilindrica'; // CORREÇÃO: Padrão Linear para ser proporcional
+
 let emailJsInicializado = false; 
 let alertaModalMostrado = false; 
 
 // Variáveis de Bloqueio e Inicialização
 let verificacaoInicialConcluida = false;
-let bloqueioEmailDiario = false; // TRUE se o email de hoje JÁ FOI enviado
-let alertaConfirmadoPeloUsuario = false; // Flag para silenciar alerta permanentemente até reset
+let emailEnviadoNessaSessao = false; 
+let alertaConfirmadoPeloUsuario = false; 
 
 // Variável de Controle de Horário
 let ultimoHorarioSalvo = -1; 
-let ultimoTempoSalvo = 0; // Para controlar save a cada 5 min
+let ultimoTempoSalvo = 0; 
 
 // Variáveis de Áudio
 let audioContext;
@@ -727,19 +761,46 @@ let lfo;
 let lfoGain;    
 let isAlarmPlaying = false;
 
-// Variáveis de Snooze (Fallback)
+// Variáveis de Snooze
 let snoozeCount = 0; 
 let snoozeUntil = 0; 
 const SNOOZE_DURATION_MINUTES = 10; 
 const AUTO_SNOOZE_SECONDS = 30; 
 const ALERTA_RESET_MARGIN = 5; 
 
-// VARIÁVEIS DE EMERGÊNCIA (CORRIGIDO: Inicializa como NULL para forçar busca no histórico)
+// VARIÁVEIS DE EMERGÊNCIA
 let ultimoNivelValido = null; 
 let dataUltimaLeituraValida = Date.now(); 
-let historicoLeiturasValidas = []; // Banco para as ultimas 3 leituras validas
+let historicoLeiturasValidas = []; 
 
-const LITROS_POR_PERCENTO = 7000 / 85; 
+// --- FUNÇÃO DE CÁLCULO DE VOLUME ---
+function calcularVolumeLitros(nivelPercentual) {
+    if (nivelPercentual <= 0) return 0;
+    if (nivelPercentual > 100) nivelPercentual = 100;
+
+    if (geometriaCaixa === 'cilindrica') {
+        // Cálculo Linear Padrão (Proporcional)
+        return (nivelPercentual / 100) * capacidadeTotal;
+    } else {
+        // Cálculo Geometria "Taça"
+        const pontoDeQuebra = 60; 
+        const volumeNaQuebraPct = 0.30; 
+
+        if (nivelPercentual <= pontoDeQuebra) {
+            const fator = nivelPercentual / pontoDeQuebra;
+            return fator * (volumeNaQuebraPct * capacidadeTotal);
+        } else {
+            const alturaNoCopo = nivelPercentual - pontoDeQuebra;
+            const alturaTotalCopo = 100 - pontoDeQuebra;
+            const fatorCopo = alturaNoCopo / alturaTotalCopo;
+            
+            const volumeBase = volumeNaQuebraPct * capacidadeTotal;
+            const volumeRestante = (1 - volumeNaQuebraPct) * capacidadeTotal;
+            
+            return volumeBase + (fatorCopo * volumeRestante);
+        }
+    }
+}
 
 // EmailJS
 const SERVICE_ID = "service_lubx0i8";
@@ -756,39 +817,10 @@ function getLocalISODate(dateObj) {
 
 async function enviarEmailAlerta(nivel) {
 	if (!emailJsInicializado) return false; 
-
-    // --- VERIFICAÇÃO SÍNCRONA DE MEMÓRIA + LOCALSTORAGE + FIREBASE ---
-    const hoje = getLocalISODate(new Date()); 
     
-    // 1. Memória
-    if (bloqueioEmailDiario) {
-        console.log("Bloqueio Memória: E-mail já enviado hoje.");
-        return false; 
-    }
-
-    // 2. LocalStorage (Backup Rápido)
-    if (localStorage.getItem('pp7_last_email_date') === hoje) {
-        console.log("Bloqueio LocalStorage: E-mail já enviado hoje.");
-        bloqueioEmailDiario = true;
+    if (emailEnviadoNessaSessao) {
+        console.log("E-mail já enviado nesta sessão de alerta.");
         return false;
-    }
-
-    // 3. Firebase (Verdade Absoluta)
-    // Usando um nó simplificado e único para armazenar a data como string
-    const urlCheck = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/data_ultimo_envio.json?t=${Date.now()}`;
-
-    try {
-        const r = await fetch(urlCheck);
-        const dataUltimoEnvio = await r.json(); // Deve retornar string ex: "2023-10-27"
-        
-        if (dataUltimoEnvio === hoje) {
-            console.log(`BLOQUEIO FIREBASE: Já consta envio para data ${hoje}.`);
-            bloqueioEmailDiario = true;
-            localStorage.setItem('pp7_last_email_date', hoje);
-            return false; 
-        }
-    } catch(e) {
-        console.error("Erro ao verificar histórico de envios (Firebase):", e);
     }
 
 	let contatos = {};
@@ -824,24 +856,15 @@ async function enviarEmailAlerta(nivel) {
 		}
 	}
 
-    // SE ENVIOU (OU TENTOU), TRAVA TUDO IMEDIATAMENTE
     if (todosEnviadosComSucesso) {
-         // 1. Trava LocalStorage
-         localStorage.setItem('pp7_last_email_date', hoje);
-         
-         // 2. Trava Memória
-         bloqueioEmailDiario = true;
-
-         // 3. Trava Firebase (Grava a data de hoje como string simples)
-         try {
-             await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/data_ultimo_envio.json`, {
-                 method: 'PUT',
-                 body: JSON.stringify(hoje)
-             });
-             console.log(`SUCESSO: Data ${hoje} gravada no Firebase.`);
-         } catch(e) {
-             console.error("Erro ao gravar confirmação no Firebase:", e);
-         }
+        emailEnviadoNessaSessao = true;
+        const hoje = getLocalISODate(new Date());
+        try {
+              await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/data_ultimo_envio.json`, {
+                  method: 'PUT',
+                  body: JSON.stringify(hoje)
+              });
+        } catch(e) { console.error("Erro log firebase:", e); }
     }
 
 	return todosEnviadosComSucesso;
@@ -857,18 +880,14 @@ function fecharAlertaModal() {
     if (modal) modal.style.display = 'none';
 }
 
-// --- NOVA FUNÇÃO DE CONFIRMAÇÃO DO USUÁRIO ---
 function confirmarAlerta() {
     fecharAlertaModal();
     controlarAlarme(false);
     alertaModalMostrado = false;
-    alertaConfirmadoPeloUsuario = true; // Silencia permanentemente até reset
-    console.log("Alerta confirmado pelo usuário. Silenciado até o nível atingir 60%.");
+    alertaConfirmadoPeloUsuario = true; 
 }
 
-// --- MANTIDO APENAS PARA AUTO-TIMEOUT (FALLBACK) ---
 function iniciarSoneca() {
-    // Se o usuário não clicar, silencia temporariamente
     fecharAlertaModal();
     controlarAlarme(false);
     alertaModalMostrado = false;
@@ -949,34 +968,29 @@ function atualizarCaixaDOM(nivel) {
 
 function atualizarGraficosHistorico(result) {
     if (!chartLinha || !chartBlocos) return;
-     
-    let displayLabels = [];
-    let displayNiveis = [];
-     
-    displayLabels = result.labels || [];
-    displayNiveis = result.niveis || [];
+      
+    let displayLabels = result.labels || [];
+    let displayNiveis = result.niveis || [];
 
-    // Atualizar gráfico de linha
     chartLinha.data.labels = displayLabels;
     chartLinha.data.datasets[0].data = displayNiveis;
     chartLinha.update('none');
 
-    // Atualizar gráfico de blocos
     chartBlocos.data.labels = displayLabels;
     chartBlocos.data.datasets[0].data = displayNiveis;
-     
+      
     const cores = displayNiveis.map(nivel => {
         if (nivel === null || nivel === undefined) return 'rgba(200, 200, 200, 0.3)';
-        return 'rgba(6, 182, 212, 0.85)'; // Cor Azul fixa
+        return 'rgba(6, 182, 212, 0.85)'; 
     });
-     
+      
     chartBlocos.data.datasets[0].backgroundColor = cores;
     chartBlocos.update('none');
 }
 
 function atualizarGraficosConsumo(result) {
     if (!chartConsumoBloco || !chartConsumoLinha) return;
-     
+      
     const consumoData = result.consumo || [];
     const consumoLabels = result.labels || [];
 
@@ -984,12 +998,13 @@ function atualizarGraficosConsumo(result) {
     const infoTexto = document.getElementById('consumo-info-texto');
     if (infoTexto) {
         let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
+        
         let statusConsumo = "Baixo";
-        if (totalConsumo > 4000) statusConsumo = "Alto";
-        else if (totalConsumo > 1000) statusConsumo = "Médio";
+        if (totalConsumo > 3000) statusConsumo = "Alto";
+        else if (totalConsumo > 1000) statusConsumo = "Normal";
         
         if (currentView === 'diario') {
-             infoTexto.innerText = `Consumo do Dia: ${totalConsumo.toFixed(0)} L (${statusConsumo})`;
+             infoTexto.innerText = `Consumo do Dia (Soma total): ${totalConsumo.toFixed(0)} L (${statusConsumo})`;
         } else {
              infoTexto.innerText = `Consumo Total no Período: ${totalConsumo.toFixed(0)} L`;
         }
@@ -1005,20 +1020,11 @@ function atualizarGraficosConsumo(result) {
 }
 
 function criarGraficos() {
-    // Configuração comum de zoom
     const zoomOptions = {
-        pan: {
-            enabled: true,
-            mode: 'x',
-        },
-        zoom: {
-            wheel: { enabled: true },
-            pinch: { enabled: true },
-            mode: 'x',
-        }
+        pan: { enabled: true, mode: 'x' },
+        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
     };
 
-	// Gráfico de Linha
 	const ctxL = document.getElementById('chartLinha').getContext('2d');
 	const gradL = ctxL.createLinearGradient(0, 0, 0, 300);
 	gradL.addColorStop(0, 'rgba(6,182,212,0.28)');
@@ -1038,76 +1044,37 @@ function criarGraficos() {
         }] },
 		options: { 
             animation: false, 
-            plugins: { 
-                legend: { display: false },
-                zoom: zoomOptions 
-            }, 
+            plugins: { legend: { display: false }, zoom: zoomOptions }, 
             scales: { 
-                x: { 
-                    ticks: { color: '#666' },
-                    title: {
-                        display: true,
-                        text: 'Horário (00:00 - 23:00)'
-                    }
-                }, 
-                y: { 
-                    ticks: { color: '#666' }, 
-                    min: 0, 
-                    max: 100,
-                    title: {
-                        display: true,
-                        text: 'Nível (%)'
-                    }
-                } 
+                x: { ticks: { color: '#666' }, title: { display: true, text: 'Horário' } }, 
+                y: { ticks: { color: '#666' }, min: 0, max: 100, title: { display: true, text: 'Nível (%)' } } 
             }, 
             maintainAspectRatio: false 
         }
 	});
 	
-	// Gráfico de Blocos
 	const ctxB = document.getElementById('chartBlocos').getContext('2d');
 	chartBlocos = new Chart(ctxB, {
 		type: 'bar',
 		data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 6 }] },
 		options: { 
             animation: false, 
-            plugins: { 
-                legend: { display: false },
-                zoom: zoomOptions 
-            }, 
+            plugins: { legend: { display: false }, zoom: zoomOptions }, 
             scales: { 
-                x: { 
-                    ticks: { color: '#666' },
-                    title: {
-                        display: true,
-                        text: 'Horário (Leituras de 60 em 60 minutos)'
-                    }
-                }, 
-                y: { 
-                    ticks: { color: '#666' }, 
-                    min: 0, 
-                    max: 100,
-                    title: {
-                        display: true,
-                        text: 'Nível (%)'
-                    }
-                } 
+                x: { ticks: { color: '#666' }, title: { display: true, text: 'Horário' } }, 
+                y: { ticks: { color: '#666' }, min: 0, max: 100, title: { display: true, text: 'Nível (%)' } } 
             }, 
             maintainAspectRatio: false 
         }
 	});
 
-    // Gráfico de Consumo Bloco
     const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d');
     chartConsumoBloco = new Chart(ctxCB, {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], backgroundColor: 'rgba(6, 182, 212, 0.85)', borderRadius: 6 }] },
         options: { 
             animation: false, 
-            plugins: { 
-                legend: { display: false },
-                zoom: zoomOptions 
-            }, 
+            plugins: { legend: { display: false }, zoom: zoomOptions }, 
             scales: { 
                 x: { ticks: { color: '#666' } }, 
                 y: { ticks: { color: '#666' }, min: 0, max: 8000 }
@@ -1115,18 +1082,14 @@ function criarGraficos() {
             maintainAspectRatio: false 
         }
     });
-     
-    // Gráfico de Consumo Linha
+      
     const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
     chartConsumoLinha = new Chart(ctxCL, {
         type: 'line',
         data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], fill: true, backgroundColor: 'rgba(6,182,212,0.28)', borderColor: 'rgba(6, 182, 212, 0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
         options: { 
             animation: false, 
-            plugins: { 
-                legend: { display: false },
-                zoom: zoomOptions
-            }, 
+            plugins: { legend: { display: false }, zoom: zoomOptions }, 
             scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, maintainAspectRatio: false 
         }
     });
@@ -1134,136 +1097,77 @@ function criarGraficos() {
 
 async function salvarLeituraNoFirebase(nivel, timestamp) {
     if (nivel <= 0 && nivel !== null) return; 
-     
     const d = new Date(timestamp);
     const localDate = getLocalISODate(d);
-     
-    // Salva usando apenas a HORA (00 a 23) como chave
     const horaKey = String(d.getHours()).padStart(2, '0'); 
-     
     const path = `PP7_config/historico/${localDate}/${horaKey}.json`;
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
-     
     const dados = { 
         nivel_pct: nivel, 
         timestamp: timestamp,
         tipo: document.getElementById('emergency-badge').style.display !== 'none' ? 'estimado' : 'real'
     };
-     
     try { 
         await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); 
-        console.log(`Leitura salva na hora ${horaKey}: ${nivel}% (${dados.tipo})`);
-    } catch (e) { 
-        console.error("Erro ao salvar leitura:", e); 
-    }
+    } catch (e) { console.error("Erro ao salvar leitura:", e); }
 }
 
 async function buscarUltimaLeituraHistorico() {
-    // Se já temos uma leitura válida recente, não precisamos buscar novamente
-    if (ultimoNivelValido !== null && Date.now() - dataUltimaLeituraValida < 60000) {
-        return; 
-    }
-
+    if (ultimoNivelValido !== null && Date.now() - dataUltimaLeituraValida < 60000) return; 
     const hoje = new Date();
     const dataHoje = getLocalISODate(hoje);
-     
     let url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataHoje}.json`;
-     
     try {
         let r = await fetch(url);
         let dados = await r.json();
-        
         let encontrou = false;
-        
         if (dados) {
-            // Ordena por hora decrescente (mais recente primeiro)
-            const horarios = Object.keys(dados).sort((a, b) => {
-                const hA = parseInt(a.split(':')[0]);
-                const hB = parseInt(b.split(':')[0]);
-                return hA - hB;
-            }).reverse();
-
+            const horarios = Object.keys(dados).sort((a, b) => parseInt(a) - parseInt(b)).reverse();
             for (const h of horarios) {
                 const leitura = dados[h];
                 const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
-                const tipo = leitura.tipo || 'real';
-
-                // CORREÇÃO: Ignora leituras que são "estimadas"
-                if (val > 0 && tipo !== 'estimado') {
+                if (val > 0 && leitura.tipo !== 'estimado') {
                     ultimoNivelValido = val;
-                    let hh = 0, mm = 0;
-                    if (h.includes(':')) {
-                         [hh, mm] = h.split(':');
-                    } else {
-                         hh = h;
-                    }
-
+                    const [hh, mm] = h.includes(':') ? h.split(':') : [h, 0];
                     const dataLeitura = new Date(hoje);
                     dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
-
                     dataUltimaLeituraValida = dataLeitura.getTime();
                     encontrou = true;
-                    console.log(`Última leitura REAL válida encontrada HOJE às ${h}: ${val}%`);
-                    
-                    // Popula o histórico de memória
                     historicoLeiturasValidas.push(val);
                     break;
                 }
             }
         }
-
         if (!encontrou) {
-            const ontem = new Date(hoje);
-            ontem.setDate(ontem.getDate() - 1);
+            const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1);
             const dataOntem = getLocalISODate(ontem);
             url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataOntem}.json`;
-             
             r = await fetch(url);
             dados = await r.json();
-             
             if (dados) {
-                const horarios = Object.keys(dados).sort((a, b) => {
-                    const hA = parseInt(a.split(':')[0]);
-                    const hB = parseInt(b.split(':')[0]);
-                    return hA - hB;
-                }).reverse();
-
+                const horarios = Object.keys(dados).sort((a, b) => parseInt(a) - parseInt(b)).reverse();
                 for (const h of horarios) {
                     const leitura = dados[h];
                     const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
-                    const tipo = leitura.tipo || 'real';
-
-                    if (val > 0 && tipo !== 'estimado') {
+                    if (val > 0 && leitura.tipo !== 'estimado') {
                         ultimoNivelValido = val;
-                        let hh = 0, mm = 0;
-                        if (h.includes(':')) {
-                             [hh, mm] = h.split(':');
-                        } else {
-                             hh = h;
-                        }
+                        const [hh, mm] = h.includes(':') ? h.split(':') : [h, 0];
                         const dataLeitura = new Date(ontem);
                         dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
-                        
                         dataUltimaLeituraValida = dataLeitura.getTime();
                         encontrou = true;
-                        console.log(`Última leitura REAL válida encontrada ONTEM às ${h}: ${val}%`);
                         historicoLeiturasValidas.push(val);
                         break;
                     }
                 }
             }
         }
-        
         if (!encontrou && ultimoNivelValido === null) {
              ultimoNivelValido = 63;
              dataUltimaLeituraValida = Date.now();
              historicoLeiturasValidas.push(63);
-             console.warn("Nenhuma leitura histórica REAL encontrada. Usando padrão 63%.");
         }
-
-    } catch (e) {
-        console.error("Erro ao buscar histórico de emergência:", e);
-    }
+    } catch (e) { console.error("Erro ao buscar histórico de emergência:", e); }
 }
 
 async function carregarHistoricoEConsumo() {
@@ -1275,55 +1179,86 @@ async function carregarHistoricoEConsumo() {
     if (currentView === 'diario') {
         const data = document.getElementById('dataEscolhida').value;
         if (!data) return result;
+        const dataParts = data.split('-');
+        const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]);
+        dateObj.setDate(dateObj.getDate() - 1);
+        const dataAnterior = getLocalISODate(dateObj);
         url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${data}.json`;
+        const urlOntem = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataAnterior}.json`;
         
-        processData = (dados) => {
+        processData = (dadosHoje, dadosOntem) => {
             const labelsFixed = [];
             const niveisFixed = new Array(24).fill(null);
-            const consumoFinal = new Array(24).fill(0); 
+            const consumoFinal = new Array(24).fill(0); // Inicializa com 0
             
-            // 1. Preencher labels
-            for(let h = 0; h < 24; h++) {
-                labelsFixed.push(String(h).padStart(2, '0') + ":00");
+            for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00");
+
+            let lastValueYesterday = null;
+            if (dadosOntem) {
+                const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b));
+                if (horariosOntem.length > 0) {
+                    const leitura = dadosOntem[horariosOntem[horariosOntem.length - 1]];
+                    lastValueYesterday = leitura.nivel_pct ?? leitura.nivel ?? null;
+                }
             }
 
-            // 2. Processar dados (Mistura de formato novo e antigo)
-            if (dados) {
-                Object.keys(dados).forEach(key => {
-                    let horaInt = -1;
-                    if (key.includes(':')) {
-                        horaInt = parseInt(key.split(':')[0]);
-                    } else {
-                        horaInt = parseInt(key);
-                    }
-
-                    if (horaInt >= 0 && horaInt < 24) {
-                        const leitura = dados[key];
-                        const val = leitura.nivel_pct ?? leitura.nivel ?? null;
-                        if (niveisFixed[horaInt] === null || !key.includes(':')) {
-                             niveisFixed[horaInt] = val;
-                        }
-                    }
+            // CORREÇÃO: Lógica de Soma Granular
+            let previousVal = lastValueYesterday;
+            
+            if (dadosHoje) {
+                // Ordena as chaves temporalmente para processar sequencialmente
+                const keysSorted = Object.keys(dadosHoje).sort((a, b) => {
+                    const [hA, mA] = a.split(':').map(Number);
+                    const [hB, mB] = b.split(':').map(Number);
+                    return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0));
                 });
 
-                // 3. Calcular Consumo Diário (Diferença entre horas)
-                for(let i = 1; i < 24; i++) {
-                    const anterior = niveisFixed[i-1];
-                    const atual = niveisFixed[i];
+                keysSorted.forEach(key => {
+                    const horaInt = parseInt(key.split(':')[0]);
+                    const val = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null;
                     
-                    if (anterior !== null && atual !== null) {
-                        if (anterior > atual) {
-                            const diffPct = anterior - atual;
-                            consumoFinal[i] = diffPct * LITROS_POR_PERCENTO;
-                        }
+                    // Para o Gráfico de LINHA (Nível), mantém o snapshot da primeira leitura da hora
+                    if (horaInt >= 0 && horaInt < 24) {
+                        if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val;
                     }
-                }
+
+                    // Para o Gráfico de BARRAS (Consumo), acumula diferenças
+                    if (val !== null && previousVal !== null) {
+                        if (previousVal > val) {
+                            // Houve consumo (queda)
+                            const volAnterior = calcularVolumeLitros(previousVal);
+                            const volAtual = calcularVolumeLitros(val);
+                            const diff = volAnterior - volAtual;
+                            
+                            // Soma na hora correspondente
+                            if (horaInt >= 0 && horaInt < 24) {
+                                consumoFinal[horaInt] += diff;
+                            }
+                        }
+                        // Se previousVal < val, houve reabastecimento (ignora soma)
+                    }
+                    if (val !== null) previousVal = val;
+                });
+                
+                // Preenche o gráfico de nível se o primeiro ponto do dia for null
+                if (niveisFixed[0] === null && lastValueYesterday !== null) niveisFixed[0] = lastValueYesterday;
+            } else if (lastValueYesterday !== null) {
+                niveisFixed[0] = lastValueYesterday;
             }
             
             return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal }; 
         };
+
+        try {
+            const [rHoje, rOntem] = await Promise.all([fetch(url), fetch(urlOntem)]);
+            const dadosHoje = await rHoje.json();
+            const dadosOntem = await rOntem.json();
+            result = processData(dadosHoje, dadosOntem);
+            atualizarGraficosHistorico(result);
+            atualizarGraficosConsumo(result);
+        } catch (e) { console.error("Erro ao carregar histórico diário:", e); }
+
     } else { 
-        // MENSAL e INTERVALO
         let dataInicio, dataFim;
         if (currentView === 'mensal') {
             const mesAno = document.getElementById('mesEscolhido').value;
@@ -1344,43 +1279,37 @@ async function carregarHistoricoEConsumo() {
         processData = (dados) => {
             const dailyConsumption = {}; 
             const dailyLevels = {}; 
-            
             const dateKeys = Object.keys(dados).sort();
 
             for (const dateKey of dateKeys) {
                 const dailyReadings = dados[dateKey];
-                
-                const times = Object.keys(dailyReadings).sort((a, b) => {
-                    const getHour = (t) => parseInt(t.toString().split(':')[0]);
-                    return getHour(a) - getHour(b);
-                });
+                const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b));
                 
                 if(times.length === 0) continue;
                 
                 let consumoDia = 0;
                 let somaNiveis = 0;
                 let countNiveis = 0;
+                let lastValidLevelForDay = null;
 
                 for (let i = 0; i < times.length; i++) {
                     const tCurrent = times[i];
                     const valCurrent = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0;
-                    
                     if(valCurrent > 0) {
                         somaNiveis += valCurrent;
                         countNiveis++;
-                    }
-
-                    if (i < times.length - 1) {
-                        const tNext = times[i+1];
-                        const valNext = dailyReadings[tNext].nivel_pct ?? dailyReadings[tNext].nivel ?? 0;
-                        
-                        if (valCurrent > valNext) {
-                             consumoDia += (valCurrent - valNext);
+                        if (lastValidLevelForDay !== null) {
+                            if (lastValidLevelForDay > valCurrent) {
+                                // USO DA NOVA FUNÇÃO GEOMÉTRICA
+                                const volAnterior = calcularVolumeLitros(lastValidLevelForDay);
+                                const volAtual = calcularVolumeLitros(valCurrent);
+                                consumoDia += (volAnterior - volAtual);
+                            }
                         }
+                        lastValidLevelForDay = valCurrent;
                     }
                 }
-                
-                dailyConsumption[dateKey] = consumoDia * LITROS_POR_PERCENTO;
+                dailyConsumption[dateKey] = consumoDia;
                 dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0;
             }
             
@@ -1388,64 +1317,34 @@ async function carregarHistoricoEConsumo() {
                  const weeks = [0, 0, 0, 0];
                  const levelsSum = [0, 0, 0, 0];
                  const levelsCount = [0, 0, 0, 0];
-
                  for (const dateKey in dailyConsumption) {
                      const day = parseInt(dateKey.split('-')[2]);
-                     let idx = 0;
-                     if (day <= 7) idx = 0;       
-                     else if (day <= 14) idx = 1;  
-                     else if (day <= 21) idx = 2;  
-                     else idx = 3;                  
-                     
+                     let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3));
                      weeks[idx] += dailyConsumption[dateKey];
                      if (dailyLevels[dateKey] > 0) {
                         levelsSum[idx] += dailyLevels[dateKey];
                         levelsCount[idx]++;
                      }
                  }
-                 
                  const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0);
-                 
-                 return { 
-                    labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], 
-                    niveis: finalLevels, 
-                    consumo: weeks 
-                 };
+                 return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks };
             }
-
             const labels = Object.keys(dailyConsumption).sort(); 
             const consumo = labels.map(key => dailyConsumption[key]); 
             const niveis = labels.map(key => dailyLevels[key]); 
-            
-            const displayLabels = labels.map(d => {
-                const parts = d.split('-');
-                return `${parts[2]}/${parts[1]}`; 
-            });
-            
+            const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; });
             return { labels: displayLabels, niveis: niveis, consumo: consumo }; 
         };
+
+        try {
+            const r = await fetch(url);
+            const dados = await r.json();
+            result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] };
+            atualizarGraficosHistorico(result);
+            atualizarGraficosConsumo(result);
+        } catch (e) { console.error("Erro ao carregar histórico:", e); }
     }
-
-    try {
-        const r = await fetch(url);
-        const dados = await r.json();
-        
-        if (!dados && currentView === 'diario') {
-             const labelsFixed = [];
-             for(let h=0; h<24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00");
-             result = { labels: labelsFixed, niveis: new Array(24).fill(null), consumo: new Array(24).fill(0) };
-        } else if (!dados) {
-             result = { labels: [], niveis: [], consumo: [] };
-        } else {
-            result = processData(dados);
-        }
-        atualizarGraficosHistorico(result);
-        atualizarGraficosConsumo(result);
-
-    } catch (e) { console.error("Erro ao carregar histórico:", e); }
 }
-
-// --- FUNÇÕES DE ABASTECIMENTO ---
 
 async function removerAbastecimento(id) {
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`;
@@ -1463,46 +1362,28 @@ async function carregarHistoricoAbastecimento() {
         const url = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=5';
         const r = await fetch(url);
         const dados = await r.json();
-        
         listaUL.innerHTML = ''; 
         if (dados) {
             const ids = Object.keys(dados).reverse();
-            if (ids.length === 0) {
-               listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>';
-               return;
-            }
+            if (ids.length === 0) { listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>'; return; }
             ids.forEach(id => {
                 const item = dados[id];
                 const li = document.createElement('li');
                 const d = new Date(item.timestamp);
-                const dataStr = d.toLocaleDateString('pt-BR');
-                const horaStr = d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
                 li.innerHTML = `
-                    <div class="abastecimento-info">
-                        <span>${dataStr} às ${horaStr}</span>
-                        <strong>${item.litros} L</strong>
-                    </div>
+                    <div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div>
                     <button class="delete-abastecimento-btn" data-id="${id}">×</button>
                 `;
                 listaUL.appendChild(li);
             });
-        } else {
-            listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>';
-        }
-    } catch (e) {
-        console.error("Erro ao carregar histórico de abastecimento:", e);
-        listaUL.innerHTML = '<li class="small" style="color:red; border: none; background: none;">Erro ao carregar histórico.</li>';
-    }
+        } else { listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>'; }
+    } catch (e) { listaUL.innerHTML = '<li class="small" style="color:red; border: none; background: none;">Erro ao carregar histórico.</li>'; }
 }
 
 async function salvarAbastecimento(litros) {
     const statusDiv = document.getElementById('status-abastecimento');
     const litrosNum = Number(litros);
-    if (!litrosNum || litrosNum <= 0) {
-        statusDiv.style.color = 'red'; statusDiv.innerText = 'Insira um valor de litros válido.';
-        setTimeout(() => { statusDiv.innerText = ''; }, 3000);
-        return;
-    }
+    if (!litrosNum || litrosNum <= 0) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Insira um valor de litros válido.'; setTimeout(() => { statusDiv.innerText = ''; }, 3000); return; }
     statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
     const agora = new Date();
     const dados = { litros: litrosNum, timestamp: agora.getTime(), data_legivel: agora.toISOString() };
@@ -1513,39 +1394,74 @@ async function salvarAbastecimento(litros) {
         statusDiv.style.color = 'green'; statusDiv.innerText = 'Abastecimento salvo!';
         document.getElementById('litros-abastecidos').value = ''; 
         carregarHistoricoAbastecimento(); 
-    } catch (e) {
-        console.error("Erro ao salvar abastecimento:", e);
-        statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.';
-    } finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+    } catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
+    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
 }
-
-// --- FUNÇÕES DE CONFIGURAÇÃO ---
 
 async function salvarNivelAlerta(nivel) {
 	const statusDiv = document.getElementById('status-alerta');
 	statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
 	try {
-		await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json', {
-			method: 'PUT', body: JSON.stringify(nivel)
-		});
+		await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json', { method: 'PUT', body: JSON.stringify(nivel) });
 		nivelAlertaConfigurado = nivel; 
 		statusDiv.style.color = 'green'; statusDiv.innerText = `Nível de alerta salvo em ${nivel}%.`;
 		document.getElementById('nivel-alerta-valor').value = nivel; 
-	} catch (e) {
-		console.error("Erro ao salvar nível:", e);
-		statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.';
-	} finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+	} catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
+    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
 }
 
-async function carregarNivelAlertaAtual() {
+async function salvarCapacidade(valor) {
+    const statusDiv = document.getElementById('status-capacidade');
+    statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
+    try {
+        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json', { method: 'PUT', body: JSON.stringify(valor) });
+        capacidadeTotal = valor;
+        statusDiv.style.color = 'green'; statusDiv.innerText = `Capacidade salva em ${valor}L.`;
+        document.getElementById('capacidade-total-valor').value = valor;
+        if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
+    } catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
+    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+}
+
+async function salvarGeometria(geo) {
+    const statusDiv = document.getElementById('status-geometria');
+    statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
+    try {
+        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/geometria.json', { method: 'PUT', body: JSON.stringify(geo) });
+        geometriaCaixa = geo;
+        statusDiv.style.color = 'green'; statusDiv.innerText = `Geometria salva como ${geo}.`;
+        if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
+    } catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
+    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+}
+
+async function carregarConfiguracoesGerais() {
 	try {
-		const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json');
-		const nivelSalvo = await r.json();
+		const [rAlerta, rCap, rGeo] = await Promise.all([
+            fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json'),
+            fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json'),
+            fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/geometria.json')
+        ]);
+		const nivelSalvo = await rAlerta.json();
+        const capSalvo = await rCap.json();
+        const geoSalvo = await rGeo.json();
+
 		if (nivelSalvo) {
 			document.getElementById('nivel-alerta-valor').value = nivelSalvo;
 			nivelAlertaConfigurado = parseInt(nivelSalvo);
-		} else { document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado; }
-	} catch (e) { console.error("Erro ao carregar nível de alerta:", e); }
+		} else document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado;
+
+        if (capSalvo) {
+            capacidadeTotal = parseInt(capSalvo);
+            document.getElementById('capacidade-total-valor').value = capacidadeTotal;
+        } else document.getElementById('capacidade-total-valor').value = capacidadeTotal;
+        
+        if (geoSalvo) {
+            geometriaCaixa = geoSalvo;
+            document.getElementById('geometria-caixa').value = geoSalvo;
+        } else document.getElementById('geometria-caixa').value = geometriaCaixa;
+
+	} catch (e) { console.error("Erro ao carregar configs:", e); }
 }
 
 async function adicionarContato(valor, tipo) {
@@ -1564,10 +1480,8 @@ async function adicionarContato(valor, tipo) {
 		document.getElementById('contato-valor').value = ''; 
 		statusDiv.style.color = 'green'; statusDiv.innerText = 'Contato salvo com sucesso!';
 		carregarContatos(); 
-	} catch (e) {
-		console.error("Erro ao adicionar contato:", e);
-		statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar contato.';
-	} finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+	} catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar contato.'; } 
+    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
 }
 
 async function removerContato(id) {
@@ -1578,10 +1492,8 @@ async function removerContato(id) {
 		if (!response.ok) { throw new Error(`Erro no Firebase: ${response.statusText}`); }
 		statusDiv.innerText = 'Contato removido.'; statusDiv.style.color = 'green';
 		carregarContatos(); 
-	} catch (e) {
-		console.error("Erro ao remover contato:", e);
-		statusDiv.innerText = 'Erro ao remover contato.'; statusDiv.style.color = 'red';
-	} finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+	} catch (e) { statusDiv.innerText = 'Erro ao remover contato.'; statusDiv.style.color = 'red'; } 
+    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
 }
 
 async function carregarContatos() {
@@ -1601,397 +1513,176 @@ async function carregarContatos() {
 					listaUL.appendChild(li);
 				}
 			});
-			if (listaUL.innerHTML === '') { 
-                listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>'; 
-            }
-		} else {
-            listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>';
-        }
-	} catch (e) {
-		console.error("Erro ao carregar contatos:", e);
-		listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar contatos.</li>';
-	}
+			if (listaUL.innerHTML === '') listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>'; 
+		} else listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>';
+	} catch (e) { listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar contatos.</li>'; }
 }
 
-// --- LOOP PRINCIPAL ---
 async function loopDeAtualizacao() {
     try {
-        // --- BLOQUEIO CRÍTICO: SE NÃO TERMINOU VERIFICAÇÃO INICIAL, NÃO FAZ NADA ---
         if (!verificacaoInicialConcluida) return;
 
-        let j;
-        let config; 
+        let j; let config; 
         const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
         const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
         
-        const [r, rConfig] = await Promise.all([
-            fetch(dataUrl),
-            fetch(configUrl)
-        ]);
+        const [r, rConfig] = await Promise.all([fetch(dataUrl), fetch(configUrl)]);
         j = await r.json();
         config = await rConfig.json();
         
         let nivelRecebido = j.nivel_pct || j.nivel || 0;
 
-        // --- LÓGICA DE LEITURA E EMERGÊNCIA CORRIGIDA ---
-        
         if (nivelRecebido > 0) {
-            // --- CENÁRIO 1: SINAL PRESENTE (Leitura Válida) ---
-            
-            // 1. Atualiza o banco das ultimas 3 leituras
             historicoLeiturasValidas.push(nivelRecebido);
-            if (historicoLeiturasValidas.length > 3) {
-                historicoLeiturasValidas.shift(); // Mantém apenas as 3 últimas
-            }
-            
-            // 2. Define a referência atual baseada na última leitura confiável
+            if (historicoLeiturasValidas.length > 3) historicoLeiturasValidas.shift(); 
             ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
             dataUltimaLeituraValida = Date.now();
-            
-            // 3. Atualiza o nível atual
             nivelAtual = nivelRecebido;
-            
-            // 4. Esconde alerta de emergência
             document.getElementById('emergency-badge').style.display = 'none';
-
         } else {
-            // --- CENÁRIO 2: SEM SINAL (Modo Emergência) ---
-            
-            // Se o banco estiver vazio (ex: acabou de abrir a página e já está sem sinal),
-            // tenta buscar do histórico do dia anterior/hoje
             if (historicoLeiturasValidas.length === 0) {
-                if (ultimoNivelValido === null) {
-                    await buscarUltimaLeituraHistorico();
-                }
-                // Se conseguiu recuperar algo do histórico, coloca no banco
-                if (ultimoNivelValido > 0) {
-                    historicoLeiturasValidas.push(ultimoNivelValido);
-                }
-            } else {
-                // Se tem banco, garante que usamos a mais recente dele
-                ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
-            }
+                if (ultimoNivelValido === null) await buscarUltimaLeituraHistorico();
+                if (ultimoNivelValido > 0) historicoLeiturasValidas.push(ultimoNivelValido);
+            } else ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
 
             document.getElementById('emergency-badge').style.display = 'flex';
-
-            // CÁLCULO DE DECAIMENTO (5% a cada 8 HORAS)
             const msPassados = Date.now() - dataUltimaLeituraValida;
-            const horasPassadas = msPassados / (1000 * 60 * 60); // Converte ms em horas
+            const horasPassadas = msPassados / (1000 * 60 * 60); 
             
-            // Quantos blocos de 8 horas se passaram? (Arredonda para baixo)
-            // Ex: 7h = 0 blocos. 8h = 1 bloco. 16h = 2 blocos.
-            const blocosDeOitoHoras = Math.floor(horasPassadas / 8);
-            
-            // Calcula quanto deve subtrair (5% por bloco)
-            const reducaoTotal = blocosDeOitoHoras * 5;
-            
-            // Aplica a redução sobre a ÚLTIMA leitura válida
+            let reducaoTotal = 0;
+            if (horasPassadas < 4) reducaoTotal = 0;
+            else if (horasPassadas < 8) reducaoTotal = 5;
+            else if (horasPassadas < 12) reducaoTotal = 10;
+            else if (horasPassadas < 16) reducaoTotal = 15;
+            else {
+                const horasExtras = horasPassadas - 16;
+                const blocosExtras = Math.floor(horasExtras / 4) + 1; 
+                reducaoTotal = 15 + (blocosExtras * 10);
+            }
             nivelAtual = ultimoNivelValido - reducaoTotal;
-
-            // Trava de segurança: não deixa ficar negativo ou zerado absurdamente se passar dias
-            if (nivelAtual < 10) nivelAtual = 10; 
-            
-            console.log(`Modo Emergência: Sem sinal há ${horasPassadas.toFixed(2)}h.`);
-            console.log(`Última leitura real: ${ultimoNivelValido}%. Redução aplicada: -${reducaoTotal}%`);
+            if (nivelAtual < 0) nivelAtual = 0; 
         }
         
-        // --- RESTANTE DO CÓDIGO (ALERTAS, GRAVAÇÃO, ETC) ---
-        if (config) { nivelAlertaConfigurado = parseInt(config) || 30; }
+        if (config) nivelAlertaConfigurado = parseInt(config) || 30; 
         
         const statusDisplay = document.getElementById('status-display');
         statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
 
         if (nivelAtual <= nivelAlertaConfigurado) {
             statusDisplay.classList.add('level-danger');
-
-            if (bloqueioEmailDiario) {
-                // Se já bloqueou o dia, não faz nada de envio
-            }
-            else if (alertaConfirmadoPeloUsuario) {
-                // Usuário silenciou manualmente
-            }
-            else if (alertaModalMostrado) { /* Modal Aberto */ }
-            else if (snoozeCount >= 3) { /* Limite */ }
-            else {
-                // A função enviarEmailAlerta já tem a trava interna, mas a flag 'bloqueioEmailDiario' 
-                // evita chamadas desnecessárias
+            if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) {
                 enviarEmailAlerta(nivelAtual);
-                
                 mostrarAlertaModal();
                 alertaModalMostrado = true;
                 controlarAlarme(true);
-
-                setTimeout(() => {
-                    if (alertaModalMostrado) { 
-                        iniciarSoneca();
-                    }
-                }, AUTO_SNOOZE_SECONDS * 1000);
+                setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000);
             }
-
         } else { 
-            // Se o nível voltar ao normal (> 60%), desarma a confirmação do usuário
-            if (nivelAtual > 60 && alertaConfirmadoPeloUsuario) {
-                console.log("Nível recuperado acima de 60%. Alerta rearmado.");
-                alertaConfirmadoPeloUsuario = false;
+            if (nivelAtual > 50) {
+                if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false;
+                if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false;
             }
-
-            if (nivelAtual <= 60) {
-                 statusDisplay.classList.add('level-warn');
-            } else {
-                 statusDisplay.classList.add('level-ok');
-            }
+            if (nivelAtual <= 60) statusDisplay.classList.add('level-warn');
+            else statusDisplay.classList.add('level-ok');
             
             if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; }
             controlarAlarme(false); 
-            snoozeCount = 0; 
-            snoozeUntil = 0;
+            snoozeCount = 0; snoozeUntil = 0;
         }
 
         atualizarCaixaDOM(nivelAtual);
 
         if (document.getElementById('caixa-view').style.display !== 'none') {
             document.getElementById('status-level').innerText = nivelAtual + '%';
-            const litrosAprox = nivelAtual * LITROS_POR_PERCENTO;
+            // USO DA NOVA FUNÇÃO GEOMÉTRICA PARA DISPLAY EM TEMPO REAL
+            const litrosAprox = calcularVolumeLitros(nivelAtual);
             document.getElementById('status-litros').innerHTML = `${litrosAprox.toFixed(0)} <small>Litros</small>`;
             document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
         
-        // GRAVAÇÃO NO HISTÓRICO
         const agora = new Date();
         const horaAtual = agora.getHours(); 
         const agoraMs = agora.getTime();
 
-        // Salva se mudou de hora OU se passou 5 minutos desde o último save
-        // Isso garante que a "última leitura válida" no banco seja recente (max 5 min de atraso)
         if (horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) { 
             await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs);
             ultimoHorarioSalvo = horaAtual; 
             ultimoTempoSalvo = agoraMs;
-            
-            if (currentView === 'diario' && activeTab === 'grafico') {
-                 carregarHistoricoEConsumo();
-            }
+            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo();
         }
-
     } catch(e) { console.error("Erro no loop de atualização:", e); }
 }
 
-// --- INICIALIZAÇÃO ---
 window.onload = function() {
-    const views = {
-		caixa: document.getElementById('caixa-view'),
-		grafico: document.getElementById('grafico-container'),
-        abastecimento: document.getElementById('abastecimento-view'),
-        consumo: document.getElementById('consumo-view'),
-		config: document.getElementById('config-view')
-	};
-	const btns = {
-		caixa: document.getElementById('btn-view-caixa'),
-		grafico: document.getElementById('btn-view-grafico'),
-        abastecimento: document.getElementById('btn-view-abastecimento'),
-        consumo: document.getElementById('btn-view-consumo'),
-		config: document.getElementById('btn-view-config')
-	};
-     
+    const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') };
+	const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') };
     const dateControls = document.getElementById('date-controls');
-    const viewHeaders = {
-        grafico: document.querySelector('#grafico-container header'),
-        abastecimento: document.querySelector('#abastecimento-view header'),
-        consumo: document.querySelector('#consumo-view header')
-    };
+    const viewHeaders = { grafico: document.querySelector('#grafico-container header'), abastecimento: document.querySelector('#abastecimento-view header'), consumo: document.querySelector('#consumo-view header') };
+    const btnDiario = document.getElementById('btn-view-diario'), btnSemanal = document.getElementById('btn-view-semanal'), btnMensal = document.getElementById('btn-view-mensal'), btnIntervalo = document.getElementById('btn-view-intervalo'), btnIntervaloElem = document.getElementById('btn-view-intervalo');
 
-    const btnDiario = document.getElementById('btn-view-diario');
-    const btnSemanal = document.getElementById('btn-view-semanal');
-    const btnMensal = document.getElementById('btn-view-mensal');
-    const btnIntervalo = document.getElementById('btn-view-intervalo');
-
-    // Setup Audio
     setupAudio();
-    function despertarAudio() {
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                console.log("Contexto de áudio 'acordado' pela interação do usuário.");
-                document.body.removeEventListener('click', despertarAudio);
-                document.body.removeEventListener('touchstart', despertarAudio);
-            });
-        }
-    }
+    function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); }
     document.body.addEventListener('click', despertarAudio, { once: true });
     document.body.addEventListener('touchstart', despertarAudio, { once: true });
 
-    // EmailJS Init
 	(function() {
 		const PUBLIC_KEY = "I1HnvhgWehPP7EXxX";	
-		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") {
-			emailJsInicializado = false; return; 
-		}
+		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") { emailJsInicializado = false; return; }
 		try { emailjs.init(PUBLIC_KEY); emailJsInicializado = true; } catch(e) { emailJsInicializado = false; }
 	})();
-     
-    // --- BLOQUEIO PREVENTIVO AO INICIAR ---
-    (async function verificarBloqueioInicial() {
-        const hoje = getLocalISODate(new Date());
-        const urlCheck = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/data_ultimo_envio.json?t=${Date.now()}`;
-        try {
-            const r = await fetch(urlCheck);
-            const dataUltimoEnvio = await r.json();
-            // Se a data gravada for igual à data de hoje, bloqueia!
-            if (dataUltimoEnvio === hoje) {
-                console.log("INICIALIZAÇÃO: E-mail já enviado hoje. Bloqueio ativado.");
-                bloqueioEmailDiario = true;
-            }
-        } catch(e) { console.error("Erro verificação inicial:", e); }
-        
-        // Só libera o loop principal DEPOIS de verificar
-        verificacaoInicialConcluida = true;
-    })();
+    verificacaoInicialConcluida = true;
 
-    const btnIntervaloElem = document.getElementById('btn-view-intervalo');
-     
     function switchView(viewName) {
         activeTab = viewName; 
 		for (const key in views) { views[key].style.display = 'none'; }
 		if (views[viewName]) { views[viewName].style.display = 'flex'; }
-
 		document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
 		if (btns[viewName]) { btns[viewName].classList.add('active'); }
-
         dateControls.style.display = 'none'; 
-
         if (viewName === 'grafico' || viewName === 'consumo') {
-            viewHeaders[viewName].appendChild(dateControls);
-            dateControls.style.display = 'flex';
-            btnDiario.style.display = 'flex';
-            btnMensal.style.display = 'flex';
-            if (viewName === 'consumo') {
-                btnIntervaloElem.style.display = 'none';
-            } else {
-                btnIntervaloElem.style.display = 'flex';
-            }
+            viewHeaders[viewName].appendChild(dateControls); dateControls.style.display = 'flex';
+            btnDiario.style.display = 'flex'; btnMensal.style.display = 'flex';
+            if (viewName === 'consumo') btnIntervaloElem.style.display = 'none'; else btnIntervaloElem.style.display = 'flex';
             btnSemanal.style.display = 'none';
-            
-            if (currentView === 'semanal') {
-                 currentView = 'diario';
-                 document.querySelector('.view-selector .view-btn.active').classList.remove('active');
-                 btnDiario.classList.add('active');
-                 document.getElementById('diario-picker').style.display = 'flex';
-                 document.getElementById('mensal-picker').style.display = 'none';
-                 document.getElementById('intervalo-picker').style.display = 'none';
-            }
+            if (currentView === 'semanal') { currentView = 'diario'; document.querySelector('.view-selector .view-btn.active').classList.remove('active'); btnDiario.classList.add('active'); document.getElementById('diario-picker').style.display = 'flex'; document.getElementById('mensal-picker').style.display = 'none'; document.getElementById('intervalo-picker').style.display = 'none'; }
         } else if (viewName === 'abastecimento') {
-            viewHeaders[viewName].appendChild(dateControls);
-            dateControls.style.display = 'flex';
-            btnDiario.style.display = 'none';
-            btnIntervalo.style.display = 'none';
-            btnSemanal.style.display = 'flex';
-            btnMensal.style.display = 'flex';
-            if (currentView === 'diario' || currentView === 'intervalo') {
-                 currentView = 'semanal';
-                 document.querySelector('.view-selector .view-btn.active').classList.remove('active');
-                 btnSemanal.classList.add('active');
-                 document.getElementById('diario-picker').style.display = 'none';
-                 document.getElementById('mensal-picker').style.display = 'none';
-                 document.getElementById('intervalo-picker').style.display = 'none';
-            }
+            viewHeaders[viewName].appendChild(dateControls); dateControls.style.display = 'flex';
+            btnDiario.style.display = 'none'; btnIntervalo.style.display = 'none'; btnSemanal.style.display = 'flex'; btnMensal.style.display = 'flex';
+            if (currentView === 'diario' || currentView === 'intervalo') { currentView = 'semanal'; document.querySelector('.view-selector .view-btn.active').classList.remove('active'); btnSemanal.classList.add('active'); document.getElementById('diario-picker').style.display = 'none'; document.getElementById('mensal-picker').style.display = 'none'; document.getElementById('intervalo-picker').style.display = 'none'; }
         }
-
-        if (viewName === 'caixa') {
-            carregarHistoricoAbastecimento();
-        } else if (viewName === 'grafico') {
-			if(chartLinha) chartLinha.resize();
-			if(chartBlocos) chartBlocos.resize();
-		} else if (viewName === 'consumo') {
-            if(chartConsumoBloco) chartConsumoBloco.resize();
-            if(chartConsumoLinha) chartConsumoLinha.resize();
-        } else if (viewName === 'abastecimento') {
-            carregarHistoricoAbastecimento();
-        } else if (viewName === 'config') {
-			carregarContatos();	
-			carregarNivelAlertaAtual(); 
-		}
+        if (viewName === 'caixa') carregarHistoricoAbastecimento();
+        else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); }
+        else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); }
+        else if (viewName === 'abastecimento') carregarHistoricoAbastecimento();
+        else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); }
     }
-     
-    // Event listeners
+      
     btns.caixa.addEventListener('click', () => switchView('caixa'));
 	btns.grafico.addEventListener('click', () => switchView('grafico'));
     btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
     btns.consumo.addEventListener('click', () => switchView('consumo'));
 	btns.config.addEventListener('click', () => switchView('config'));
 
-    // CORREÇÃO: Mapeia o botão "Entendido" para a nova função de silenciamento
     document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta);
-
-    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => {
-        const litros = document.getElementById('litros-abastecidos').value;
-        salvarAbastecimento(litros);
-    });
-	
-	document.getElementById('btn-add-contato').addEventListener('click', () => {
-		const valor = document.getElementById('contato-valor').value;
-		const tipo = document.getElementById('contato-tipo').value;
-		adicionarContato(valor, tipo);
-	});
-
-	document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => {
-		const nivel = document.getElementById('nivel-alerta-valor').value;
-		const statusDiv = document.getElementById('status-alerta');
-		if (nivel && nivel >= 1 && nivel <= 99) {
-			salvarNivelAlerta(parseInt(nivel));
-		} else {
-			statusDiv.style.color = 'red';
-			statusDiv.innerText = 'Insira um valor válido (1-99).';
-			setTimeout(() => { statusDiv.innerText = ''; }, 3000);
-		}
-	});
+    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => { const litros = document.getElementById('litros-abastecidos').value; salvarAbastecimento(litros); });
+    document.getElementById('btn-salvar-capacidade').addEventListener('click', () => { const cap = document.getElementById('capacidade-total-valor').value; if(cap && cap > 0) salvarCapacidade(parseInt(cap)); });
+    document.getElementById('btn-salvar-geometria').addEventListener('click', () => { const geo = document.getElementById('geometria-caixa').value; salvarGeometria(geo); });
+	document.getElementById('btn-add-contato').addEventListener('click', () => { const valor = document.getElementById('contato-valor').value; const tipo = document.getElementById('contato-tipo').value; adicionarContato(valor, tipo); });
+	document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => { const nivel = document.getElementById('nivel-alerta-valor').value; if (nivel && nivel >= 1 && nivel <= 99) salvarNivelAlerta(parseInt(nivel)); });
 
 	document.getElementById('lista-contatos').addEventListener('click', (e) => {
 		if (e.target.tagName === 'BUTTON') {
-			const id = e.target.dataset.id;
-			const btn = e.target;
-			if (btn.dataset.confirming) {
-				removerContato(id);
-				btn.dataset.confirming = 'false';
-				btn.innerText = 'Remover';
-			} else {
-				document.querySelectorAll('#lista-contatos button[data-confirming="true"]').forEach(b => {
-					b.dataset.confirming = 'false';
-					b.innerText = 'Remover';
-				});
-				btn.dataset.confirming = 'true';
-				btn.innerText = 'Confirmar?';
-				setTimeout(() => {
-					if (btn.dataset.confirming === 'true') {
-						 btn.dataset.confirming = 'false';
-						 btn.innerText = 'Remover';
-					}
-				}, 3000);
-			}
+			const id = e.target.dataset.id; const btn = e.target;
+			if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = 'false'; btn.innerText = 'Remover'; }
+			else { document.querySelectorAll('#lista-contatos button[data-confirming="true"]').forEach(b => { b.dataset.confirming = 'false'; b.innerText = 'Remover'; }); btn.dataset.confirming = 'true'; btn.innerText = 'Confirmar?'; setTimeout(() => { if (btn.dataset.confirming === 'true') { btn.dataset.confirming = 'false'; btn.innerText = 'Remover'; } }, 3000); }
 		}
 	});
 
 	document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
         if (e.target.classList.contains('delete-abastecimento-btn')) {
-			const id = e.target.dataset.id;
-			const btn = e.target;
-			if (btn.dataset.confirming) {
-				removerAbastecimento(id);
-			} else {
-				document.querySelectorAll('#lista-abastecimentos button[data-confirming="true"]').forEach(b => {
-					b.dataset.confirming = 'false';
-					b.innerText = '×';
-                    b.style.width = '30px';
-				});
-				btn.dataset.confirming = 'true';
-				btn.innerText = 'Confirmar?';
-                btn.style.width = 'auto'; 
-				setTimeout(() => {
-					if (btn.dataset.confirming === 'true') {
-						 btn.dataset.confirming = 'false';
-						 btn.innerText = '×';
-                         btn.style.width = '30px';
-					}
-				}, 3000);
-			}
+			const id = e.target.dataset.id; const btn = e.target;
+			if (btn.dataset.confirming) removerAbastecimento(id);
+			else { document.querySelectorAll('#lista-abastecimentos button[data-confirming="true"]').forEach(b => { b.dataset.confirming = 'false'; b.innerText = '×'; b.style.width = '30px'; }); btn.dataset.confirming = 'true'; btn.innerText = 'Confirmar?'; btn.style.width = 'auto'; setTimeout(() => { if (btn.dataset.confirming === 'true') { btn.dataset.confirming = 'false'; btn.innerText = '×'; btn.style.width = '30px'; } }, 3000); }
 		}
 	});
 
@@ -2007,17 +1698,14 @@ window.onload = function() {
 	document.getElementById('dataFim').value = dataFimPadrao;
 	
 	switchView('caixa'); 
-	
-    document.getElementById('btnAtualizar').onclick = () => {
-        if (activeTab === 'grafico' || activeTab === 'consumo') {
-            carregarHistoricoEConsumo();
-        }
-    };
-     
-	carregarHistoricoEConsumo().then(() => {
-		loopDeAtualizacao();
-		setInterval(loopDeAtualizacao, 2000);
-	});
+    document.getElementById('btnAtualizar').onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); };
+      
+    carregarConfiguracoesGerais().then(() => {
+        carregarHistoricoEConsumo().then(() => {
+            loopDeAtualizacao();
+            setInterval(loopDeAtualizacao, 2000);
+        });
+    });
 
 	document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
 		btn.addEventListener('click', (e) => {
@@ -2026,11 +1714,7 @@ window.onload = function() {
 			e.target.classList.add('active');
 			if (e.target.dataset.view) {
 				currentView = e.target.dataset.view; 
-				const pickers = {
-					diario: document.getElementById('diario-picker'),
-					mensal: document.getElementById('mensal-picker'),
-					intervalo: document.getElementById('intervalo-picker')
-				};
+				const pickers = { diario: document.getElementById('diario-picker'), mensal: document.getElementById('mensal-picker'), intervalo: document.getElementById('intervalo-picker') };
 				for(const key in pickers) { pickers[key].style.display = 'none'; }
 				if (pickers[currentView]) pickers[currentView].style.display = 'flex';
                 document.getElementById('btnAtualizar').click();
@@ -2041,4 +1725,3 @@ window.onload = function() {
 </script>
 </body>
 </html>
-
