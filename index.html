@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monitoramento Caixa D'Água PP7 - V.Final Corrigida</title>
+<title>Monitoramento Caixa D'Água PP7 - V.2.2 Final</title>
 
 <!-- Chart.js Core -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
@@ -12,6 +12,7 @@
 <!-- Plugin de Zoom do Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
 
+<!-- EmailJS SDK -->
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 <style>
@@ -726,6 +727,29 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 
 
 <script>
+// --- CONFIGURAÇÃO MULTI-CONTAS EMAILJS (3 Contas) ---
+const CONTAS_EMAIL = [
+    {
+        id: 0,
+        service: "service_lubx0i8",
+        template: "template_ll79qy1",
+        key: "I1HnvhgWehPP7EXxX",
+        quota_inicial: 27 // Saldo inicial específico para a 1ª conta
+    },
+    {
+        id: 1,
+        service: "service_n365um4",
+        template: "template_fjhnurn",
+        key: "ivGT9BYMpO_IMpcJI"
+    },
+    {
+        id: 2,
+        service: "service_txwft9l",
+        template: "template_c5l1j8r",
+        key: "xwk898VhH0VS-PSg9"
+    }
+];
+
 // --- VARIÁVEIS GLOBAIS ---
 let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha; 
 let historicoNiveis = [], historicoLabels = [];
@@ -735,9 +759,8 @@ let nivelAtual = 0;
 let nivelAlertaConfigurado = 30; 
 
 let capacidadeTotal = 8000; 
-let alturaCaixa = 0; // Nova variável para armazenar a altura
+let alturaCaixa = 0; 
 
-let emailJsInicializado = false; 
 let alertaModalMostrado = false; 
 
 // Variáveis de Bloqueio e Inicialização
@@ -770,17 +793,11 @@ let dataUltimaLeituraValida = Date.now();
 let historicoLeiturasValidas = []; 
 
 // --- FUNÇÃO DE CÁLCULO DE VOLUME ---
-// Revertido para o cálculo linear simples, já que a geometria foi removida
 function calcularVolumeLitros(nivelPercentual) {
     if (nivelPercentual <= 0) return 0;
     if (nivelPercentual > 100) nivelPercentual = 100;
-    // Cálculo Linear Padrão
     return (nivelPercentual / 100) * capacidadeTotal;
 }
-
-// EmailJS
-const SERVICE_ID = "service_lubx0i8";
-const TEMPLATE_ID = "template_ll79qy1";
 
 // --- FUNÇÕES AUXILIARES ---
 
@@ -791,9 +808,58 @@ function getLocalISODate(dateObj) {
     return localDate.toISOString().split('T')[0];
 }
 
-async function enviarEmailAlerta(nivel) {
-	if (!emailJsInicializado) return false; 
+// --- FUNÇÃO INTELIGENTE DE ROTAÇÃO DE EMAIL ---
+async function gerenciarRotacaoEmail(custoEnvio) {
+    const dbPath = 'PP7_config/controle_email_rotativo.json';
+    const baseUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/';
     
+    const hoje = new Date();
+    const mesAtual = `${hoje.getFullYear()}-${hoje.getMonth() + 1}`; 
+
+    try {
+        let r = await fetch(baseUrl + dbPath);
+        let dadosControle = await r.json();
+
+        // Inicializar com saldo da conta 1 (27) se não existir
+        if (!dadosControle) {
+            dadosControle = { conta_ativa: 0, restantes: 27, mes_referencia: mesAtual };
+        }
+
+        // Reset Mensal
+        if (dadosControle.mes_referencia !== mesAtual) {
+            console.log("Virada de mês detectada! Resetando cotas para Conta 1.");
+            // Reset padrão para 200 (ou o valor da conta 1 se fosse início de deploy, mas aqui assume-se renovação completa)
+            dadosControle = { conta_ativa: 0, restantes: 200, mes_referencia: mesAtual };
+        }
+
+        if (dadosControle.restantes < custoEnvio) {
+            console.log(`Conta ${dadosControle.conta_ativa} esgotada (Saldo: ${dadosControle.restantes}). Tentando próxima...`);
+            
+            const proximaContaIndex = dadosControle.conta_ativa + 1;
+            
+            if (proximaContaIndex < CONTAS_EMAIL.length) {
+                dadosControle.conta_ativa = proximaContaIndex;
+                dadosControle.restantes = 200 - custoEnvio; 
+                console.log(`Mudando para Conta ${proximaContaIndex}.`);
+            } else {
+                console.error("ALERTA CRÍTICO: Todas as contas de e-mail atingiram o limite mensal!");
+                return null; 
+            }
+        } else {
+            dadosControle.restantes -= custoEnvio;
+        }
+
+        await fetch(baseUrl + dbPath, { method: 'PUT', body: JSON.stringify(dadosControle) });
+
+        return CONTAS_EMAIL[dadosControle.conta_ativa];
+
+    } catch (e) {
+        console.error("Erro na lógica de rotação de e-mail:", e);
+        return CONTAS_EMAIL[0];
+    }
+}
+
+async function enviarEmailAlerta(nivel) {
     if (emailEnviadoNessaSessao) {
         console.log("E-mail já enviado nesta sessão de alerta.");
         return false;
@@ -815,7 +881,16 @@ async function enviarEmailAlerta(nivel) {
 
 	if (emailsParaEnviar.length === 0) return false;
 
-	console.log(`ENVIANDO E-MAIL DE ALERTA (Nível: ${nivel}%)`);
+    // Lógica de Rotação
+    const custoEnvio = emailsParaEnviar.length; // 1 email por contato
+    const credenciais = await gerenciarRotacaoEmail(custoEnvio);
+
+    if (!credenciais) {
+        console.error("Envio cancelado: Cota excedida em todas as contas.");
+        return false;
+    }
+
+	console.log(`ENVIANDO ALERTA (Nível: ${nivel}%) via Conta ID: ${credenciais.id}`);
 	
 	let todosEnviadosComSucesso = true;
 	for (const email of emailsParaEnviar) {
@@ -825,7 +900,7 @@ async function enviarEmailAlerta(nivel) {
 		};
 
 		try {
-			await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
+			await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key);
 		} catch (err) {
 			console.error(`ERRO ao enviar e-mail para ${email}:`, err);
 			todosEnviadosComSucesso = false; 
@@ -1257,7 +1332,7 @@ async function carregarHistoricoEConsumo() {
             const dailyLevels = {}; 
             const dateKeys = Object.keys(dados).sort();
 
-            for (const dateKey of dateKeys) {
+            for (const dateKey in dados) {
                 const dailyReadings = dados[dateKey];
                 const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b));
                 
@@ -1599,11 +1674,6 @@ window.onload = function() {
     document.body.addEventListener('click', despertarAudio, { once: true });
     document.body.addEventListener('touchstart', despertarAudio, { once: true });
 
-	(function() {
-		const PUBLIC_KEY = "I1HnvhgWehPP7EXxX";	
-		if (PUBLIC_KEY === "SUA_PUBLIC_KEY_AQUI" || PUBLIC_KEY === "") { emailJsInicializado = false; return; }
-		try { emailjs.init(PUBLIC_KEY); emailJsInicializado = true; } catch(e) { emailJsInicializado = false; }
-	})();
     verificacaoInicialConcluida = true;
 
     function switchView(viewName) {
@@ -1699,4 +1769,3 @@ window.onload = function() {
 </script>
 </body>
 </html>
-
