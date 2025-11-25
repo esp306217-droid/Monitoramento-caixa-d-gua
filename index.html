@@ -646,21 +646,17 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 			<div id="status-capacidade" class="small" style="font-weight:bold;"></div>
 		</div>
         
-        <!-- NOVA CONFIGURAÇÃO DE GEOMETRIA -->
+        <!-- CONFIGURAÇÃO DE ALTURA (Substitui Formato) -->
         <div class="config-card">
-			<h2>Formato da Caixa</h2>
+			<h2>Altura da Caixa (cm)</h2>
 			<p class="small" style="margin-top:-10px; margin-bottom:15px;">
-				Define como o volume é calculado.
+				Altura total para referência ou cálculos futuros.
 			</p>
 			<div class="form-group">
-				<select id="geometria-caixa">
-                    <!-- ATENÇÃO: Padrão alterado para Cilindrica (Linear) para garantir proporcionalidade -->
-                    <option value="cilindrica" selected>Cilíndrica / Linear (Padrão)</option>
-                    <option value="taca">Taça / Cone</option>
-                </select>
-				<button id="btn-salvar-geometria" class="modern-button">Salvar</button>
+				<input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1">
+				<button id="btn-salvar-altura" class="modern-button">Salvar</button>
 			</div>
-			<div id="status-geometria" class="small" style="font-weight:bold;"></div>
+			<div id="status-altura" class="small" style="font-weight:bold;"></div>
 		</div>
 
 		<div class="config-card">
@@ -739,7 +735,7 @@ let nivelAtual = 0;
 let nivelAlertaConfigurado = 30; 
 
 let capacidadeTotal = 8000; 
-let geometriaCaixa = 'cilindrica'; // CORREÇÃO: Padrão Linear para ser proporcional
+let alturaCaixa = 0; // Nova variável para armazenar a altura
 
 let emailJsInicializado = false; 
 let alertaModalMostrado = false; 
@@ -774,32 +770,12 @@ let dataUltimaLeituraValida = Date.now();
 let historicoLeiturasValidas = []; 
 
 // --- FUNÇÃO DE CÁLCULO DE VOLUME ---
+// Revertido para o cálculo linear simples, já que a geometria foi removida
 function calcularVolumeLitros(nivelPercentual) {
     if (nivelPercentual <= 0) return 0;
     if (nivelPercentual > 100) nivelPercentual = 100;
-
-    if (geometriaCaixa === 'cilindrica') {
-        // Cálculo Linear Padrão (Proporcional)
-        return (nivelPercentual / 100) * capacidadeTotal;
-    } else {
-        // Cálculo Geometria "Taça"
-        const pontoDeQuebra = 60; 
-        const volumeNaQuebraPct = 0.30; 
-
-        if (nivelPercentual <= pontoDeQuebra) {
-            const fator = nivelPercentual / pontoDeQuebra;
-            return fator * (volumeNaQuebraPct * capacidadeTotal);
-        } else {
-            const alturaNoCopo = nivelPercentual - pontoDeQuebra;
-            const alturaTotalCopo = 100 - pontoDeQuebra;
-            const fatorCopo = alturaNoCopo / alturaTotalCopo;
-            
-            const volumeBase = volumeNaQuebraPct * capacidadeTotal;
-            const volumeRestante = (1 - volumeNaQuebraPct) * capacidadeTotal;
-            
-            return volumeBase + (fatorCopo * volumeRestante);
-        }
-    }
+    // Cálculo Linear Padrão
+    return (nivelPercentual / 100) * capacidadeTotal;
 }
 
 // EmailJS
@@ -1000,8 +976,8 @@ function atualizarGraficosConsumo(result) {
         let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
         
         let statusConsumo = "Baixo";
-        if (totalConsumo > 3000) statusConsumo = "Alto";
-        else if (totalConsumo > 1000) statusConsumo = "Normal";
+        if (totalConsumo > 2500) statusConsumo = "Alto";
+        else if (totalConsumo > 1500) statusConsumo = "Normal";
         
         if (currentView === 'diario') {
              infoTexto.innerText = `Consumo do Dia (Soma total): ${totalConsumo.toFixed(0)} L (${statusConsumo})`;
@@ -1423,28 +1399,27 @@ async function salvarCapacidade(valor) {
     finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
 }
 
-async function salvarGeometria(geo) {
-    const statusDiv = document.getElementById('status-geometria');
+async function salvarAltura(cm) {
+    const statusDiv = document.getElementById('status-altura');
     statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
     try {
-        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/geometria.json', { method: 'PUT', body: JSON.stringify(geo) });
-        geometriaCaixa = geo;
-        statusDiv.style.color = 'green'; statusDiv.innerText = `Geometria salva como ${geo}.`;
-        if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
+        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json', { method: 'PUT', body: JSON.stringify(cm) });
+        alturaCaixa = cm;
+        statusDiv.style.color = 'green'; statusDiv.innerText = `Altura salva: ${cm}cm.`;
     } catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
     finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
 }
 
 async function carregarConfiguracoesGerais() {
 	try {
-		const [rAlerta, rCap, rGeo] = await Promise.all([
+		const [rAlerta, rCap, rAlt] = await Promise.all([
             fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json'),
             fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json'),
-            fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/geometria.json')
+            fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json')
         ]);
 		const nivelSalvo = await rAlerta.json();
         const capSalvo = await rCap.json();
-        const geoSalvo = await rGeo.json();
+        const altSalvo = await rAlt.json();
 
 		if (nivelSalvo) {
 			document.getElementById('nivel-alerta-valor').value = nivelSalvo;
@@ -1456,10 +1431,10 @@ async function carregarConfiguracoesGerais() {
             document.getElementById('capacidade-total-valor').value = capacidadeTotal;
         } else document.getElementById('capacidade-total-valor').value = capacidadeTotal;
         
-        if (geoSalvo) {
-            geometriaCaixa = geoSalvo;
-            document.getElementById('geometria-caixa').value = geoSalvo;
-        } else document.getElementById('geometria-caixa').value = geometriaCaixa;
+        if (altSalvo) {
+            alturaCaixa = parseInt(altSalvo);
+            document.getElementById('altura-caixa-valor').value = alturaCaixa;
+        } else document.getElementById('altura-caixa-valor').value = alturaCaixa;
 
 	} catch (e) { console.error("Erro ao carregar configs:", e); }
 }
@@ -1550,15 +1525,14 @@ async function loopDeAtualizacao() {
             const horasPassadas = msPassados / (1000 * 60 * 60); 
             
             let reducaoTotal = 0;
-            if (horasPassadas < 4) reducaoTotal = 0;
-            else if (horasPassadas < 8) reducaoTotal = 5;
-            else if (horasPassadas < 12) reducaoTotal = 10;
-            else if (horasPassadas < 16) reducaoTotal = 15;
-            else {
-                const horasExtras = horasPassadas - 16;
-                const blocosExtras = Math.floor(horasExtras / 4) + 1; 
-                reducaoTotal = 15 + (blocosExtras * 10);
+            // --- NOVA LÓGICA DE DECAIMENTO: Baseada em média de 2000L/dia (approx 1% por hora) ---
+            if (horasPassadas < 2) {
+                reducaoTotal = 0; // Grace period 2h
+            } else {
+                // 1% por hora passada após grace period
+                reducaoTotal = Math.floor(horasPassadas * 1.05); 
             }
+            
             nivelAtual = ultimoNivelValido - reducaoTotal;
             if (nivelAtual < 0) nivelAtual = 0; 
         }
@@ -1666,7 +1640,7 @@ window.onload = function() {
     document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta);
     document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => { const litros = document.getElementById('litros-abastecidos').value; salvarAbastecimento(litros); });
     document.getElementById('btn-salvar-capacidade').addEventListener('click', () => { const cap = document.getElementById('capacidade-total-valor').value; if(cap && cap > 0) salvarCapacidade(parseInt(cap)); });
-    document.getElementById('btn-salvar-geometria').addEventListener('click', () => { const geo = document.getElementById('geometria-caixa').value; salvarGeometria(geo); });
+    document.getElementById('btn-salvar-altura').addEventListener('click', () => { const alt = document.getElementById('altura-caixa-valor').value; if(alt && alt > 0) salvarAltura(parseInt(alt)); });
 	document.getElementById('btn-add-contato').addEventListener('click', () => { const valor = document.getElementById('contato-valor').value; const tipo = document.getElementById('contato-tipo').value; adicionarContato(valor, tipo); });
 	document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => { const nivel = document.getElementById('nivel-alerta-valor').value; if (nivel && nivel >= 1 && nivel <= 99) salvarNivelAlerta(parseInt(nivel)); });
 
