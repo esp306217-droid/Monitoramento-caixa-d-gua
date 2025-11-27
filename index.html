@@ -516,6 +516,18 @@ li {
         <h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1>
     </header>
     <div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+        <!-- Seletor de Período para Abastecimento -->
+        <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 5px;">
+            <input type="month" id="mesAbastecimento">
+            <button id="btnAtualizarAbastecimento" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <!-- Novo Gráfico de Comparação Semanal -->
+        <div class="chart-card glass-panel" style="width: 100%; max-width: 600px;">
+            <strong>Comparativo Semanal (Litros)</strong>
+            <canvas id="chartAbastecimento"></canvas>
+        </div>
+
         <div id="abastecimento-form" class="config-card glass-panel" style="margin: 0; width: 100%; max-width: 500px;">
             <h2>Registrar Entrada</h2>
             <!-- Centralizado -->
@@ -527,7 +539,7 @@ li {
         </div>
 
         <div id="abastecimento-historico-card" class="glass-panel" style="width: 100%; max-width: 500px; padding: 20px;">
-            <h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; text-align: left; border-bottom: 1px solid var(--text-sec); padding-bottom: 8px;">Histórico</h3>
+            <h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; text-align: left; border-bottom: 1px solid var(--text-sec); padding-bottom: 8px;">Histórico Recente</h3>
             <ul id="lista-abastecimentos"></ul>
         </div>
     </div>
@@ -681,6 +693,7 @@ function applyTheme() {
     }
     criarGraficos();
     if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
+    if(activeTab === 'abastecimento') carregarHistoricoAbastecimento();
 }
 
 function toggleTheme(e) {
@@ -700,7 +713,7 @@ try {
     }
 } catch (e) {}
 
-let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha; 
+let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
 let historicoNiveis = [], historicoLabels = [];
 let currentView = 'diario'; 
 let activeTab = 'caixa'; 
@@ -1017,10 +1030,26 @@ function criarGraficos() {
             type: 'bar',
             data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] },
             options: { 
-                animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round } }, 
+                animation: false, maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { display: false }, 
+                    zoom: zoomOptions, 
+                    datalabels: { 
+                        color: textColor, 
+                        anchor: 'end', 
+                        align: 'top', 
+                        formatter: Math.round,
+                        font: { size: 10 } // Fonte reduzida
+                    } 
+                }, 
                 scales: { 
                     x: xAxisConfig, 
-                    y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } 
+                    y: { 
+                        ticks: { color: textColor }, 
+                        min: 0, 
+                        suggestedMax: 2000, // Máximo sugerido ajustado
+                        grid: { color: gridColor } 
+                    } 
                 },
                 layout: { padding: { top: 20 } }
             }
@@ -1040,6 +1069,24 @@ function criarGraficos() {
                     y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } 
                 },
                 layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } }
+            }
+        });
+    }
+
+    // --- NOVO GRÁFICO DE ABASTECIMENTO (VELA/COLUNA) ---
+    if(document.getElementById('chartAbastecimento')) {
+        const ctxA = document.getElementById('chartAbastecimento').getContext('2d');
+        if(chartAbastecimento) chartAbastecimento.destroy();
+        chartAbastecimento = new Chart(ctxA, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] },
+            options: { 
+                animation: false, maintainAspectRatio: false, 
+                plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, 
+                scales: { 
+                    x: { ticks: { color: textColor }, grid: { display: false } }, 
+                    y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } 
+                } 
             }
         });
     }
@@ -1233,25 +1280,67 @@ async function carregarHistoricoEConsumo() {
 async function removerAbastecimento(id) {
     try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {}
 }
+
 async function carregarHistoricoAbastecimento() {
     const listaUL = document.getElementById('lista-abastecimentos');
+    const elMes = document.getElementById('mesAbastecimento');
+    const mesAno = elMes ? elMes.value : getLocalISODate().substring(0, 7);
+    
     if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>';
+    
     try {
-        const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=5');
+        // Busca um histórico maior para filtrar localmente
+        const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=100');
         const dados = await r.json();
+        
         if(listaUL) listaUL.innerHTML = ''; 
-        if (dados && listaUL) {
-            const ids = Object.keys(dados).reverse();
-            if (ids.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
-            ids.forEach(id => {
+        
+        if (dados) {
+            const ids = Object.keys(dados).sort().reverse(); 
+            
+            // 1. Lista (Últimos 5 globais para controle)
+            const idsParaLista = ids.slice(0, 5);
+            if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
+            
+            idsParaLista.forEach(id => {
                 const item = dados[id];
                 const li = document.createElement('li');
                 const d = new Date(item.timestamp);
                 li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`;
                 listaUL.appendChild(li);
             });
-        } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
-    } catch (e) {}
+
+            // 2. Gráfico (Filtrado pelo Mês Selecionado)
+            const totaisSemana = [0, 0, 0, 0]; // 4 Semanas fixas
+            
+            Object.keys(dados).forEach(key => {
+                const item = dados[key];
+                const d = new Date(item.timestamp);
+                // Converte para YYYY-MM local para comparar
+                const itemMesAno = getLocalISODate(d).substring(0, 7);
+                
+                if (itemMesAno === mesAno) {
+                    const dia = d.getDate();
+                    let idx = 0;
+                    if (dia <= 7) idx = 0;       // 1ª Semana
+                    else if (dia <= 14) idx = 1; // 2ª Semana
+                    else if (dia <= 21) idx = 2; // 3ª Semana
+                    else idx = 3;                // 4ª Semana (22+)
+                    
+                    totaisSemana[idx] += parseInt(item.litros || 0);
+                }
+            });
+
+            if(chartAbastecimento) {
+                chartAbastecimento.data.labels = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'];
+                chartAbastecimento.data.datasets[0].data = totaisSemana;
+                chartAbastecimento.update();
+            }
+
+        } else if(listaUL) {
+            listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
+        }
+    } catch (e) { console.error(e); }
 }
 
 /* --- JS HELPER: Animação de Sucesso --- */
@@ -1522,6 +1611,20 @@ window.onload = function() {
     const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') };
     const dateControls = document.getElementById('date-controls');
     
+    // Inicialização segura dos inputs de data
+    const hoje = new Date(); 
+    const mesAtual = getLocalISODate(hoje).substring(0, 7);
+    
+    // Inicializa o seletor de abastecimento
+    const elMesAbast = document.getElementById('mesAbastecimento');
+    if(elMesAbast) {
+        elMesAbast.value = mesAtual;
+    }
+    const btnAtAbast = document.getElementById('btnAtualizarAbastecimento');
+    if(btnAtAbast) {
+        btnAtAbast.onclick = carregarHistoricoAbastecimento;
+    }
+
     setupAudio();
     function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); }
     document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true });
@@ -1542,7 +1645,10 @@ window.onload = function() {
         if (viewName === 'caixa') carregarHistoricoAbastecimento();
         else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); }
         else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); }
-        else if (viewName === 'abastecimento') carregarHistoricoAbastecimento();
+        else if (viewName === 'abastecimento') {
+             carregarHistoricoAbastecimento();
+             if(chartAbastecimento) chartAbastecimento.resize();
+        }
         else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); }
     }
       
@@ -1577,7 +1683,7 @@ window.onload = function() {
     });
 
     criarGraficos();
-    const hoje = new Date(); const dataFim = getLocalISODate(hoje);
+    const dataFim = getLocalISODate(hoje);
     const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje);
     
     // Safe initialization for date inputs
