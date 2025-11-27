@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.24 Button Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.25 Theme Fix</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -102,23 +102,24 @@ body {
     background: var(--card-bg); 
     border: 1px solid var(--card-border);
     color: var(--text-main);
-    font-size: 1.4rem; 
+    font-size: 1.6rem; /* Aumentado para facilitar toque */
     cursor: pointer; 
-    width: 48px; 
-    height: 48px;
+    width: 52px; /* Aumentado */
+    height: 52px; /* Aumentado */
     display: flex; 
     align-items: center; 
     justify-content: center;
     border-radius: 50%; 
-    transition: all 0.3s;
-    position: fixed; /* Muda de absolute para fixed */
-    top: 12px; 
-    left: 12px; 
-    z-index: 9999; /* Z-Index altíssimo para garantir o clique */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s;
+    position: fixed; 
+    top: 10px; 
+    left: 10px; 
+    z-index: 99999; /* Z-Index máximo */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    -webkit-tap-highlight-color: transparent; /* Remove highlight azul no Android */
+    touch-action: manipulation; /* Melhora resposta ao toque */
 }
-.theme-toggle:active { transform: scale(0.9); }
+.theme-toggle:active { transform: scale(0.9); background-color: var(--accent); color: white; }
 
 /* Cabeçalho Centralizado */
 .main-header {
@@ -133,7 +134,7 @@ body {
     transition: background-color 0.3s ease;
     flex-wrap: wrap;
     gap: 10px;
-    padding-left: 60px; /* Espaço para o botão flutuante não cobrir o menu */
+    padding-left: 70px; /* Espaço extra para o botão flutuante */
 }
 .nav-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0; justify-content: center; }
 
@@ -355,7 +356,7 @@ li {
     .main-header { 
         overflow-x: hidden; 
         justify-content: center;
-        padding-left: 60px; /* Força espaço para o botão flutuante */
+        padding-left: 70px; /* Força espaço para o botão flutuante */
     }
     .nav-group { width: 100%; justify-content: center; overflow-x: auto; }
     
@@ -429,8 +430,9 @@ li {
 <!-- Badge de Emergência -->
 <div id="emergency-badge" title="Sem Sinal">!</div>
 
-<!-- FIX: Botão movido para FORA do header para garantir o clique (Z-Index alto) -->
-<button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+<!-- FIX: Botão flutuante FORA do header para garantir o clique (Z-Index alto) -->
+<!-- Evento direto no HTML para garantir funcionamento em WebViews antigas -->
+<button id="theme-toggle-btn" class="theme-toggle"><i class="fas fa-moon"></i></button>
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
     <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
@@ -637,51 +639,59 @@ const CONTAS_EMAIL = [
     { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 0 }
 ];
 
+/* --- SISTEMA DE TEMA ROBUSTO (APP INVENTOR FIX) --- */
+// Variável global para controlar estado do tema
+let isDarkMode = false;
+
 function checkAutoTheme() {
+    // Se o usuário já definiu uma preferência salva, respeita ela (prioridade)
+    try {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            isDarkMode = (savedTheme === 'dark');
+            applyTheme();
+            return;
+        }
+    } catch (e) {}
+
+    // Senão, usa o horário
     const hora = new Date().getHours();
-    const body = document.body;
-    const icon = document.querySelector('#theme-toggle-btn i');
-    // Auto Dark Mode: 18:00 - 05:59
-    if (hora >= 18 || hora < 6) {
-        body.setAttribute('data-theme', 'dark');
-        if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
-    } else {
-        body.removeAttribute('data-theme');
-        if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
-    }
-    criarGraficos();
+    isDarkMode = (hora >= 18 || hora < 6);
+    applyTheme();
 }
 
-function toggleTheme() {
+function applyTheme() {
     const body = document.body;
     const icon = document.querySelector('#theme-toggle-btn i');
-    try {
-        if (body.getAttribute('data-theme') === 'dark') {
-            body.removeAttribute('data-theme');
-            icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
-            localStorage.setItem('theme', 'light');
-        } else {
-            body.setAttribute('data-theme', 'dark');
-            icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
-            localStorage.setItem('theme', 'dark');
-        }
-    } catch (e) {
-        // Fallback para WebViews sem localStorage
-        if (body.getAttribute('data-theme') === 'dark') {
-            body.removeAttribute('data-theme');
-            icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
-        } else {
-            body.setAttribute('data-theme', 'dark');
-            icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
-        }
+    
+    if (isDarkMode) {
+        body.setAttribute('data-theme', 'dark');
+        if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
+        try { localStorage.setItem('theme', 'dark'); } catch(e){}
+    } else {
+        body.removeAttribute('data-theme');
+        // FORCE REDRAW: Truque para WebViews antigas que não atualizam o fundo
+        body.style.display='none'; body.offsetHeight; body.style.display='';
+        if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+        try { localStorage.setItem('theme', 'light'); } catch(e){}
     }
-    criarGraficos(); 
+    criarGraficos();
     if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
 }
 
+function toggleTheme(e) {
+    // Previne comportamento padrão e propagação (para evitar duplo clique)
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    
+    isDarkMode = !isDarkMode;
+    applyTheme();
+}
+
+// Inicialização segura
 try {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
+        isDarkMode = true;
         document.body.setAttribute('data-theme', 'dark');
     }
 } catch (e) {}
@@ -1421,6 +1431,22 @@ async function loopDeAtualizacao() {
 }
 
 window.onload = function() {
+    // Add Dedicated Touch Event Listener for Theme Toggle
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if(themeBtn) {
+        // Remove click to avoid conflict if touchstart works
+        // themeBtn.onclick = null; 
+        
+        // Handle click (Desktop)
+        themeBtn.addEventListener('click', toggleTheme);
+        
+        // Handle touch (Mobile) - using touchend for better UX
+        themeBtn.addEventListener('touchend', (e) => {
+            e.preventDefault(); // Prevent mouse event simulation
+            toggleTheme(e);
+        }, {passive: false});
+    }
+
     checkAutoTheme(); // Set initial theme
     const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') };
     const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') };
@@ -1456,7 +1482,6 @@ window.onload = function() {
     if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo'));
     if(btns.config) btns.config.addEventListener('click', () => switchView('config'));
 
-    // document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme); // Removed as inline click is safer for webview
     document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta);
 
     document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value));
