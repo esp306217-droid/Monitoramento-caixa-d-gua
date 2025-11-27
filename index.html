@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.18 App Inventor Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.19 Browser Fix</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -669,17 +669,12 @@ function getNoCacheUrl(url) {
     return `${url}${separator}nocache=${Date.now()}`;
 }
 
-/* --- FUNÇÃO DE FETCH ROBUSTA PARA WEBVIEW --- */
+/* --- FUNÇÃO DE FETCH ROBUSTA PARA WEBVIEW & BROWSER --- */
 async function safeFetch(url, options = {}) {
     const finalOptions = {
         ...options,
-        cache: 'no-store', // Força não usar cache
-        headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-            ...options.headers
-        }
+        cache: 'no-store', // Instrução padrão para o navegador não cachear
+        // Headers manuais removidos para evitar problemas de CORS (Preflight)
     };
     return fetch(getNoCacheUrl(url), finalOptions);
 }
