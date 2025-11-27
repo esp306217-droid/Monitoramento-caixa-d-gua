@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.20 GitHub Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.21 Clean</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -309,14 +309,6 @@ li {
     width: 60%; padding: 12px 25px; min-width: 120px; margin-top: 5px;
 }
 
-/* Footer Versão */
-.app-version {
-    margin-top: 20px;
-    font-size: 0.7rem;
-    color: var(--text-sec);
-    opacity: 0.6;
-}
-
 
 /* Responsividade */
 @media (max-width: 800px) {
@@ -444,7 +436,6 @@ li {
             </g>
         </svg>
     </div>
-    <div class="app-version">v.3.20</div>
 </div>
 
 <div id="grafico-container" style="display:none;">
@@ -617,22 +608,36 @@ function checkAutoTheme() {
 function toggleTheme() {
     const body = document.body;
     const icon = document.querySelector('#theme-toggle-btn i');
-    if (body.getAttribute('data-theme') === 'dark') {
-        body.removeAttribute('data-theme');
-        icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
-        localStorage.setItem('theme', 'light');
-    } else {
-        body.setAttribute('data-theme', 'dark');
-        icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
-        localStorage.setItem('theme', 'dark');
+    try {
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
+            localStorage.setItem('theme', 'light');
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
+            localStorage.setItem('theme', 'dark');
+        }
+    } catch (e) {
+        // Fallback para WebViews sem localStorage
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
+        }
     }
     criarGraficos(); 
     if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
 }
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme === 'dark') {
-    document.body.setAttribute('data-theme', 'dark');
-}
+
+try {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+    }
+} catch (e) {}
 
 let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha; 
 let historicoNiveis = [], historicoLabels = [];
