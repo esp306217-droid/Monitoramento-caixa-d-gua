@@ -1280,4 +1280,200 @@ async function loopDeAtualizacao() {
         lastUpdateTimestamp = Date.now(); // WATCHDOG: Atualiza hora da última execução
 
         const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
-        const configUrl = '
+        const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
+        
+        // --- MOBILE FIX: Cache Buster ---
+        const [r, rConfig] = await Promise.all([
+            safeFetch(dataUrl), 
+            safeFetch(configUrl)
+        ]);
+        
+        if(liveIndicator) { 
+            liveIndicator.classList.remove('offline'); 
+            liveIndicator.classList.add('online'); 
+            // Pequeno "pisco" extra para debug visual
+            liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5');
+        }
+
+        const j = await r.json();
+        const config = await rConfig.json();
+        
+        let nivelRecebido = j.nivel_pct || j.nivel || 0;
+        if (nivelRecebido > 0) {
+            historicoLeiturasValidas.push(nivelRecebido); if (historicoLeiturasValidas.length > 3) historicoLeiturasValidas.shift(); 
+            ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1]; dataUltimaLeituraValida = Date.now();
+            nivelAtual = nivelRecebido; document.getElementById('emergency-badge').style.display = 'none';
+        } else {
+            if (historicoLeiturasValidas.length === 0) {
+                if (ultimoNivelValido === null) await buscarUltimaLeituraHistorico();
+                if (ultimoNivelValido > 0) historicoLeiturasValidas.push(ultimoNivelValido);
+            } else ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
+            document.getElementById('emergency-badge').style.display = 'flex';
+            
+            nivelAtual = ultimoNivelValido; 
+            if (nivelAtual < 0) nivelAtual = 0; 
+        }
+        if (config) nivelAlertaConfigurado = parseInt(config) || 30; 
+        
+        const statusDisplay = document.getElementById('status-display');
+        if(statusDisplay) {
+            statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
+            if (nivelAtual <= nivelAlertaConfigurado) {
+                statusDisplay.classList.add('level-danger');
+                if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) {
+                    enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; controlarAlarme(true);
+                    setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000);
+                } else enviarEmailAlerta(nivelAtual);
+            } else { 
+                if (nivelAtual > 50) { if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; }
+                if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); else statusDisplay.classList.add('level-ok');
+                if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0;
+            }
+        }
+        atualizarCaixaDOM(nivelAtual);
+        if(document.getElementById('status-level')) document.getElementById('status-level').innerText = nivelAtual + '%';
+        if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivelAtual).toFixed(0)} <small>L</small>`;
+        if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        const agora = new Date(); const horaAtual = agora.getHours(); const agoraMs = agora.getTime();
+        if (horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) { 
+            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs);
+            ultimoHorarioSalvo = horaAtual; ultimoTempoSalvo = agoraMs;
+            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo();
+        }
+    } catch(e) {
+        console.error("Erro no loop:", e);
+        if(liveIndicator) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); }
+    }
+}
+
+window.onload = function() {
+    checkAutoTheme(); // Set initial theme
+    const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') };
+    const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') };
+    const dateControls = document.getElementById('date-controls');
+    
+    setupAudio();
+    function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); }
+    document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true });
+
+    verificacaoInicialConcluida = true;
+
+    function switchView(viewName) {
+        activeTab = viewName; 
+        for (const key in views) { if(views[key]) views[key].style.display = 'none'; }
+        if (views[viewName]) { views[viewName].style.display = 'flex'; }
+        document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+        if (btns[viewName]) { btns[viewName].classList.add('active'); }
+        if(dateControls) dateControls.style.display = 'none'; 
+        if (viewName === 'grafico' || viewName === 'consumo') {
+            // Recarrega dados ao entrar na aba
+            carregarHistoricoEConsumo();
+        } 
+        if (viewName === 'caixa') carregarHistoricoAbastecimento();
+        else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); }
+        else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); }
+        else if (viewName === 'abastecimento') carregarHistoricoAbastecimento();
+        else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); }
+    }
+      
+    if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa'));
+    if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico'));
+    if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
+    if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo'));
+    if(btns.config) btns.config.addEventListener('click', () => switchView('config'));
+
+    document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+    document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta);
+
+    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value));
+    document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value)));
+    document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value)));
+    document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value));
+    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value)));
+
+    document.getElementById('lista-contatos').addEventListener('click', (e) => {
+        if (e.target.closest('button')) {
+            const btn = e.target.closest('button'); const id = btn.dataset.id;
+            if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; }
+            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); }
+        }
+    });
+
+    document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
+        if (e.target.closest('button')) {
+            const btn = e.target.closest('button'); const id = btn.dataset.id;
+            if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; }
+            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); }
+        }
+    });
+
+    criarGraficos();
+    const hoje = new Date(); const dataFim = getLocalISODate(hoje);
+    const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje);
+    
+    // Safe initialization for date inputs
+    const elDataEsc = document.getElementById('dataEscolhida');
+    if(elDataEsc) elDataEsc.value = dataFim;
+    const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo');
+    if(elDataEscConsumo) elDataEscConsumo.value = dataFim;
+
+    const elMesEsc = document.getElementById('mesEscolhido');
+    if(elMesEsc) elMesEsc.value = mesFim;
+    const elDataIni = document.getElementById('dataInicio');
+    if(elDataIni) elDataIni.value = dataIni;
+    const elDataFim = document.getElementById('dataFim');
+    if(elDataFim) elDataFim.value = dataFim;
+    
+    switchView('caixa'); 
+    const btnAt = document.getElementById('btnAtualizar');
+    if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); };
+      
+    carregarConfiguracoesGerais().then(() => { 
+        carregarHistoricoEConsumo().then(() => { 
+            loopDeAtualizacao(); 
+            // Usando setInterval com função para garantir que não pare
+            loopInterval = setInterval(loopDeAtualizacao, 2500); 
+            
+            // --- WATCHDOG (App Inventor Fix) ---
+            // Verifica se o loop travou (comum em WebViews de baixa prioridade)
+            setInterval(() => {
+                const now = Date.now();
+                if (now - lastUpdateTimestamp > 10000) { // Se não atualizou em 10s
+                    console.log("Watchdog: Reiniciando loop travado...");
+                    loopDeAtualizacao();
+                }
+            }, 5000);
+        }); 
+    });
+    
+    // --- MOBILE FIX: RESTART ON VISIBILITY ---
+    // Detecta quando o usuário volta para a aba ou desbloqueia o celular
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') {
+            console.log("App visível novamente. Forçando atualização...");
+            loopDeAtualizacao(); // Atualiza nível imediatamente
+            carregarHistoricoEConsumo(); // Atualiza gráficos
+            // Reinicia o loop caso tenha sido morto pelo OS
+            clearInterval(loopInterval);
+            loopInterval = setInterval(loopDeAtualizacao, 2500);
+        }
+    });
+
+    document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            if (e.target.dataset.view) {
+                currentView = e.target.dataset.view; 
+                const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' };
+                for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none';
+                if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex';
+                if(btnAt) btnAt.click();
+            }
+        });
+    });
+};
+</script>
+</body>
+</html>
