@@ -2,11 +2,25 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monitoramento Caixa D'Água PP7 - V.2.2 Final</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Monit. Água">
+<title>Monitoramento Caixa D'Água PP7 - V.3.17 UI Feedback</title>
+
+<!-- Fontes Google (Poppins) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<!-- FontAwesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <!-- Chart.js Core -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<!-- Chart.js DataLabels -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <!-- Dependência para gestos de toque (Zoom) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 <!-- Plugin de Zoom do Chart.js -->
@@ -16,693 +30,536 @@
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 <style>
-/* --- ESTILOS GERAIS --- */
+/* --- VARIÁVEIS DE TEMA --- */
 :root {
-	--accent: #06b6d4; /* Ciano */
-	--accent-dark: #0e7490; /* Ciano mais escuro */
-	--bg-color-light: #f0f7ff; /* Azul bem claro para cards */
-	--header-bg: #ffffff; /* Fundo do novo cabeçalho */
-    --level-ok: #10b981; /* Verde */
-    --level-warn: #f59e0b; /* Amarelo */
-    --level-danger: #ef4444; /* Vermelho */
+    --bg-body: #f0f2f5;
+    --text-main: #1e293b;
+    --text-sec: #64748b;
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --card-border: rgba(226, 232, 240, 0.8);
+    --header-bg: rgba(255, 255, 255, 0.98);
+    --accent: #06b6d4; 
+    --accent-hover: #0891b2;
+    --input-bg: #f8fafc;
+    --input-border: #cbd5e1;
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    
+    --level-ok: #10b981;
+    --level-warn: #f59e0b;
+    --level-danger: #ef4444;
 }
-* { box-sizing: border-box; }
-html, body {
-	height: 100%;
-	margin: 0;
-	padding: 0;
+
+[data-theme="dark"] {
+    --bg-body: #0f172a;
+    --text-main: #f1f5f9;
+    --text-sec: #94a3b8;
+    --card-bg: rgba(30, 41, 59, 0.85);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --header-bg: rgba(15, 23, 42, 0.95);
+    --accent: #22d3ee;
+    --accent-hover: #67e8f9;
+    --input-bg: #1e293b;
+    --input-border: #334155;
+    --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; margin: 0; padding: 0; }
 body {
-	font-family: Arial, Helvetica, sans-serif;	
-	text-align: center;
-	background: #fff; 
-	color: #334155;	
-	overflow-x: hidden;
-	padding-bottom: 20px;
+    font-family: 'Poppins', sans-serif; 
+    text-align: center;
+    background: var(--bg-body);
+    background-image: radial-gradient(at 0% 0%, hsla(192,70%,80%,0.05) 0, transparent 50%), radial-gradient(at 100% 100%, hsla(200,80%,80%,0.05) 0, transparent 50%);
+    color: var(--text-main);    
+    overflow-x: hidden;
+    padding-bottom: 0; 
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Cabeçalho principal */
+/* REMOVE BARRA DE ROLAGEM TOTALMENTE (PC e Mobile) */
+::-webkit-scrollbar { display: none; }
+* { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Classes Utilitárias */
+.glass-panel {
+    background: var(--card-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-card);
+    border-radius: 16px;
+}
+
+/* Cabeçalho Centralizado */
 .main-header {
-	width: 100%;
-	padding: 10px 0;
-	background-color: var(--header-bg);
-	box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	gap: 10px; 
-	margin-bottom: 20px; 
-	position: sticky; 
-	top: 0;
-	z-index: 1000;
+    width: 100%; padding: 10px 10px;
+    background-color: var(--header-bg);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    position: sticky; top: 0; z-index: 1000;
+    transition: background-color 0.3s ease;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.nav-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0; justify-content: center; }
+
+.theme-toggle {
+    background: none; border: none; color: var(--text-main);
+    font-size: 1.2rem; cursor: pointer; padding: 8px;
+    border-radius: 50%; transition: all 0.3s;
+    position: absolute; left: 20px; 
 }
 
-/* Views de conteúdo */
+/* Indicador de Conexão (Novo) */
+.live-indicator {
+    position: absolute; right: 20px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background-color: #64748b;
+    transition: background-color 0.3s;
+}
+.live-indicator.online { background-color: var(--level-ok); box-shadow: 0 0 8px var(--level-ok); animation: pulse-green 2s infinite; }
+.live-indicator.offline { background-color: var(--level-danger); }
+@keyframes pulse-green {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1.0); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+
+/* Views */
 #caixa-view, #grafico-container, #config-view,
 #abastecimento-view, #consumo-view { 
-	width: 100%;
-	max-width: 1200px; 
-	margin: 0 auto; 
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: flex-start;
-	padding: 1rem;
-	overflow-y: auto;
+    width: 100%; max-width: 1200px; margin: 0 auto; 
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; 
+    padding: 0.5rem; /* Padding reduzido */
+    overflow-y: auto;
+    min-height: calc(100vh - 70px); 
 }
 
+/* Logo Style */
 .logo {
-	width: 160px;
-	margin-bottom: 20px; 
-	opacity: 0.95;
-	z-index: 10;
-	position: relative;
-	display: block; 
-	margin-left: auto; 
-	margin-right: auto; 
+    width: 140px; margin-bottom: 5px; opacity: 0.95;
+    display: block; margin-left: auto; margin-right: auto; 
+    mix-blend-mode: multiply; 
+    transition: all 0.3s ease;
+}
+[data-theme="dark"] .logo {
+    filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2);
+    mix-blend-mode: screen;
+    opacity: 1;
+    margin-bottom: 10px;
 }
 
 /* Badge de Emergência */
 #emergency-badge {
-    position: fixed;
-    top: 80px; /* Abaixo do header */
-    right: 20px;
-    width: 50px;
-    height: 50px;
-    background-color: #ef4444;
-    color: white;
-    border-radius: 50%;
-    display: none; /* Oculto por padrão */
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 30px;
+    position: fixed; top: 80px; right: 20px; width: 50px; height: 50px;
+    background-color: var(--level-danger); color: white; border-radius: 50%;
+    display: none; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 24px;
     box-shadow: 0 4px 15px rgba(239, 68, 68, 0.6);
-    z-index: 1500;
-    animation: pulse-red 1.5s infinite;
-    cursor: help;
+    z-index: 1500; animation: pulse-red 1.5s infinite; cursor: help;
 }
-#emergency-badge:hover::after {
-    content: "Modo de Emergência (Sem Sinal)";
-    position: absolute;
-    right: 60px;
-    background: #333;
-    color: #fff;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    white-space: nowrap;
-}
-
 @keyframes pulse-red {
     0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
     70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
     100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
-/* Quadro de Status */
+/* Status Display - Compacto */
 #status-display {
-	width: 100%;
-	max-width: 350px;
-	background: linear-gradient(145deg, #f0f7ff, #e6f2ff); 
-	border: 1px solid #b0cce3; 
-	border-radius: 12px;
-	padding: 12px 20px;
-	margin: 0 auto 15px auto; 
-	box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-	backdrop-filter: blur(4px); 
-    transition: border-color 0.3s ease;
-    display: grid;
-    grid-template-columns: 1fr 1fr; 
-    grid-template-rows: auto auto;    
-    gap: 4px 15px; 
+    width: 100%; max-width: 360px; 
+    padding: 12px; margin: 0 auto 0 auto; /* Margem inferior zerada */
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; 
+    position: relative; z-index: 10; /* Garante que fique sobre a caixa se sobrepor */
 }
-.status-item {
-    display: flex;
-    flex-direction: column;
-    text-align: center;
-    position: relative;
-}
-.status-item.item-level { grid-column: 1 / 2; grid-row: 1 / 2; }
-.status-item.item-litros { grid-column: 2 / 3; grid-row: 1 / 2; }
-.status-item.item-time {
-    grid-column: 1 / 3; 
-    grid-row: 2 / 3;
-    border-top: 1px solid #cce0f5; 
-    padding-top: 4px; 
-    margin-top: 2px; 
-}
+.status-item { display: flex; flex-direction: column; text-align: center; }
+.status-item.item-time { grid-column: 1 / 3; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 5px; margin-top: 2px; }
 .status-label {
-    font-size: 0.75rem; 
-    font-weight: 700;
-    color: #556a83;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 2px;
+    font-size: 0.7rem; font-weight: 600; color: var(--text-sec);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px;
 }
-.status-value {
-    font-size: 2.2rem; 
-    font-weight: 700;
-    font-family: 'Arial', sans-serif;
-    line-height: 1.1;
-    color: var(--accent-dark);
-    transition: color 0.3s ease;
-}
-#status-litros {
-    font-size: 2.0rem; 
-    display: flex;
-    justify-content: center;
-    align-items: baseline;
-    gap: 5px;
-}
-#status-litros small {
-    font-size: 1.1rem; 
-    font-weight: 500;
-    color: var(--accent-dark);
-}
-#status-time {
-    font-size: 1.4rem; 
-    color: #334155;
-}
+.status-value { font-size: 1.8rem; font-weight: 700; line-height: 1.1; color: var(--accent); transition: color 0.3s ease; }
+#status-litros { font-size: 1.5rem; display: flex; justify-content: center; align-items: baseline; gap: 5px; }
+#status-litros small { font-size: 0.85rem; font-weight: 400; color: var(--text-sec); }
+#status-time { font-size: 1rem; color: var(--text-main); }
 
-/* Cores dinâmicas para o status */
-#status-display.level-ok .item-level .status-value { color: var(--level-ok); }
-#status-display.level-warn .item-level .status-value { color: var(--level-warn); }
-#status-display.level-danger .item-level .status-value { color: var(--level-danger); }
-#status-display.level-warn { border-color: var(--level-warn); }
-#status-display.level-danger { border-color: var(--level-danger); }
-
+/* Reservatório Compacto e Colado no Quadro */
 .reservatorio-wrapper {
-	width: 350px;
-	height: 600px;
-	position: relative;
-	transform: scale(1.15);
-	margin: 15px 0; 
+    width: 280px; 
+    height: 460px; 
+    position: relative;
+    /* Puxa a caixa pra cima para grudar no quadro */
+    margin: -40px auto 0 auto; 
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));
+    transform-origin: top center;
+    transform: scale(0.9); /* Leve redução padrão */
 }
 
-#abastecimento-form {
-	 width: 100%;
-	 max-width: 350px;
-	 margin: 20px auto 0 auto;
+/* Botões */
+.modern-button {
+    background: var(--accent); border: none; color: #fff; font-weight: 600; 
+    padding: 12px 24px; border-radius: 10px; cursor: pointer;
+    font-family: 'Poppins', sans-serif; font-size: 0.95rem; 
+    box-shadow: 0 4px 10px rgba(6,182,212,0.2); transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.modern-button:hover { background: var(--accent-hover); transform: translateY(-2px); }
+.modern-button:active { transform: translateY(0); }
+
+/* Botão de Sucesso (Feedback) */
+.modern-button.btn-success {
+    background-color: var(--level-ok) !important;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    pointer-events: none; /* Evita cliques duplos */
 }
 
-#lista-abastecimentos {
-	list-style: none;
-	padding: 0;
-	margin: 10px 0 0 0;
-	text-align: left;
-	width: 100%;
-	max-width: 350px;
+/* Inputs */
+input, select {
+    background: var(--input-bg); border: 1px solid var(--input-border);
+    color: var(--text-main); padding: 12px; border-radius: 8px;
+    font-family: 'Poppins', sans-serif; outline: none; width: 100%;
+    text-align: center; 
 }
-#lista-abastecimentos li {
-	background: #f8fafc;
-	padding: 8px 12px;
-	border-radius: 6px;
-	margin-bottom: 6px;
-	font-size: 0.9rem;
-	color: #334155;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	border: 1px solid #e2e8f0;
+input:focus, select:focus { border-color: var(--accent); }
+
+/* Headers */
+header h1 { margin: 0; font-size: 1.5rem; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 10px;}
+
+/* Navegação */
+.nav-button {
+    padding: 10px 15px; border: none; background: transparent;
+    color: var(--text-sec); font-weight: 600; font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem; cursor: pointer; transition: all 0.3s;
+    border-radius: 10px; display: flex; align-items: center; gap: 6px;
 }
-.abastecimento-info { flex-grow: 1; }
-.abastecimento-info strong {
-	color: #047481; 
-	font-weight: 700;
-	font-size: 1rem;
-    margin-left: 10px;
+.nav-button.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(6,182,212,0.2); }
+.nav-button:hover:not(.active) { background: rgba(150,150,150,0.1); color: var(--text-main); }
+
+/* Controles */
+.header-right { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; justify-content: center; width: 100%; }
+.view-selector { display: flex; gap: 5px; background: var(--input-bg); padding: 4px; border-radius: 10px; }
+.view-btn {
+    padding: 8px 16px; border: none; border-radius: 8px; background: transparent;
+    color: var(--text-sec); font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif;
+    display: flex; align-items: center; justify-content: center; 
+}
+.view-btn.active { background: var(--card-bg); color: var(--accent); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
+/* Gráficos */
+.board { width: 100%; padding: 0; background: transparent; box-shadow: none; border: none; }
+.charts { display: grid; grid-template-columns: 1fr; gap: 25px; }
+.chart-card { padding: 20px; }
+.chart-card strong { color: var(--text-main); display: block; margin-bottom: 15px; }
+canvas { width: 100%!important; height: 320px!important; }
+
+/* Listas */
+ul { list-style: none; padding: 0; }
+li {
+    background: var(--input-bg); padding: 12px 15px; border-radius: 10px;
+    margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid var(--input-border); color: var(--text-main);
 }
 .delete-abastecimento-btn {
-    background: #fee2e2;
-    color: #ef4444;
-    border: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 1.1rem;
-    line-height: 1;
-    transition: all 0.2s ease;
+    background: #fee2e2; color: #ef4444; border: none; width: 32px; height: 32px;
+    border-radius: 8px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
 }
 .delete-abastecimento-btn:hover { background: #ef4444; color: white; }
-.delete-abastecimento-btn[data-confirming="true"] {
-    background: #ef4444; color: white; width: auto; padding: 0 10px; font-size: 0.8rem;
-}
 
-#reservatorio-svg {
-	width: 100%;
-	height: 100%;
-	filter: drop-shadow(3px 3px 8px rgba(0,0,0,0.25));
-}
-#reservatorio-svg .estrutura-solida { fill: url(#grad-metal); stroke: #555; stroke-width: 2.5; opacity: 0.7; }
-#reservatorio-svg .taca-solida { fill: url(#grad-metal); stroke: #000; stroke-width: 2.5; opacity: 0.25; }
-#reservatorio-svg .faixa-metalica { fill: none; stroke: #555; stroke-width: 2.5; opacity: 0.3; }
-#reservatorio-svg .guarda-corpo { fill: none; stroke: #000; stroke-width: 2.5; opacity: 0.4; }
-#reservatorio-svg .base-concreto { fill: #C0C0C0; stroke: #000; stroke-width: 2.5; opacity: 0.8; }
-#reservatorio-svg .suportes-base { fill: #A9A9A9; stroke: #000; stroke-width: 2; opacity: 0.8; }
-
-.agua-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
-.agua {
-	position: absolute; bottom: 0; width: 100%; height: 0%;
-	background: linear-gradient(to top, #00ffcc, #1e90ff);
-	transition: height 0.6s ease;
-	overflow: hidden; color: white; font-weight: bold;
-	text-align: center; font-size: 1.2rem;
-	display: flex; align-items: center; justify-content: center;
-	font-family: Arial, Helvetica, sans-serif;
-}
-.agua::before, .agua::after {
-	content: ""; position: absolute; width: 200%; height: 20px;
-	top: -10px; left: -50%; border-radius: 50%;
-	background: rgba(255, 255, 255, 0.4);
-}
-.agua::before { animation: onda1 3s infinite linear; }
-.agua::after { background: rgba(255,255,255,0.2); top: -8px; animation: onda2 5s infinite linear; }
-@keyframes onda1 { 0% { transform: translateX(0); } 100% { transform: translateX(50px); } }
-@keyframes onda2 { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
-
-.modern-button {
-	background: var(--accent); 
-	border: none;
-	color: #ffffff; 
-	font-weight: 700;	
-	padding: 10px 20px; 
-	border-radius: 8px;
-	cursor: pointer;
-	font-family: Arial, Helvetica, sans-serif;
-	font-size: 0.9rem; 
-	box-shadow: 0 4px 15px rgba(6,182,212,0.3);
-	transition: all 0.2s ease;
-	text-align: center;
-	text-transform: uppercase; 
-	letter-spacing: 0.05em;	
-}
-.modern-button:hover {
-	background: var(--accent-dark);	
-	box-shadow: 0 2px 10px rgba(6,182,212,0.4);
-	transform: translateY(-1px);
-}
-.modern-button:active {
-	transform: translateY(0);
-	box-shadow: 0 1px 5px rgba(6,182,212,0.4);
-}
-
-/* --- ESTILOS GRÁFICOS --- */
-#grafico-container header, #consumo-view header, #abastecimento-view header {
-	width: 100%;	
-	display: flex; flex-wrap: wrap;
-	justify-content: space-between; align-items: center; gap: 12px;
-	margin: 0 auto 20px auto; border-bottom: 1px solid #eee; padding-bottom: 1rem;
-}
-#grafico-container header h1, #consumo-view header h1, #abastecimento-view header h1 { 
-    margin: 0; 
-    font-family: Arial, Helvetica, sans-serif; 
-    font-size: 1.5rem; 
-    color: #1e3a8a; 
-}
-.header-right { 
-    display: flex; 
-    flex-wrap: wrap; 
-    align-items: center; 
-    gap: 20px; 
-    justify-content: flex-end; 
-    flex-grow: 1; 
-}
-.controls { display: flex; gap: 10px; align-items: center; }
-input[type="date"], input[type="month"] {	
-	background: #f0f0f0; color: #333; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px;
-	font-family: Arial, Helvetica, sans-serif;
-	font-size: 0.9rem;
-}
-#intervalo-picker span { color: #666; font-size: 0.9rem; }
-
-.board {	
-	width: 100%;	
-	background: #ffffff; 
-	border-radius: 12px; padding: 18px;	
-	box-shadow: 0 4px 12px rgba(0,0,0,0.05);	
-	border: 1px solid #eee; 
-	margin: 0 auto;	
-}
-.charts { display: grid; grid-template-columns: 1fr; gap: 22px; }
-
-.chart-card {	
-	background: var(--bg-color-light); 
-	padding: 14px; border-radius: 10px;	
-	border: 1px solid #b0cce3; 
-	box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.chart-card strong { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.1rem;}
-
-canvas { width: 100%!important; height: 340px!important; display: block; }
-.small { font-size: .9rem; color: #666; margin-top: 4px; }
-
-.view-selector { display: flex; gap: 5px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
-.view-btn {	
-	padding: 8px 14px;	
-	border: none;	
-	border-radius: 6px;	
-	cursor: pointer;	
-	background: transparent;	
-	color: #334155;	
-	font-weight: 700;	
-	font-family: Arial, Helvetica, sans-serif;	
-	font-size: 0.9rem;
-	text-transform: uppercase;
-	transition: all 0.2s ease;
-	letter-spacing: 0.03em;
-	width: auto;
-	text-align: center;
-}
-.view-btn.active { background: var(--accent); color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.view-btn:hover:not(.active) { background: #d0dae6; color: #1e3a8a; }
-
-.nav-button {
-	width: auto;	
-	text-align: center;	
-	padding: 10px 12px; 
-	font-size: 0.8rem; 
-}
-.nav-button.active { border-left: none; box-shadow: 0 2px 8px rgba(6,182,212,0.3); }
-.nav-button.active:hover { background: var(--accent-dark); transform: none; }
-
-/* --- ESTILOS LEDS --- */
-@keyframes pisca { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.led-base { stroke: #111; stroke-width: 1; transition: all 0.3s ease; filter: drop-shadow(0 0 2px rgba(255,255,255,0.7)); }
-.led-base.vermelho { fill: #8b0000; } .led-base.amarelo { fill: #b2b200; } .led-base.verde { fill: #006400; }
-.led-base.aceso.vermelho { fill: #ff1a1a; filter: drop-shadow(0 0 5px #ff1a1a) drop-shadow(0 0 10px #ff1a1a); animation: pisca 1.2s infinite; }
-.led-base.aceso.amarelo { fill: #ffff33; filter: drop-shadow(0 0 5px #ffff33) drop-shadow(0 0 10px #ffff33); animation: pisca 1.2s infinite; }
-.led-base.aceso.verde { fill: #33ff33; filter: drop-shadow(0 0 5px #33ff33) drop-shadow(0 0 10px #33ff33); animation: pisca 1.2s infinite; }
-
-/* --- ESTILOS CONFIGURAÇÕES --- */
-#config-view h1 { font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; }
-.config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
-.config-card {	
-	background: #ffffff; 
-	padding: 20px; border-radius: 12px;	
-	border: 1px solid #eee; text-align: left;
-	box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-.config-card h2 { margin-top: 0; font-family: Arial, Helvetica, sans-serif; color: #1e3a8a; font-size: 1.25rem;}
-.form-group { display: flex; gap: 10px; margin-bottom: 15px; }
-.form-group input, .form-group select {	
-	flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;	
-	font-family: Arial, Helvetica, sans-serif;
-	font-size: 0.9rem;
-	color: #333;
-}
-#lista-contatos { list-style: none; padding: 0; margin: 0; }
-.contato-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
-.contato-item span { font-weight: bold; color: #333; }
-.contato-item button {	
-	background: #ef4444; color: white; font-size: 0.8rem;
-	padding: 6px 10px; border-radius: 6px; border: none; cursor: pointer;
-	text-transform: uppercase;
-	font-weight: 700;
-	font-family: Arial, Helvetica, sans-serif;
-}
-.contato-item button:hover { background: #dc2626; }
-
-/* --- ESTILOS MODAL DE ALERTA --- */
+/* Modal */
 #alert-modal {
-    display: none; 
-    position: fixed;
-    z-index: 2000;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6);
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
+    display: none; position: fixed; z-index: 2000; left: 0; top: 0;
+    width: 100%; height: 100%; background: rgba(0,0,0,0.7);
+    align-items: center; justify-content: center; backdrop-filter: blur(5px);
 }
 .modal-content {
-    background: #ffffff;
-    padding: 0;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 450px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    overflow: hidden;
-    animation: zoomIn 0.3s ease;
+    background: var(--card-bg); padding: 0; border-radius: 20px;
+    width: 90%; max-width: 400px; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid var(--card-border);
 }
-.modal-header {
-    background: var(--level-danger);
-    color: white;
-    padding: 15px 20px;
-    font-size: 1.3rem;
-    font-weight: 700;
+.modal-header { background: var(--level-danger); color: white; padding: 20px; font-weight: 700; font-size: 1.2rem; }
+.modal-body { padding: 25px; color: var(--text-main); font-size: 1rem; }
+.modal-footer { padding: 15px 20px; background: rgba(0,0,0,0.05); text-align: right; }
+
+/* Config & Abastecimento Layout (Centralizado) */
+.config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
+.config-card, #abastecimento-form { text-align: center; display: flex; flex-direction: column; align-items: center; } 
+.config-card h2, #abastecimento-form h2 { width: 100%; }
+
+.config-card .form-group, #abastecimento-form .form-group { 
+    display: flex; flex-direction: column; 
+    gap: 15px; align-items: center; justify-content: center; width: 100%; margin-top: 10px;
 }
-.modal-body {
-    padding: 30px 25px;
-    font-size: 1.1rem;
-    color: #334155;
-    line-height: 1.6;
+.config-card .form-group input, .config-card .form-group select,
+#abastecimento-form .form-group input { 
+    width: 90%; min-width: 200px; text-align: center;
 }
-.modal-footer {
-    padding: 15px 20px;
-    background: #f1f5f9;
-    text-align: right;
-    display: flex;
-    flex-wrap: wrap; 
-    justify-content: flex-end; 
-    gap: 10px;
-}
-#modal-close-btn {
-    background: var(--accent-dark);
-    padding: 10px 18px;
-    font-size: 0.9rem;
-}
-#modal-close-btn:hover { background: #1e3a8a; }
-@keyframes zoomIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+.config-card .form-group button, #abastecimento-form .form-group button { 
+    width: 60%; padding: 12px 25px; min-width: 120px; margin-top: 5px;
 }
 
 
-/* --- RESPONSIVIDADE --- */
+/* Responsividade */
 @media (max-width: 800px) {
-	body {
-		padding-left: 0;	
-		padding-bottom: 20px;	
-		padding-top: 60px; 
-	}
-
-	.main-header {
-		position: fixed; 
-		top: 0; left: 0; gap: 5px; padding: 8px 5px; margin-bottom: 10px; flex-wrap: wrap; 
-	}
-
-	.nav-button { padding: 8px 10px; font-size: 0.8rem; }
-	
-	#caixa-view, #grafico-container, #config-view, #abastecimento-view, #consumo-view { padding: 0.5rem; }
-	.reservatorio-wrapper {	
-		width: 90%;	max-width: 300px; height: 50vh; transform: scale(1.1); margin: 10px 0;
-	}
-	.logo {	margin-top: 10px; margin-bottom: 15px; }	
-	#grafico-container header, #consumo-view header, #abastecimento-view header, .header-right { 
-        flex-direction: column; align-items: stretch; gap: 10px; 
+    .main-header { overflow-x: hidden; justify-content: center; }
+    .nav-group { width: 100%; justify-content: center; overflow-x: auto; }
+    .theme-toggle { position: absolute; top: 15px; left: 15px; }
+    .nav-button span { display: none; } 
+    .nav-button i { font-size: 1.3rem; }
+    .nav-button { padding: 10px 15px; }
+    /* Ajuste da caixa para caber sem scroll */
+    .reservatorio-wrapper { 
+        transform: scale(0.8); 
+        margin: -50px auto 0 auto; /* Sobe bastante */
+        transform-origin: top center; 
     }
-	.controls { flex-direction: column; align-items: stretch;}	
-	.view-selector { justify-content: center;}	
-	.config-board { grid-template-columns: 1fr; }
-	.chart-card { padding: 10px; }
-	canvas { height: 250px !important; }
-    #status-display { grid-template-rows: auto auto; padding: 12px 15px; }
-    .status-item.item-time { margin-top: 8px; }
-    .status-value { font-size: 1.8rem; }
-    #status-litros { font-size: 1.7rem; }
-    #status-litros small { font-size: 1.0rem; }
-    #status-time { font-size: 1.2rem; }
+    canvas { height: 260px !important; }
+    .config-board { grid-template-columns: 1fr; }
+    .config-card .form-group button, #abastecimento-form .form-group button { width: 90%; }
 }
+/* Telas muito pequenas */
+@media (max-height: 700px) {
+     .reservatorio-wrapper { transform: scale(0.7); margin-top: -60px; }
+}
+
+/* SVG Styles - Clássico Cinza/Preto */
+#reservatorio-svg .estrutura-solida { fill: url(#grad-metal); stroke: #475569; stroke-width: 2.5; opacity: 0.8; }
+#reservatorio-svg .base-concreto { fill: #cbd5e1; stroke: #475569; stroke-width: 2; opacity: 0.9; }
+#reservatorio-svg .suportes-base { fill: #94a3b8; stroke: #475569; stroke-width: 2; opacity: 0.9; }
+#reservatorio-svg .faixa-metalica { stroke: #475569; stroke-width: 2; opacity: 0.4; fill: none; }
+#reservatorio-svg .taca-solida { fill: url(#grad-metal); stroke: #1e293b; stroke-width: 2.5; opacity: 0.3; }
+#reservatorio-svg .guarda-corpo { fill: none; stroke: #1e293b; stroke-width: 2.5; opacity: 0.5; }
+
+/* LEDs CHAMATIVOS */
+@keyframes pisca { 
+    0% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); } 
+    50% { opacity: 0.4; filter: drop-shadow(0 0 2px currentColor); } 
+    100% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); }
+}
+.led-base { stroke: #222; stroke-width: 1; transition: all 0.3s ease; fill: #333; /* Apagado */ }
+/* Cores vivas para estado aceso */
+.led-base.aceso.vermelho { fill: #ff0000; color: #ff0000; animation: pisca 0.8s infinite; }
+.led-base.aceso.amarelo { fill: #ffdd00; color: #ffdd00; animation: pisca 0.8s infinite; }
+.led-base.aceso.verde { fill: #00ff00; color: #00ff00; animation: pisca 0.8s infinite; }
+
+/* Animação Água - Horizontal na Superfície */
+.agua-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
+.agua {
+    position: absolute; bottom: 0; width: 100%; height: 0%;
+    background: linear-gradient(to top, #06b6d4, #3b82f6);
+    transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: visible; 
+    color: white; font-weight: 800; text-align: center; font-size: 1.3rem;
+    display: flex; align-items: center; justify-content: center;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+/* Pseudo-elementos alinhados horizontalmente */
+.agua::before, .agua::after {
+    content: ""; position: absolute; 
+    width: 200%; height: 20px; 
+    top: -15px; left: 0;
+    background-repeat: repeat-x;
+    border-radius: 45%; 
+    background: rgba(255,255,255,0.3);
+}
+.agua::before { transform: translateX(-50%); animation: onda1 4s linear infinite; }
+.agua::after { top: -12px; transform: translateX(-50%); background: rgba(255,255,255,0.15); animation: onda2 6s linear infinite; }
+@keyframes onda1 { 0% { transform: translateX(0) translateY(0) scaleY(1); } 50% { transform: translateX(-25%) translateY(2px) scaleY(0.9); } 100% { transform: translateX(-50%) translateY(0) scaleY(1); } }
+@keyframes onda2 { 0% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-25%) translateY(-2px); } 100% { transform: translateX(0) translateY(0); } }
 </style>
 </head>
 <body>
 
 <!-- Badge de Emergência -->
-<div id="emergency-badge" title="Modo de Emergência (Sem Sinal)">!</div>
+<div id="emergency-badge" title="Sem Sinal">!</div>
 
-<div class="main-header">
-	<button id="btn-view-caixa" class="nav-button view-btn">Caixa D'água</button>
-	<button id="btn-view-grafico" class="nav-button view-btn">Histórico</button>
-    <button id="btn-view-abastecimento" class="nav-button view-btn">Abastecimento</button>
-    <button id="btn-view-consumo" class="nav-button view-btn">Consumo</button>
-	<button id="btn-view-config" class="nav-button view-btn">Configurações</button>
+<div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
+    <button id="theme-toggle-btn" class="theme-toggle"><i class="fas fa-moon"></i></button>
+    <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
+    <div class="nav-group">
+        <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
+        <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
+        <button id="btn-view-abastecimento" class="nav-button"><i class="fas fa-truck-droplet"></i> <span>Abastecimento</span></button>
+        <button id="btn-view-consumo" class="nav-button"><i class="fas fa-chart-bar"></i> <span>Consumo</span></button>
+        <button id="btn-view-config" class="nav-button"><i class="fas fa-cog"></i> <span>Config</span></button>
+    </div>
 </div>
 
-<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-
 <div id="caixa-view">
-    <div id="status-display">
+    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    
+    <div id="status-display" class="glass-panel">
         <div class="status-item item-level">
-            <span class="status-label">Nível</span>
-            <span class="status-value" id="status-level">--%</span>
+            <span class="status-label">Nível Atual</span>
+            <span class="status-value skeleton-text" id="status-level">--%</span>
         </div>
         <div class="status-item item-litros">
-            <span class="status-label">Volume (Aprox.)</span>
-            <span class="status-value" id="status-litros">---- <small>Litros</small></span>
+            <span class="status-label">Volume</span>
+            <span class="status-value skeleton-text" id="status-litros">---- <small>L</small></span>
         </div>
         <div class="status-item item-time">
             <span class="status-label">Hora</span>
-            <span class="status-value" id="status-time">--:--:--</span>
+            <span class="status-value skeleton-text" id="status-time" style="font-size: 1.2rem;">--:--</span>
         </div>
     </div>
-	<div class="reservatorio-wrapper" id="caixa-container">
-		<svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
-			<defs>
-			<linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
-					<stop offset="0%" stop-color="#DADADA"/><stop offset="50%" stop-color="#FAFAFA"/><stop offset="100%" stop-color="#CFCFCF"/>
-				</linearGradient>
-				<clipPath id="mascara-agua">
-					<path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
-				</clipPath>
-			</defs>
-			<foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
-				<div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
-					<div class="agua" id="agua">0%</div>
-				</div>
-			</foreignObject>
-			<g id="estrutura-reservatorio">
-				<g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
-				<g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
-				<g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
-				<g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
-			</g>
-		</svg>
-	</div>
+    <div class="reservatorio-wrapper" id="caixa-container">
+        <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
+            <defs>
+            <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/>
+                </linearGradient>
+                <clipPath id="mascara-agua">
+                    <path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
+                </clipPath>
+            </defs>
+            <foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
+                    <div class="agua" id="agua">0%</div>
+                </div>
+            </foreignObject>
+            <g id="estrutura-reservatorio">
+                <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
+                <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
+                <g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
+                <g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
+            </g>
+        </svg>
+    </div>
 </div>
 
 <div id="grafico-container" style="display:none;">
-	<header>
-        <h1>Histórico de Monitoramento</h1>
+    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    <header>
+        <h1><i class="fas fa-chart-line" style="color: var(--accent);"></i> Histórico de Nível</h1>
     </header>
-	<div class="board">
-		<div class="charts">
-			<div class="chart-card"><strong>Gráfico de Linha — Nível (%) (Horário 00h-23h)</strong><canvas id="chartLinha"></canvas><div class="small">Exibe o histórico de nível a cada hora ao longo do dia selecionado.</div></div>
-            <div class="chart-card"><strong>Gráfico em Blocos — Nível (%) (Leituras de 60 em 60 minutos)</strong><canvas id="chartBlocos"></canvas><div class="small">Exibe as leituras do nível a cada 60 minutos.</div></div>
-		</div>
-	</div>
+    <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
+        <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
+        <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
+        <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
+        <button id="btnAtualizar" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
+    </div>
+    <div class="board">
+        <div class="charts">
+            <div class="chart-card glass-panel"><strong>Variação de Nível (%)</strong><canvas id="chartLinha"></canvas></div>
+            <div class="chart-card glass-panel"><strong>Nível Médio por Hora (%)</strong><canvas id="chartBlocos"></canvas></div>
+        </div>
+    </div>
 </div>
 
 <div id="abastecimento-view" style="display:none;">
+    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     <header>
-        <h1>Gestão de Abastecimento</h1>
+        <h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1>
     </header>
     <div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
-        <div id="abastecimento-form" class="config-card" style="margin: 0;">
-            <h2>Registrar Abastecimento</h2>
+        <div id="abastecimento-form" class="config-card glass-panel" style="margin: 0; width: 100%; max-width: 500px;">
+            <h2>Registrar Entrada</h2>
+            <!-- Centralizado -->
             <div class="form-group">
-                <input type="number" id="litros-abastecidos" placeholder="Litros (ex: 5000)" min="1" style="flex-grow: 2;">
-                <button id="btn-salvar-abastecimento" class="modern-button" style="flex-grow: 1;">Salvar</button>
+                <input type="number" id="litros-abastecidos" placeholder="Qtd. Litros (ex: 5000)" min="1">
+                <button id="btn-salvar-abastecimento" class="modern-button"><i class="fas fa-save"></i> Salvar</button>
             </div>
             <div id="status-abastecimento" class="small" style="font-weight:bold; margin: -10px 0 0 0;"></div>
         </div>
 
-        <div id="abastecimento-historico-card" style="width: 100%; max-width: 350px;">
-            <h3 style="margin: 0 0 10px 0; color: #1e3a8a; font-size: 1.1rem; text-align: left; border-bottom: 1px solid #eee; padding-bottom: 5px;">Últimos Abastecimentos</h3>
-            <ul id="lista-abastecimentos">
-                <!-- Histórico será carregado aqui -->
-            </ul>
+        <div id="abastecimento-historico-card" class="glass-panel" style="width: 100%; max-width: 500px; padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; text-align: left; border-bottom: 1px solid var(--text-sec); padding-bottom: 8px;">Histórico</h3>
+            <ul id="lista-abastecimentos"></ul>
         </div>
     </div>
 </div>
 
 <div id="consumo-view" style="display:none;">
+    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     <header>
-        <h1>Relatório de Consumo</h1>
+        <h1><i class="fas fa-chart-bar" style="color: var(--accent);"></i> Consumo Diário</h1>
     </header>
+    <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
+        <!-- Copia dos controles para a aba consumo -->
+        <input type="date" id="dataEscolhidaConsumo" onchange="document.getElementById('dataEscolhida').value=this.value; document.getElementById('btnAtualizar').click();">
+        <button onclick="document.getElementById('btnAtualizar').click()" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
+    </div>
     <div class="board">
-		<div class="charts">
-            <div class="chart-card" id="consumo-chart-card-bloco">
-                <strong>Gráfico de Consumo Diário (Litros) - Blocos</strong>
+        <div class="charts">
+            <div class="chart-card glass-panel" id="consumo-chart-card-bloco">
+                <strong>Consumo Estimado (Litros)</strong>
                 <canvas id="chartConsumoBloco"></canvas>
-                <div class="small">Exibe o consumo aproximado em litros por dia (Barras). Soma de TODAS as variações.</div>
-                <div id="consumo-info-texto" style="margin-top: 10px; font-weight: bold; color: #0e7490;"></div>
+                <div id="consumo-info-texto" style="margin-top: 15px; font-weight: 700; color: var(--accent); font-size: 1.1rem;"></div>
             </div>
-            <div class="chart-card" id="consumo-chart-card-linha">
-                <strong>Gráfico de Consumo Diário (Litros) - Linha</strong>
+            <div class="chart-card glass-panel" id="consumo-chart-card-linha">
+                <strong>Curva de Consumo</strong>
                 <canvas id="chartConsumoLinha"></canvas>
-                <div class="small">Exibe o consumo aproximado em litros por dia (Linha).</div>
             </div>
-		</div>
-	</div>
+        </div>
+    </div>
 </div>
 
 
 <div id="config-view" style="display:none;">
-	<h1>Configurações de Notificação</h1>
-	<div class="config-board">
+    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    <h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
+    <div class="config-board">
+        <div class="config-card glass-panel">
+            <h2>Capacidade (L)</h2>
+            <div class="form-group">
+                <input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000">
+                <button id="btn-salvar-capacidade" class="modern-button"><i class="fas fa-check"></i></button>
+            </div>
+            <div id="status-capacidade" class="small" style="font-weight:bold;"></div>
+        </div>
         
-        <!-- NOVA CONFIGURAÇÃO DE CAPACIDADE -->
-		<div class="config-card">
-			<h2>Capacidade Total da Caixa (L)</h2>
-			<p class="small" style="margin-top:-10px; margin-bottom:15px;">
-				Define o volume total para calcular litros (100% = ? Litros).
-			</p>
-			<div class="form-group">
-				<input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000">
-				<button id="btn-salvar-capacidade" class="modern-button">Salvar</button>
-			</div>
-			<div id="status-capacidade" class="small" style="font-weight:bold;"></div>
-		</div>
+        <div class="config-card glass-panel">
+            <h2>Altura (cm)</h2>
+            <div class="form-group">
+                <input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1">
+                <button id="btn-salvar-altura" class="modern-button"><i class="fas fa-check"></i></button>
+            </div>
+            <div id="status-altura" class="small" style="font-weight:bold;"></div>
+        </div>
+
+        <div class="config-card glass-panel">
+            <h2>Novo Contato</h2>
+            <div class="form-group">
+                <input type="text" id="contato-valor" placeholder="Email ou Telegram">
+                <select id="contato-tipo">
+                    <option value="email">Email</option>
+                    <option value="telegram">Telegram</option>
+                </select>
+                 <button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button>
+            </div>
+            <div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+        </div>
+
+        <div class="config-card glass-panel">
+            <h2>Nível Alerta (%)</h2>
+            <div class="form-group">
+                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
+                <button id="btn-salvar-nivel-alerta" class="modern-button"><i class="fas fa-check"></i></button>
+            </div>
+            <div id="status-alerta" class="small" style="font-weight:bold;"></div>
+        </div>
         
-        <!-- CONFIGURAÇÃO DE ALTURA (Substitui Formato) -->
-        <div class="config-card">
-			<h2>Altura da Caixa (cm)</h2>
-			<p class="small" style="margin-top:-10px; margin-bottom:15px;">
-				Altura total para referência ou cálculos futuros.
-			</p>
-			<div class="form-group">
-				<input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1">
-				<button id="btn-salvar-altura" class="modern-button">Salvar</button>
-			</div>
-			<div id="status-altura" class="small" style="font-weight:bold;"></div>
-		</div>
+        <div class="config-card glass-panel" style="grid-column: 1 / -1;">
+            <h2>Contatos Cadastrados</h2>
+            <ul id="lista-contatos"></ul>
+            <div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+        </div>
 
-		<div class="config-card">
-			<h2>Adicionar Novo Contato</h2>
-			<div class="form-group">
-				<input type="text" id="contato-valor" placeholder="Email ou ID Telegram">
-				<select id="contato-tipo">
-					<option value="email">Email</option>
-					<option value="telegram">Telegram</option>
-				</select>
-			</div>
-			<button id="btn-add-contato" class="modern-button">Adicionar</button>
-			<div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
-		</div>
-
-		<div class="config-card">
-			<h2>Definir Nível de Alerta (%)</h2>
-			<p class="small" style="margin-top:-10px; margin-bottom:15px;">
-				Define a porcentagem que dispara o alerta de nível baixo.
-			</p>
-			<div class="form-group">
-				<input type="number" id="nivel-alerta-valor" placeholder="Ex: 40" min="1" max="99">
-				<button id="btn-salvar-nivel-alerta" class="modern-button">Salvar</button>
-			</div>
-			<div id="status-alerta" class="small" style="font-weight:bold;"></div>
-		</div>
-		
-		<div class="config-card" style="grid-column: 1 / -1;">
-			<h2>Contatos Salvos</h2>
-			<ul id="lista-contatos">
-				<!-- Contatos serão inseridos aqui pelo JS -->
-			</ul>
-			<div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div>
-		</div>
-
-	</div>
+    </div>
 </div>
 
 <div id="alert-modal">
     <div class="modal-content">
         <div class="modal-header">
-            ALERTA DE NÍVEL BAIXO
+            <i class="fas fa-exclamation-triangle"></i> ALERTA DE NÍVEL BAIXO
         </div>
         <div class="modal-body">
-            Atenção: Solicitar abastecimento ao CCO.
+            Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)
         </div>
         <div class="modal-footer">
             <button id="modal-close-btn" class="modern-button">Entendido</button>
@@ -712,94 +569,84 @@ canvas { width: 100%!important; height: 340px!important; display: block; }
 
 <div class="header-right" id="date-controls" style="display: none;">
     <div class="view-selector">
-        <button id="btn-view-diario" class="view-btn active" data-view="diario">Diário</button>
+        <button id="btn-view-diario" class="view-btn active" data-view="diario">Hoje</button>
         <button id="btn-view-semanal" class="view-btn" data-view="semanal" style="display:none;">Semanal</button>
-        <button id="btn-view-mensal" class="view-btn" data-view="mensal">Mensal</button>
-        <button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Intervalo</button>
-    </div>
-    <div class="controls">
-        <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
-        <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
-        <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
-        <button id="btnAtualizar" class="modern-button">Carregar</button>
+        <button id="btn-view-mensal" class="view-btn" data-view="mensal">Mês</button>
+        <button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Período</button>
     </div>
 </div>
 
 
 <script>
-// --- CONFIGURAÇÃO MULTI-CONTAS EMAILJS (3 Contas) ---
 const CONTAS_EMAIL = [
-    {
-        id: 0,
-        service: "service_lubx0i8",
-        template: "template_ll79qy1",
-        key: "I1HnvhgWehPP7EXxX",
-        quota_inicial: 27 // Saldo inicial específico para a 1ª conta
-    },
-    {
-        id: 1,
-        service: "service_n365um4",
-        template: "template_fjhnurn",
-        key: "ivGT9BYMpO_IMpcJI"
-    },
-    {
-        id: 2,
-        service: "service_txwft9l",
-        template: "template_c5l1j8r",
-        key: "xwk898VhH0VS-PSg9"
-    }
+    { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0 },
+    { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 200 },
+    { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 0 }
 ];
 
-// --- VARIÁVEIS GLOBAIS ---
+function checkAutoTheme() {
+    const hora = new Date().getHours();
+    const body = document.body;
+    const icon = document.querySelector('#theme-toggle-btn i');
+    // Auto Dark Mode: 18:00 - 05:59
+    if (hora >= 18 || hora < 6) {
+        body.setAttribute('data-theme', 'dark');
+        if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
+    } else {
+        body.removeAttribute('data-theme');
+        if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+    }
+    criarGraficos();
+}
+
+function toggleTheme() {
+    const body = document.body;
+    const icon = document.querySelector('#theme-toggle-btn i');
+    if (body.getAttribute('data-theme') === 'dark') {
+        body.removeAttribute('data-theme');
+        icon.classList.remove('fa-sun'); icon.classList.add('fa-moon');
+        localStorage.setItem('theme', 'light');
+    } else {
+        body.setAttribute('data-theme', 'dark');
+        icon.classList.remove('fa-moon'); icon.classList.add('fa-sun');
+        localStorage.setItem('theme', 'dark');
+    }
+    criarGraficos(); 
+    if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
+}
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'dark') {
+    document.body.setAttribute('data-theme', 'dark');
+}
+
 let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha; 
 let historicoNiveis = [], historicoLabels = [];
 let currentView = 'diario'; 
 let activeTab = 'caixa'; 
 let nivelAtual = 0;
 let nivelAlertaConfigurado = 30; 
-
 let capacidadeTotal = 8000; 
 let alturaCaixa = 0; 
-
 let alertaModalMostrado = false; 
-
-// Variáveis de Bloqueio e Inicialização
 let verificacaoInicialConcluida = false;
 let emailEnviadoNessaSessao = false; 
 let alertaConfirmadoPeloUsuario = false; 
-
-// Variável de Controle de Horário
 let ultimoHorarioSalvo = -1; 
 let ultimoTempoSalvo = 0; 
-
-// Variáveis de Áudio
-let audioContext;
-let oscillator; 
-let gainNode;    
-let lfo;        
-let lfoGain;    
-let isAlarmPlaying = false;
-
-// Variáveis de Snooze
-let snoozeCount = 0; 
-let snoozeUntil = 0; 
+let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
+let snoozeCount = 0, snoozeUntil = 0; 
 const SNOOZE_DURATION_MINUTES = 10; 
 const AUTO_SNOOZE_SECONDS = 30; 
-const ALERTA_RESET_MARGIN = 5; 
-
-// VARIÁVEIS DE EMERGÊNCIA
 let ultimoNivelValido = null; 
 let dataUltimaLeituraValida = Date.now(); 
 let historicoLeiturasValidas = []; 
+let loopInterval = null;
 
-// --- FUNÇÃO DE CÁLCULO DE VOLUME ---
 function calcularVolumeLitros(nivelPercentual) {
     if (nivelPercentual <= 0) return 0;
     if (nivelPercentual > 100) nivelPercentual = 100;
     return (nivelPercentual / 100) * capacidadeTotal;
 }
-
-// --- FUNÇÕES AUXILIARES ---
 
 function getLocalISODate(dateObj) {
     const d = dateObj || new Date();
@@ -808,146 +655,89 @@ function getLocalISODate(dateObj) {
     return localDate.toISOString().split('T')[0];
 }
 
-// --- FUNÇÃO INTELIGENTE DE ROTAÇÃO DE EMAIL ---
+/* --- FUNÇÃO AUXILIAR PARA CORRIGIR CACHE MOBILE --- */
+function getNoCacheUrl(url) {
+    // Adiciona timestamp para forçar requisição nova
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}nocache=${Date.now()}`;
+}
+
 async function gerenciarRotacaoEmail(custoEnvio) {
     const dbPath = 'PP7_config/controle_email_rotativo.json';
     const baseUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/';
-    
     const hoje = new Date();
-    const mesAtual = `${hoje.getFullYear()}-${hoje.getMonth() + 1}`; 
+    const diaHoje = hoje.getDate();
+    const mesHoje = hoje.getMonth() + 1; 
 
     try {
-        let r = await fetch(baseUrl + dbPath);
+        let r = await fetch(getNoCacheUrl(baseUrl + dbPath));
         let dadosControle = await r.json();
-
-        // Inicializar com saldo da conta 1 (27) se não existir
         if (!dadosControle) {
-            dadosControle = { conta_ativa: 0, restantes: 27, mes_referencia: mesAtual };
+            dadosControle = { conta_ativa: 1, restantes: 200, mes_referencia: `${hoje.getFullYear()}-${mesHoje}` };
         }
-
-        // Reset Mensal
-        if (dadosControle.mes_referencia !== mesAtual) {
-            console.log("Virada de mês detectada! Resetando cotas para Conta 1.");
-            // Reset padrão para 200 (ou o valor da conta 1 se fosse início de deploy, mas aqui assume-se renovação completa)
-            dadosControle = { conta_ativa: 0, restantes: 200, mes_referencia: mesAtual };
-        }
-
         if (dadosControle.restantes < custoEnvio) {
-            console.log(`Conta ${dadosControle.conta_ativa} esgotada (Saldo: ${dadosControle.restantes}). Tentando próxima...`);
-            
-            const proximaContaIndex = dadosControle.conta_ativa + 1;
-            
-            if (proximaContaIndex < CONTAS_EMAIL.length) {
-                dadosControle.conta_ativa = proximaContaIndex;
-                dadosControle.restantes = 200 - custoEnvio; 
-                console.log(`Mudando para Conta ${proximaContaIndex}.`);
-            } else {
-                console.error("ALERTA CRÍTICO: Todas as contas de e-mail atingiram o limite mensal!");
-                return null; 
+            let novaContaId = -1;
+            if (mesHoje > 11 || (mesHoje === 11 && diaHoje >= 30)) {
+                 if (dadosControle.conta_ativa === 1) {
+                     if (mesHoje > 11 || (mesHoje === 11 && diaHoje >= 30)) {
+                         novaContaId = 2; dadosControle.restantes = 200; 
+                     }
+                 }
             }
-        } else {
-            dadosControle.restantes -= custoEnvio;
-        }
-
+            if (mesHoje === 12 && diaHoje >= 18) {
+                if (dadosControle.conta_ativa === 2 || novaContaId === -1) {
+                    novaContaId = 0; dadosControle.restantes = 200; 
+                }
+            }
+            if (novaContaId !== -1) {
+                dadosControle.conta_ativa = novaContaId;
+                dadosControle.restantes -= custoEnvio;
+            } else return null; 
+        } else dadosControle.restantes -= custoEnvio;
         await fetch(baseUrl + dbPath, { method: 'PUT', body: JSON.stringify(dadosControle) });
-
         return CONTAS_EMAIL[dadosControle.conta_ativa];
-
-    } catch (e) {
-        console.error("Erro na lógica de rotação de e-mail:", e);
-        return CONTAS_EMAIL[0];
-    }
+    } catch (e) { return CONTAS_EMAIL[1]; }
 }
 
 async function enviarEmailAlerta(nivel) {
-    if (emailEnviadoNessaSessao) {
-        console.log("E-mail já enviado nesta sessão de alerta.");
-        return false;
-    }
-
-	let contatos = {};
-	try {
-		const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
-		contatos = await r.json();
-		if (!contatos) return false; 
-	} catch (e) {
-		console.error("Erro ao buscar contatos:", e);
-		return false; 
-	}
-
-	const emailsParaEnviar = Object.values(contatos)
-								   .filter(c => c.tipo === 'email' && c.valor)
-								   .map(c => c.valor);
-
-	if (emailsParaEnviar.length === 0) return false;
-
-    // Lógica de Rotação
-    const custoEnvio = emailsParaEnviar.length; // 1 email por contato
+    const urlTimestamp = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/ultimo_disparo_timestamp.json';
+    try {
+        const rTime = await fetch(getNoCacheUrl(urlTimestamp));
+        const ultimoDisparo = await rTime.json();
+        const agora = Date.now();
+        if (ultimoDisparo) {
+            const diferenca = agora - ultimoDisparo;
+            const horas6 = 6 * 60 * 60 * 1000; 
+            if (diferenca < horas6) return false; 
+        }
+    } catch (e) {}
+    let contatos = {};
+    try {
+        const r = await fetch(getNoCacheUrl('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json'));
+        contatos = await r.json();
+        if (!contatos) return false; 
+    } catch (e) { return false; }
+    const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor);
+    if (emailsParaEnviar.length === 0) return false;
+    const custoEnvio = emailsParaEnviar.length; 
     const credenciais = await gerenciarRotacaoEmail(custoEnvio);
-
-    if (!credenciais) {
-        console.error("Envio cancelado: Cota excedida em todas as contas.");
-        return false;
+    if (!credenciais) return false;
+    let todosEnviadosComSucesso = true;
+    for (const email of emailsParaEnviar) {
+        const templateParams = { "%": nivel, "email": email };
+        try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { todosEnviadosComSucesso = false; }
     }
-
-	console.log(`ENVIANDO ALERTA (Nível: ${nivel}%) via Conta ID: ${credenciais.id}`);
-	
-	let todosEnviadosComSucesso = true;
-	for (const email of emailsParaEnviar) {
-		const templateParams = {
-			"%": nivel,
-			"email": email
-		};
-
-		try {
-			await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key);
-		} catch (err) {
-			console.error(`ERRO ao enviar e-mail para ${email}:`, err);
-			todosEnviadosComSucesso = false; 
-		}
-	}
-
     if (todosEnviadosComSucesso) {
-        emailEnviadoNessaSessao = true;
-        const hoje = getLocalISODate(new Date());
-        try {
-              await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/data_ultimo_envio.json`, {
-                  method: 'PUT',
-                  body: JSON.stringify(hoje)
-              });
-        } catch(e) { console.error("Erro log firebase:", e); }
+        const agoraMs = Date.now();
+        try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {}
     }
-
-	return todosEnviadosComSucesso;
+    return todosEnviadosComSucesso;
 }
 
-function mostrarAlertaModal() {
-    const modal = document.getElementById('alert-modal');
-    if (modal) modal.style.display = 'flex';
-}
-
-function fecharAlertaModal() {
-    const modal = document.getElementById('alert-modal');
-    if (modal) modal.style.display = 'none';
-}
-
-function confirmarAlerta() {
-    fecharAlertaModal();
-    controlarAlarme(false);
-    alertaModalMostrado = false;
-    alertaConfirmadoPeloUsuario = true; 
-}
-
-function iniciarSoneca() {
-    fecharAlertaModal();
-    controlarAlarme(false);
-    alertaModalMostrado = false;
-    snoozeCount++;
-    if (snoozeCount < 3) {
-        const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000;
-        snoozeUntil = Date.now() + snoozeMs;
-    }
-}
+function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
+function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
+function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
+function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
 
 function setupAudio() {
     try {
@@ -956,426 +746,362 @@ function setupAudio() {
         gainNode = audioContext.createGain();
         lfo = audioContext.createOscillator();
         lfoGain = audioContext.createGain();
-
-        lfo.type = 'sine';
-        lfo.frequency.setValueAtTime(2, audioContext.currentTime);
-        lfoGain.gain.setValueAtTime(400, audioContext.currentTime);
-
-        oscillator.type = 'square';
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-
-        lfo.connect(lfoGain);
-        lfoGain.connect(oscillator.frequency);
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
+        lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime);
+        oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency);
+        oscillator.connect(gainNode); gainNode.connect(audioContext.destination);
         gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        lfo.start();
-        oscillator.start();
-
-    } catch (e) {
-        console.error("Erro ao iniciar Web Audio API:", e);
-    }
+        lfo.start(); oscillator.start();
+    } catch (e) {}
 }
-
 function controlarAlarme(play) {
     if (!audioContext) return; 
-
-    if (audioContext.state === 'suspended') {
-        audioContext.resume();
-    }
-
-    if (play && !isAlarmPlaying) {
-        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); 
-        isAlarmPlaying = true;
-    } else if (!play && isAlarmPlaying) {
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime); 
-        isAlarmPlaying = false;
-    }
+    if (audioContext.state === 'suspended') audioContext.resume();
+    if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } 
+    else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; }
 }
 
 function atualizarCaixaDOM(nivel) {
-	const aguaDiv = document.getElementById('agua');
-	aguaDiv.style.height = nivel + '%';
-	aguaDiv.innerText = nivel + '%';
-
-	if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
-	else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
-	else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
-
-	const ledVermelho = document.getElementById('led-vermelho');
-	const ledAmarelo = document.getElementById('led-amarelo');
-	const ledVerde = document.getElementById('led-verde');
-	ledVermelho.classList.remove('aceso');
-	ledAmarelo.classList.remove('aceso');
-	ledVerde.classList.remove('aceso');
-
-	if (nivel > 60) ledVerde.classList.add('aceso');
-	else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
-	else ledVermelho.classList.add('aceso');
+    const aguaDiv = document.getElementById('agua');
+    if(aguaDiv) {
+        aguaDiv.style.height = nivel + '%';
+        aguaDiv.innerText = nivel + '%';
+        if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
+        else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+        else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+    }
+    const ledVermelho = document.getElementById('led-vermelho');
+    const ledAmarelo = document.getElementById('led-amarelo');
+    const ledVerde = document.getElementById('led-verde');
+    if(ledVermelho && ledAmarelo && ledVerde) {
+        ledVermelho.classList.remove('aceso'); ledAmarelo.classList.remove('aceso'); ledVerde.classList.remove('aceso');
+        if (nivel > 60) ledVerde.classList.add('aceso');
+        else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
+        else ledVermelho.classList.add('aceso');
+    }
+    
+    // Mudar cor do texto de porcentagem
+    const txtNivel = document.getElementById('status-level');
+    if(txtNivel) {
+        if (nivel > 60) txtNivel.style.color = 'var(--level-ok)';
+        else if (nivel > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)';
+        else txtNivel.style.color = 'var(--level-danger)';
+    }
 }
 
-// --- FUNÇÕES DE GRÁFICOS ---
+function interpolacaoLinear(arr) {
+    let filled = [...arr];
+    let indices = [];
+    for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); }
+    if(indices.length === 0) return filled;
+    for(let k = 0; k < indices.length - 1; k++) {
+        let startIdx = indices[k]; let endIdx = indices[k+1];
+        let startVal = filled[startIdx]; let endVal = filled[endIdx];
+        let steps = endIdx - startIdx;
+        for(let j = 1; j < steps; j++) {
+            let val = startVal + (endVal - startVal) * (j / steps);
+            filled[startIdx + j] = Math.round(val);
+        }
+    }
+    if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; }
+    return filled;
+}
 
 function atualizarGraficosHistorico(result) {
     if (!chartLinha || !chartBlocos) return;
-      
-    let displayLabels = result.labels || [];
-    let displayNiveis = result.niveis || [];
-
-    chartLinha.data.labels = displayLabels;
-    chartLinha.data.datasets[0].data = displayNiveis;
-    chartLinha.update('none');
-
-    chartBlocos.data.labels = displayLabels;
-    chartBlocos.data.datasets[0].data = displayNiveis;
-      
-    const cores = displayNiveis.map(nivel => {
-        if (nivel === null || nivel === undefined) return 'rgba(200, 200, 200, 0.3)';
-        return 'rgba(6, 182, 212, 0.85)'; 
-    });
-      
-    chartBlocos.data.datasets[0].backgroundColor = cores;
-    chartBlocos.update('none');
+    if (!result || !result.labels) return;
+    
+    let displayLabels = result.labels || []; let displayNiveis = result.niveis || [];
+    chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update();
+    chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis;
+    const cores = 'rgba(6, 182, 212, 0.85)'; 
+    chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update();
 }
 
 function atualizarGraficosConsumo(result) {
     if (!chartConsumoBloco || !chartConsumoLinha) return;
-      
-    const consumoData = result.consumo || [];
-    const consumoLabels = result.labels || [];
+    if (!result || !result.consumo) return;
 
-    // Atualiza texto de status
+    const consumoData = result.consumo || []; const consumoLabels = result.labels || [];
     const infoTexto = document.getElementById('consumo-info-texto');
     if (infoTexto) {
+        // Calculo de Total SIMPLIFICADO (somente o que caiu, ignorando subidas)
         let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
         
-        let statusConsumo = "Baixo";
-        if (totalConsumo > 2500) statusConsumo = "Alto";
-        else if (totalConsumo > 1500) statusConsumo = "Normal";
+        let statusTexto = "Normal";
+        let corStatus = "var(--accent)";
+        
+        // Faixas ajustadas para caixa de 8000L
+        if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; }
+        else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; }
         
         if (currentView === 'diario') {
-             infoTexto.innerText = `Consumo do Dia (Soma total): ${totalConsumo.toFixed(0)} L (${statusConsumo})`;
+             infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`;
         } else {
-             infoTexto.innerText = `Consumo Total no Período: ${totalConsumo.toFixed(0)} L`;
+             infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`;
         }
     }
-
-    chartConsumoBloco.data.labels = consumoLabels;
-    chartConsumoBloco.data.datasets[0].data = consumoData;
-    chartConsumoBloco.update('none');
-
-    chartConsumoLinha.data.labels = consumoLabels;
-    chartConsumoLinha.data.datasets[0].data = consumoData;
-    chartConsumoLinha.update('none');
+    chartConsumoBloco.data.labels = consumoLabels; chartConsumoBloco.data.datasets[0].data = consumoData;
+    chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; 
+    chartConsumoBloco.update();
+    chartConsumoLinha.data.labels = consumoLabels; chartConsumoLinha.data.datasets[0].data = consumoData; chartConsumoLinha.update();
 }
 
 function criarGraficos() {
+    Chart.register(ChartDataLabels);
+
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+
     const zoomOptions = {
         pan: { enabled: true, mode: 'x' },
-        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+        zoom: { 
+            wheel: { enabled: true, speed: 0.05 }, 
+            pinch: { enabled: true, sensitivity: 0.5 }, 
+            mode: 'x' 
+        }
     };
 
-	const ctxL = document.getElementById('chartLinha').getContext('2d');
-	const gradL = ctxL.createLinearGradient(0, 0, 0, 300);
-	gradL.addColorStop(0, 'rgba(6,182,212,0.28)');
-	gradL.addColorStop(1, 'rgba(6,182,212,0.03)');
-	chartLinha = new Chart(ctxL, {
-		type: 'line',
-		data: { labels: [], datasets: [{ 
-            label: 'Nível (%)', 
-            data: [], 
-            fill: true, 
-            backgroundColor: gradL, 
-            borderColor: 'rgba(6,182,212,0.95)', 
-            tension: 0.25, 
-            pointRadius: 3, 
-            borderWidth: 2,
-            spanGaps: true 
-        }] },
-		options: { 
-            animation: false, 
-            plugins: { legend: { display: false }, zoom: zoomOptions }, 
-            scales: { 
-                x: { ticks: { color: '#666' }, title: { display: true, text: 'Horário' } }, 
-                y: { ticks: { color: '#666' }, min: 0, max: 100, title: { display: true, text: 'Nível (%)' } } 
-            }, 
-            maintainAspectRatio: false 
-        }
-	});
-	
-	const ctxB = document.getElementById('chartBlocos').getContext('2d');
-	chartBlocos = new Chart(ctxB, {
-		type: 'bar',
-		data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 6 }] },
-		options: { 
-            animation: false, 
-            plugins: { legend: { display: false }, zoom: zoomOptions }, 
-            scales: { 
-                x: { ticks: { color: '#666' }, title: { display: true, text: 'Horário' } }, 
-                y: { ticks: { color: '#666' }, min: 0, max: 100, title: { display: true, text: 'Nível (%)' } } 
-            }, 
-            maintainAspectRatio: false 
-        }
-	});
+    if(document.getElementById('chartLinha')) {
+        const ctxL = document.getElementById('chartLinha').getContext('2d');
+        const gradL = ctxL.createLinearGradient(0, 0, 0, 300);
+        gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)');
+        gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)');
+        
+        if(chartLinha) chartLinha.destroy();
+        chartLinha = new Chart(ctxL, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 3, spanGaps: true }] },
+            options: { 
+                animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
+                scales: { 
+                    x: { ticks: { autoSkip: false, maxTicksLimit: 12, color: textColor }, grid: { display: true, color: gridColor } }, 
+                    y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } 
+                },
+                layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } }
+            }
+        });
+    }
+    
+    if(document.getElementById('chartBlocos')) {
+        const ctxB = document.getElementById('chartBlocos').getContext('2d');
+        if(chartBlocos) chartBlocos.destroy();
+        chartBlocos = new Chart(ctxB, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] },
+            options: { 
+                animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
+                scales: { 
+                    x: { ticks: { autoSkip: false, maxTicksLimit: 12, color: textColor }, grid: { display: true, color: gridColor } }, 
+                    y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } 
+                } 
+            }
+        });
+    }
 
-    const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d');
-    chartConsumoBloco = new Chart(ctxCB, {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], backgroundColor: 'rgba(6, 182, 212, 0.85)', borderRadius: 6 }] },
-        options: { 
-            animation: false, 
-            plugins: { legend: { display: false }, zoom: zoomOptions }, 
-            scales: { 
-                x: { ticks: { color: '#666' } }, 
-                y: { ticks: { color: '#666' }, min: 0, max: 8000 }
-            }, 
-            maintainAspectRatio: false 
-        }
-    });
-      
-    const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
-    chartConsumoLinha = new Chart(ctxCL, {
-        type: 'line',
-        data: { labels: [], datasets: [{ label: 'Consumo (L)', data: [], fill: true, backgroundColor: 'rgba(6,182,212,0.28)', borderColor: 'rgba(6, 182, 212, 0.95)', tension: 0.25, pointRadius: 3, borderWidth: 2 }] },
-        options: { 
-            animation: false, 
-            plugins: { legend: { display: false }, zoom: zoomOptions }, 
-            scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#666' }, min: 0 } }, maintainAspectRatio: false 
-        }
-    });
+    if(document.getElementById('chartConsumoBloco')) {
+        const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d');
+        if(chartConsumoBloco) chartConsumoBloco.destroy();
+        chartConsumoBloco = new Chart(ctxCB, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] },
+            options: { 
+                animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round } }, 
+                scales: { 
+                    x: { ticks: { autoSkip: false, maxTicksLimit: 24, color: textColor }, grid: { display: true, color: gridColor } }, 
+                    y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } 
+                },
+                layout: { padding: { top: 20 } }
+            }
+        });
+    }
+       
+    if(document.getElementById('chartConsumoLinha')) {
+        const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
+        if(chartConsumoLinha) chartConsumoLinha.destroy();
+        chartConsumoLinha = new Chart(ctxCL, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 2 }] },
+            options: { 
+                animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
+                scales: { 
+                    x: { ticks: { autoSkip: false, maxTicksLimit: 24, color: textColor }, grid: { display: true, color: gridColor } }, 
+                    y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } 
+                },
+                layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } }
+            }
+        });
+    }
 }
 
 async function salvarLeituraNoFirebase(nivel, timestamp) {
     if (nivel <= 0 && nivel !== null) return; 
+    
+    // --- CORREÇÃO DE EMERGÊNCIA ---
+    const badge = document.getElementById('emergency-badge');
+    if (badge && badge.style.display !== 'none') {
+        return; // NÃO SALVA se estiver sem sinal
+    }
+
     const d = new Date(timestamp);
     const localDate = getLocalISODate(d);
     const horaKey = String(d.getHours()).padStart(2, '0'); 
     const path = `PP7_config/historico/${localDate}/${horaKey}.json`;
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
-    const dados = { 
-        nivel_pct: nivel, 
-        timestamp: timestamp,
-        tipo: document.getElementById('emergency-badge').style.display !== 'none' ? 'estimado' : 'real'
-    };
-    try { 
-        await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); 
-    } catch (e) { console.error("Erro ao salvar leitura:", e); }
+    const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: 'real' }; 
+    try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {}
 }
 
 async function buscarUltimaLeituraHistorico() {
     if (ultimoNivelValido !== null && Date.now() - dataUltimaLeituraValida < 60000) return; 
-    const hoje = new Date();
-    const dataHoje = getLocalISODate(hoje);
+    const hoje = new Date(); const dataHoje = getLocalISODate(hoje);
     let url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataHoje}.json`;
     try {
-        let r = await fetch(url);
-        let dados = await r.json();
-        let encontrou = false;
+        let r = await fetch(getNoCacheUrl(url)); let dados = await r.json(); let encontrou = false;
         if (dados) {
             const horarios = Object.keys(dados).sort((a, b) => parseInt(a) - parseInt(b)).reverse();
             for (const h of horarios) {
-                const leitura = dados[h];
-                const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
+                const leitura = dados[h]; const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
                 if (val > 0 && leitura.tipo !== 'estimado') {
-                    ultimoNivelValido = val;
-                    const [hh, mm] = h.includes(':') ? h.split(':') : [h, 0];
-                    const dataLeitura = new Date(hoje);
-                    dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
-                    dataUltimaLeituraValida = dataLeitura.getTime();
-                    encontrou = true;
-                    historicoLeiturasValidas.push(val);
-                    break;
+                    ultimoNivelValido = val; const [hh, mm] = h.includes(':') ? h.split(':') : [h, 0];
+                    const dataLeitura = new Date(hoje); dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
+                    dataUltimaLeituraValida = dataLeitura.getTime(); encontrou = true; historicoLeiturasValidas.push(val); break;
                 }
             }
         }
         if (!encontrou) {
-            const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1);
-            const dataOntem = getLocalISODate(ontem);
+            const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1); const dataOntem = getLocalISODate(ontem);
             url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataOntem}.json`;
-            r = await fetch(url);
-            dados = await r.json();
+            r = await fetch(getNoCacheUrl(url)); dados = await r.json();
             if (dados) {
                 const horarios = Object.keys(dados).sort((a, b) => parseInt(a) - parseInt(b)).reverse();
                 for (const h of horarios) {
-                    const leitura = dados[h];
-                    const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
+                    const leitura = dados[h]; const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
                     if (val > 0 && leitura.tipo !== 'estimado') {
-                        ultimoNivelValido = val;
-                        const [hh, mm] = h.includes(':') ? h.split(':') : [h, 0];
-                        const dataLeitura = new Date(ontem);
-                        dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
-                        dataUltimaLeituraValida = dataLeitura.getTime();
-                        encontrou = true;
-                        historicoLeiturasValidas.push(val);
-                        break;
+                        ultimoNivelValido = val; const [hh, mm] = h.includes(':') ? h.split(':') : [h, 0];
+                        const dataLeitura = new Date(ontem); dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
+                        dataUltimaLeituraValida = dataLeitura.getTime(); encontrou = true; historicoLeiturasValidas.push(val); break;
                     }
                 }
             }
         }
-        if (!encontrou && ultimoNivelValido === null) {
-             ultimoNivelValido = 63;
-             dataUltimaLeituraValida = Date.now();
-             historicoLeiturasValidas.push(63);
-        }
-    } catch (e) { console.error("Erro ao buscar histórico de emergência:", e); }
+        if (!encontrou && ultimoNivelValido === null) { ultimoNivelValido = 63; dataUltimaLeituraValida = Date.now(); historicoLeiturasValidas.push(63); }
+    } catch (e) {}
 }
 
 async function carregarHistoricoEConsumo() {
     if (currentView === 'semanal') return;
-    let url = '';
-    let processData;
-    let result = { labels: [], niveis: [], consumo: [] };
+    let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 };
 
     if (currentView === 'diario') {
-        const data = document.getElementById('dataEscolhida').value;
-        if (!data) return result;
-        const dataParts = data.split('-');
-        const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]);
-        dateObj.setDate(dateObj.getDate() - 1);
-        const dataAnterior = getLocalISODate(dateObj);
+        const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result;
+        const data = dataEl.value; if (!data) return result;
+        const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]);
+        dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj);
         url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${data}.json`;
         const urlOntem = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataAnterior}.json`;
         
         processData = (dadosHoje, dadosOntem) => {
-            const labelsFixed = [];
-            const niveisFixed = new Array(24).fill(null);
-            const consumoFinal = new Array(24).fill(0); // Inicializa com 0
-            
+            const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); 
             for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00");
+            let lastHoraInt = -1; let previousVal = null;
+            let detectedRefillIdx = -1;
 
-            let lastValueYesterday = null;
             if (dadosOntem) {
                 const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b));
                 if (horariosOntem.length > 0) {
-                    const leitura = dadosOntem[horariosOntem[horariosOntem.length - 1]];
-                    lastValueYesterday = leitura.nivel_pct ?? leitura.nivel ?? null;
+                    const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey];
+                    const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null;
                 }
             }
-
-            // CORREÇÃO: Lógica de Soma Granular
-            let previousVal = lastValueYesterday;
-            
             if (dadosHoje) {
-                // Ordena as chaves temporalmente para processar sequencialmente
                 const keysSorted = Object.keys(dadosHoje).sort((a, b) => {
-                    const [hA, mA] = a.split(':').map(Number);
-                    const [hB, mB] = b.split(':').map(Number);
+                    const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number);
                     return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0));
                 });
-
                 keysSorted.forEach(key => {
                     const horaInt = parseInt(key.split(':')[0]);
-                    const val = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null;
+                    const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null;
                     
-                    // Para o Gráfico de LINHA (Nível), mantém o snapshot da primeira leitura da hora
-                    if (horaInt >= 0 && horaInt < 24) {
-                        if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val;
-                    }
+                    if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; }
 
-                    // Para o Gráfico de BARRAS (Consumo), acumula diferenças
                     if (val !== null && previousVal !== null) {
+                        // --- FILTRO ANTI-FANTASMA V.3.10 ---
+                        
+                        if (val > previousVal + 5) { 
+                             detectedRefillIdx = horaInt;
+                        }
+
                         if (previousVal > val) {
-                            // Houve consumo (queda)
-                            const volAnterior = calcularVolumeLitros(previousVal);
-                            const volAtual = calcularVolumeLitros(val);
-                            const diff = volAnterior - volAtual;
-                            
-                            // Soma na hora correspondente
-                            if (horaInt >= 0 && horaInt < 24) {
-                                consumoFinal[horaInt] += diff;
+                            const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val);
+                            const diff = volAnterior - volAtual; 
+                            // Filtro de Ruido (Max 800L/h ~ 10%)
+                            if(diff < 800) {
+                                const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap;
+                                for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; }
                             }
                         }
-                        // Se previousVal < val, houve reabastecimento (ignora soma)
                     }
-                    if (val !== null) previousVal = val;
+                    if (val !== null) { previousVal = val; lastHoraInt = horaInt; }
                 });
-                
-                // Preenche o gráfico de nível se o primeiro ponto do dia for null
-                if (niveisFixed[0] === null && lastValueYesterday !== null) niveisFixed[0] = lastValueYesterday;
-            } else if (lastValueYesterday !== null) {
-                niveisFixed[0] = lastValueYesterday;
-            }
-            
-            return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal }; 
+                if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal;
+                const niveisInterpolados = interpolacaoLinear(niveisFixed);
+                for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h];
+            } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; }
+            return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
         };
-
         try {
-            const [rHoje, rOntem] = await Promise.all([fetch(url), fetch(urlOntem)]);
-            const dadosHoje = await rHoje.json();
-            const dadosOntem = await rOntem.json();
+            const [rHoje, rOntem] = await Promise.all([fetch(getNoCacheUrl(url)), fetch(getNoCacheUrl(urlOntem))]);
+            const dadosHoje = await rHoje.json(); const dadosOntem = await rOntem.json();
             result = processData(dadosHoje, dadosOntem);
-            atualizarGraficosHistorico(result);
-            atualizarGraficosConsumo(result);
-        } catch (e) { console.error("Erro ao carregar histórico diário:", e); }
-
+            atualizarGraficosHistorico(result); atualizarGraficosConsumo(result);
+        } catch (e) {}
     } else { 
         let dataInicio, dataFim;
         if (currentView === 'mensal') {
-            const mesAno = document.getElementById('mesEscolhido').value;
-            if (!mesAno) return result;
-            dataInicio = `${mesAno}-01`;
-            const [ano, mes] = mesAno.split('-');
-            const ultimoDia = new Date(ano, mes, 0).getDate();
-            dataFim = `${mesAno}-${ultimoDia}`;
-        }
-        else if (currentView === 'intervalo') {
-            dataInicio = document.getElementById('dataInicio').value;
-            dataFim = document.getElementById('dataFim').value;
+            const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value;
+            if (!mesAno) return result; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-');
+            const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`;
+        } else if (currentView === 'intervalo') {
+            const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim');
+            if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value;
             if (!dataInicio || !dataFim) return result;
         }
-
         url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
-        
         processData = (dados) => {
-            const dailyConsumption = {}; 
-            const dailyLevels = {}; 
-            const dateKeys = Object.keys(dados).sort();
-
+            const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort();
             for (const dateKey in dados) {
                 const dailyReadings = dados[dateKey];
                 const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b));
-                
                 if(times.length === 0) continue;
-                
-                let consumoDia = 0;
-                let somaNiveis = 0;
-                let countNiveis = 0;
-                let lastValidLevelForDay = null;
-
+                let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null;
                 for (let i = 0; i < times.length; i++) {
                     const tCurrent = times[i];
-                    const valCurrent = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0;
+                    const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0;
+                    const valCurrent = Number(valRaw);
                     if(valCurrent > 0) {
-                        somaNiveis += valCurrent;
-                        countNiveis++;
+                        somaNiveis += valCurrent; countNiveis++;
                         if (lastValidLevelForDay !== null) {
                             if (lastValidLevelForDay > valCurrent) {
-                                // USO DA NOVA FUNÇÃO GEOMÉTRICA
                                 const volAnterior = calcularVolumeLitros(lastValidLevelForDay);
                                 const volAtual = calcularVolumeLitros(valCurrent);
-                                consumoDia += (volAnterior - volAtual);
+                                const diff = volAnterior - volAtual;
+                                if(diff < 800) consumoDia += diff;
                             }
                         }
                         lastValidLevelForDay = valCurrent;
                     }
                 }
-                dailyConsumption[dateKey] = consumoDia;
-                dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0;
+                dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0;
             }
-            
             if (currentView === 'mensal') {
-                 const weeks = [0, 0, 0, 0];
-                 const levelsSum = [0, 0, 0, 0];
-                 const levelsCount = [0, 0, 0, 0];
+                 const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0];
                  for (const dateKey in dailyConsumption) {
                      const day = parseInt(dateKey.split('-')[2]);
                      let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3));
                      weeks[idx] += dailyConsumption[dateKey];
-                     if (dailyLevels[dateKey] > 0) {
-                        levelsSum[idx] += dailyLevels[dateKey];
-                        levelsCount[idx]++;
-                     }
+                     if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; }
                  }
                  const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0);
                  return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks };
@@ -1386,314 +1112,236 @@ async function carregarHistoricoEConsumo() {
             const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; });
             return { labels: displayLabels, niveis: niveis, consumo: consumo }; 
         };
-
         try {
-            const r = await fetch(url);
-            const dados = await r.json();
+            const r = await fetch(getNoCacheUrl(url)); const dados = await r.json();
             result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] };
-            atualizarGraficosHistorico(result);
-            atualizarGraficosConsumo(result);
-        } catch (e) { console.error("Erro ao carregar histórico:", e); }
+            atualizarGraficosHistorico(result); atualizarGraficosConsumo(result);
+        } catch (e) {}
     }
 }
 
 async function removerAbastecimento(id) {
-    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`;
-    try {
-        const response = await fetch(url, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Erro ao apagar no Firebase');
-        carregarHistoricoAbastecimento(); 
-    } catch (e) { console.error("Erro ao remover abastecimento:", e); }
+    try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {}
 }
-
 async function carregarHistoricoAbastecimento() {
     const listaUL = document.getElementById('lista-abastecimentos');
-    listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Carregando histórico...</li>';
+    if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>';
     try {
-        const url = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=5';
-        const r = await fetch(url);
+        const r = await fetch(getNoCacheUrl('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=5'));
         const dados = await r.json();
-        listaUL.innerHTML = ''; 
-        if (dados) {
+        if(listaUL) listaUL.innerHTML = ''; 
+        if (dados && listaUL) {
             const ids = Object.keys(dados).reverse();
-            if (ids.length === 0) { listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>'; return; }
+            if (ids.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
             ids.forEach(id => {
                 const item = dados[id];
                 const li = document.createElement('li');
                 const d = new Date(item.timestamp);
-                li.innerHTML = `
-                    <div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div>
-                    <button class="delete-abastecimento-btn" data-id="${id}">×</button>
-                `;
+                li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`;
                 listaUL.appendChild(li);
             });
-        } else { listaUL.innerHTML = '<li class="small" style="border: none; background: none;">Nenhum abastecimento registrado.</li>'; }
-    } catch (e) { listaUL.innerHTML = '<li class="small" style="color:red; border: none; background: none;">Erro ao carregar histórico.</li>'; }
+        } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
+    } catch (e) {}
+}
+
+/* --- JS HELPER: Animação de Sucesso --- */
+function animarBotaoSucesso(btnId) {
+    const btn = document.getElementById(btnId);
+    if(!btn) return;
+    const originalHTML = btn.innerHTML;
+    
+    // Adiciona classe e muda conteúdo
+    btn.classList.add('btn-success');
+    btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
+
+    // Reverte após 2 segundos
+    setTimeout(() => {
+        btn.classList.remove('btn-success');
+        btn.innerHTML = originalHTML;
+    }, 2000);
 }
 
 async function salvarAbastecimento(litros) {
-    const statusDiv = document.getElementById('status-abastecimento');
-    const litrosNum = Number(litros);
-    if (!litrosNum || litrosNum <= 0) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Insira um valor de litros válido.'; setTimeout(() => { statusDiv.innerText = ''; }, 3000); return; }
-    statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
+    if (!litros || litros <= 0) return;
     const agora = new Date();
-    const dados = { litros: litrosNum, timestamp: agora.getTime(), data_legivel: agora.toISOString() };
-    const url = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json';
-    try {
-        const response = await fetch(url, { method: 'POST', body: JSON.stringify(dados) });
-        if (!response.ok) throw new Error('Erro no Firebase');
-        statusDiv.style.color = 'green'; statusDiv.innerText = 'Abastecimento salvo!';
-        document.getElementById('litros-abastecidos').value = ''; 
-        carregarHistoricoAbastecimento(); 
-    } catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
-    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+    const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString() };
+    try { await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json', { method: 'POST', body: JSON.stringify(dados) }); 
+          document.getElementById('litros-abastecidos').value = ''; 
+          carregarHistoricoAbastecimento();
+          animarBotaoSucesso('btn-salvar-abastecimento'); // Animação
+    } catch (e) {}
+}
+async function salvarConfig(endpoint, valor) {
+     try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {}
 }
 
-async function salvarNivelAlerta(nivel) {
-	const statusDiv = document.getElementById('status-alerta');
-	statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
-	try {
-		await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json', { method: 'PUT', body: JSON.stringify(nivel) });
-		nivelAlertaConfigurado = nivel; 
-		statusDiv.style.color = 'green'; statusDiv.innerText = `Nível de alerta salvo em ${nivel}%.`;
-		document.getElementById('nivel-alerta-valor').value = nivel; 
-	} catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
-    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
-}
-
+/* --- FUNÇÕES ESPECÍFICAS DE CONFIGURAÇÃO (FIX) --- */
 async function salvarCapacidade(valor) {
-    const statusDiv = document.getElementById('status-capacidade');
-    statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
-    try {
-        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json', { method: 'PUT', body: JSON.stringify(valor) });
-        capacidadeTotal = valor;
-        statusDiv.style.color = 'green'; statusDiv.innerText = `Capacidade salva em ${valor}L.`;
-        document.getElementById('capacidade-total-valor').value = valor;
-        if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
-    } catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
-    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+    if(!valor || valor <= 0) return;
+    await salvarConfig('capacidade', valor);
+    capacidadeTotal = valor;
+    // const el = document.getElementById('status-capacidade');
+    // if(el) { el.innerText = 'Salvo!'; setTimeout(() => el.innerText = '', 2000); }
+    animarBotaoSucesso('btn-salvar-capacidade'); // Nova Animação
 }
 
-async function salvarAltura(cm) {
-    const statusDiv = document.getElementById('status-altura');
-    statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando...';
-    try {
-        await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json', { method: 'PUT', body: JSON.stringify(cm) });
-        alturaCaixa = cm;
-        statusDiv.style.color = 'green'; statusDiv.innerText = `Altura salva: ${cm}cm.`;
-    } catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar.'; } 
-    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+async function salvarAltura(valor) {
+    if(!valor || valor <= 0) return;
+    await salvarConfig('altura_cm', valor);
+    alturaCaixa = valor;
+    // const el = document.getElementById('status-altura');
+    // if(el) { el.innerText = 'Salvo!'; setTimeout(() => el.innerText = '', 2000); }
+    animarBotaoSucesso('btn-salvar-altura'); // Nova Animação
+}
+
+async function salvarNivelAlerta(valor) {
+    if(!valor || valor <= 0 || valor >= 100) return;
+    await salvarConfig('nivel_alerta', valor);
+    nivelAlertaConfigurado = valor;
+    // const el = document.getElementById('status-alerta');
+    // if(el) { el.innerText = 'Salvo!'; setTimeout(() => el.innerText = '', 2000); }
+    animarBotaoSucesso('btn-salvar-nivel-alerta'); // Nova Animação
 }
 
 async function carregarConfiguracoesGerais() {
-	try {
-		const [rAlerta, rCap, rAlt] = await Promise.all([
-            fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json'),
-            fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json'),
-            fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json')
+    try {
+        const [rAlerta, rCap, rAlt] = await Promise.all([
+            fetch(getNoCacheUrl('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json')),
+            fetch(getNoCacheUrl('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json')),
+            fetch(getNoCacheUrl('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json'))
         ]);
-		const nivelSalvo = await rAlerta.json();
-        const capSalvo = await rCap.json();
-        const altSalvo = await rAlt.json();
-
-		if (nivelSalvo) {
-			document.getElementById('nivel-alerta-valor').value = nivelSalvo;
-			nivelAlertaConfigurado = parseInt(nivelSalvo);
-		} else document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado;
-
-        if (capSalvo) {
-            capacidadeTotal = parseInt(capSalvo);
-            document.getElementById('capacidade-total-valor').value = capacidadeTotal;
-        } else document.getElementById('capacidade-total-valor').value = capacidadeTotal;
-        
-        if (altSalvo) {
-            alturaCaixa = parseInt(altSalvo);
-            document.getElementById('altura-caixa-valor').value = alturaCaixa;
-        } else document.getElementById('altura-caixa-valor').value = alturaCaixa;
-
-	} catch (e) { console.error("Erro ao carregar configs:", e); }
+        const nivelSalvo = await rAlerta.json(); const capSalvo = await rCap.json(); const altSalvo = await rAlt.json();
+        if (nivelSalvo) { document.getElementById('nivel-alerta-valor').value = nivelSalvo; nivelAlertaConfigurado = parseInt(nivelSalvo); }
+        if (capSalvo) { document.getElementById('capacidade-total-valor').value = capSalvo; capacidadeTotal = parseInt(capSalvo); }
+        if (altSalvo) { document.getElementById('altura-caixa-valor').value = altSalvo; alturaCaixa = parseInt(altSalvo); }
+    } catch (e) {}
 }
-
 async function adicionarContato(valor, tipo) {
-	const statusDiv = document.getElementById('status-contato'); 
-	statusDiv.innerText = ''; 
-	if (!valor || (tipo === 'email' && !valor.includes('@'))) {
-		statusDiv.style.color = 'red'; statusDiv.innerText = 'Por favor, insira um valor válido.';
-		setTimeout(() => { statusDiv.innerText = ''; }, 3000);
-		return;
-	}
-	statusDiv.style.color = '#eab308'; statusDiv.innerText = 'Salvando contato...';
-	const novoContato = { valor, tipo };
-	try {
-		const response = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', { method: 'POST', body: JSON.stringify(novoContato) });
-		if (!response.ok) { throw new Error(`Erro no Firebase: ${response.statusText}`); }
-		document.getElementById('contato-valor').value = ''; 
-		statusDiv.style.color = 'green'; statusDiv.innerText = 'Contato salvo com sucesso!';
-		carregarContatos(); 
-	} catch (e) { statusDiv.style.color = 'red'; statusDiv.innerText = 'Erro ao salvar contato.'; } 
-    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+    if (!valor) return;
+    const novoContato = { valor, tipo };
+    try { await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', { method: 'POST', body: JSON.stringify(novoContato) });
+          document.getElementById('contato-valor').value = ''; 
+          carregarContatos(); 
+          animarBotaoSucesso('btn-add-contato'); // Animação
+    } catch (e) {} 
 }
-
 async function removerContato(id) {
-	const statusDiv = document.getElementById('status-lista-contatos'); 
-	statusDiv.innerText = 'Removendo...'; statusDiv.style.color = '#eab308';
-	try {
-		const response = await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { method: 'DELETE' });
-		if (!response.ok) { throw new Error(`Erro no Firebase: ${response.statusText}`); }
-		statusDiv.innerText = 'Contato removido.'; statusDiv.style.color = 'green';
-		carregarContatos(); 
-	} catch (e) { statusDiv.innerText = 'Erro ao remover contato.'; statusDiv.style.color = 'red'; } 
-    finally { setTimeout(() => { statusDiv.innerText = ''; }, 3000); }
+    try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} 
 }
-
 async function carregarContatos() {
-	const listaUL = document.getElementById('lista-contatos');
-	listaUL.innerHTML = '<li>Carregando...</li>';
-	try {
-		const r = await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
-		const contatos = await r.json();
-		listaUL.innerHTML = ''; 
-		if (contatos) {
-			Object.keys(contatos).forEach(id => {
-				const c = contatos[id];
-				if (c && c.tipo && c.valor) {
-					const li = document.createElement('li');
-					li.className = 'contato-item';
-					li.innerHTML = `<span>[${c.tipo.toUpperCase()}] ${c.valor}</span><button data-id="${id}">Remover</button>`;
-					listaUL.appendChild(li);
-				}
-			});
-			if (listaUL.innerHTML === '') listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>'; 
-		} else listaUL.innerHTML = '<li class="small" style="text-align:center;">Nenhum contato salvo.</li>';
-	} catch (e) { listaUL.innerHTML = '<li class="small" style="text-align:center; color:red;">Erro ao carregar contatos.</li>'; }
+    const listaUL = document.getElementById('lista-contatos');
+    if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>';
+    try {
+        const r = await fetch(getNoCacheUrl('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json'));
+        const contatos = await r.json();
+        if(listaUL) listaUL.innerHTML = ''; 
+        if (contatos && listaUL) {
+            Object.keys(contatos).forEach(id => {
+                const c = contatos[id];
+                if (c && c.tipo && c.valor) {
+                    const li = document.createElement('li');
+                    li.className = 'contato-item';
+                    li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`;
+                    listaUL.appendChild(li);
+                }
+            });
+        } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>';
+    } catch (e) {}
 }
 
 async function loopDeAtualizacao() {
     try {
+        const liveIndicator = document.getElementById('live-indicator');
+        
         if (!verificacaoInicialConcluida) return;
-
-        let j; let config; 
         const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
         const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
         
-        const [r, rConfig] = await Promise.all([fetch(dataUrl), fetch(configUrl)]);
-        j = await r.json();
-        config = await rConfig.json();
+        // --- MOBILE FIX: Cache Buster ---
+        // Adicionando timestamp para evitar que o iOS/Android use cache antigo
+        const [r, rConfig] = await Promise.all([
+            fetch(getNoCacheUrl(dataUrl)), 
+            fetch(getNoCacheUrl(configUrl))
+        ]);
+        
+        if(liveIndicator) { liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online'); }
+
+        const j = await r.json();
+        const config = await rConfig.json();
         
         let nivelRecebido = j.nivel_pct || j.nivel || 0;
-
         if (nivelRecebido > 0) {
-            historicoLeiturasValidas.push(nivelRecebido);
-            if (historicoLeiturasValidas.length > 3) historicoLeiturasValidas.shift(); 
-            ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
-            dataUltimaLeituraValida = Date.now();
-            nivelAtual = nivelRecebido;
-            document.getElementById('emergency-badge').style.display = 'none';
+            historicoLeiturasValidas.push(nivelRecebido); if (historicoLeiturasValidas.length > 3) historicoLeiturasValidas.shift(); 
+            ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1]; dataUltimaLeituraValida = Date.now();
+            nivelAtual = nivelRecebido; document.getElementById('emergency-badge').style.display = 'none';
         } else {
             if (historicoLeiturasValidas.length === 0) {
                 if (ultimoNivelValido === null) await buscarUltimaLeituraHistorico();
                 if (ultimoNivelValido > 0) historicoLeiturasValidas.push(ultimoNivelValido);
             } else ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
-
             document.getElementById('emergency-badge').style.display = 'flex';
-            const msPassados = Date.now() - dataUltimaLeituraValida;
-            const horasPassadas = msPassados / (1000 * 60 * 60); 
             
-            let reducaoTotal = 0;
-            // --- NOVA LÓGICA DE DECAIMENTO: Baseada em média de 2000L/dia (approx 1% por hora) ---
-            if (horasPassadas < 2) {
-                reducaoTotal = 0; // Grace period 2h
-            } else {
-                // 1% por hora passada após grace period
-                reducaoTotal = Math.floor(horasPassadas * 1.05); 
-            }
-            
-            nivelAtual = ultimoNivelValido - reducaoTotal;
+            nivelAtual = ultimoNivelValido; 
             if (nivelAtual < 0) nivelAtual = 0; 
         }
-        
         if (config) nivelAlertaConfigurado = parseInt(config) || 30; 
         
         const statusDisplay = document.getElementById('status-display');
-        statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
-
-        if (nivelAtual <= nivelAlertaConfigurado) {
-            statusDisplay.classList.add('level-danger');
-            if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) {
-                enviarEmailAlerta(nivelAtual);
-                mostrarAlertaModal();
-                alertaModalMostrado = true;
-                controlarAlarme(true);
-                setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000);
+        if(statusDisplay) {
+            statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
+            if (nivelAtual <= nivelAlertaConfigurado) {
+                statusDisplay.classList.add('level-danger');
+                if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) {
+                    enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; controlarAlarme(true);
+                    setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000);
+                } else enviarEmailAlerta(nivelAtual);
+            } else { 
+                if (nivelAtual > 50) { if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; }
+                if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); else statusDisplay.classList.add('level-ok');
+                if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0;
             }
-        } else { 
-            if (nivelAtual > 50) {
-                if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false;
-                if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false;
-            }
-            if (nivelAtual <= 60) statusDisplay.classList.add('level-warn');
-            else statusDisplay.classList.add('level-ok');
-            
-            if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; }
-            controlarAlarme(false); 
-            snoozeCount = 0; snoozeUntil = 0;
         }
-
         atualizarCaixaDOM(nivelAtual);
-
-        if (document.getElementById('caixa-view').style.display !== 'none') {
-            document.getElementById('status-level').innerText = nivelAtual + '%';
-            // USO DA NOVA FUNÇÃO GEOMÉTRICA PARA DISPLAY EM TEMPO REAL
-            const litrosAprox = calcularVolumeLitros(nivelAtual);
-            document.getElementById('status-litros').innerHTML = `${litrosAprox.toFixed(0)} <small>Litros</small>`;
-            document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        }
+        if(document.getElementById('status-level')) document.getElementById('status-level').innerText = nivelAtual + '%';
+        if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivelAtual).toFixed(0)} <small>L</small>`;
+        if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
-        const agora = new Date();
-        const horaAtual = agora.getHours(); 
-        const agoraMs = agora.getTime();
-
+        const agora = new Date(); const horaAtual = agora.getHours(); const agoraMs = agora.getTime();
         if (horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) { 
             await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs);
-            ultimoHorarioSalvo = horaAtual; 
-            ultimoTempoSalvo = agoraMs;
+            ultimoHorarioSalvo = horaAtual; ultimoTempoSalvo = agoraMs;
             if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo();
         }
-    } catch(e) { console.error("Erro no loop de atualização:", e); }
+    } catch(e) {
+        console.error("Erro no loop:", e);
+        const liveIndicator = document.getElementById('live-indicator');
+        if(liveIndicator) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); }
+    }
 }
 
 window.onload = function() {
+    checkAutoTheme(); // Set initial theme
     const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') };
-	const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') };
+    const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') };
     const dateControls = document.getElementById('date-controls');
-    const viewHeaders = { grafico: document.querySelector('#grafico-container header'), abastecimento: document.querySelector('#abastecimento-view header'), consumo: document.querySelector('#consumo-view header') };
-    const btnDiario = document.getElementById('btn-view-diario'), btnSemanal = document.getElementById('btn-view-semanal'), btnMensal = document.getElementById('btn-view-mensal'), btnIntervalo = document.getElementById('btn-view-intervalo'), btnIntervaloElem = document.getElementById('btn-view-intervalo');
-
+    
     setupAudio();
     function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); }
-    document.body.addEventListener('click', despertarAudio, { once: true });
-    document.body.addEventListener('touchstart', despertarAudio, { once: true });
+    document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true });
 
     verificacaoInicialConcluida = true;
 
     function switchView(viewName) {
         activeTab = viewName; 
-		for (const key in views) { views[key].style.display = 'none'; }
-		if (views[viewName]) { views[viewName].style.display = 'flex'; }
-		document.querySelectorAll('.main-header .nav-button').forEach(btn => btn.classList.remove('active'));
-		if (btns[viewName]) { btns[viewName].classList.add('active'); }
-        dateControls.style.display = 'none'; 
+        for (const key in views) { if(views[key]) views[key].style.display = 'none'; }
+        if (views[viewName]) { views[viewName].style.display = 'flex'; }
+        document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+        if (btns[viewName]) { btns[viewName].classList.add('active'); }
+        if(dateControls) dateControls.style.display = 'none'; 
         if (viewName === 'grafico' || viewName === 'consumo') {
-            viewHeaders[viewName].appendChild(dateControls); dateControls.style.display = 'flex';
-            btnDiario.style.display = 'flex'; btnMensal.style.display = 'flex';
-            if (viewName === 'consumo') btnIntervaloElem.style.display = 'none'; else btnIntervaloElem.style.display = 'flex';
-            btnSemanal.style.display = 'none';
-            if (currentView === 'semanal') { currentView = 'diario'; document.querySelector('.view-selector .view-btn.active').classList.remove('active'); btnDiario.classList.add('active'); document.getElementById('diario-picker').style.display = 'flex'; document.getElementById('mensal-picker').style.display = 'none'; document.getElementById('intervalo-picker').style.display = 'none'; }
-        } else if (viewName === 'abastecimento') {
-            viewHeaders[viewName].appendChild(dateControls); dateControls.style.display = 'flex';
-            btnDiario.style.display = 'none'; btnIntervalo.style.display = 'none'; btnSemanal.style.display = 'flex'; btnMensal.style.display = 'flex';
-            if (currentView === 'diario' || currentView === 'intervalo') { currentView = 'semanal'; document.querySelector('.view-selector .view-btn.active').classList.remove('active'); btnSemanal.classList.add('active'); document.getElementById('diario-picker').style.display = 'none'; document.getElementById('mensal-picker').style.display = 'none'; document.getElementById('intervalo-picker').style.display = 'none'; }
-        }
+            // Recarrega dados ao entrar na aba
+            carregarHistoricoEConsumo();
+        } 
         if (viewName === 'caixa') carregarHistoricoAbastecimento();
         else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); }
         else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); }
@@ -1701,70 +1349,92 @@ window.onload = function() {
         else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); }
     }
       
-    btns.caixa.addEventListener('click', () => switchView('caixa'));
-	btns.grafico.addEventListener('click', () => switchView('grafico'));
-    btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
-    btns.consumo.addEventListener('click', () => switchView('consumo'));
-	btns.config.addEventListener('click', () => switchView('config'));
+    if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa'));
+    if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico'));
+    if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
+    if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo'));
+    if(btns.config) btns.config.addEventListener('click', () => switchView('config'));
 
+    document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
     document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta);
-    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => { const litros = document.getElementById('litros-abastecidos').value; salvarAbastecimento(litros); });
-    document.getElementById('btn-salvar-capacidade').addEventListener('click', () => { const cap = document.getElementById('capacidade-total-valor').value; if(cap && cap > 0) salvarCapacidade(parseInt(cap)); });
-    document.getElementById('btn-salvar-altura').addEventListener('click', () => { const alt = document.getElementById('altura-caixa-valor').value; if(alt && alt > 0) salvarAltura(parseInt(alt)); });
-	document.getElementById('btn-add-contato').addEventListener('click', () => { const valor = document.getElementById('contato-valor').value; const tipo = document.getElementById('contato-tipo').value; adicionarContato(valor, tipo); });
-	document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => { const nivel = document.getElementById('nivel-alerta-valor').value; if (nivel && nivel >= 1 && nivel <= 99) salvarNivelAlerta(parseInt(nivel)); });
 
-	document.getElementById('lista-contatos').addEventListener('click', (e) => {
-		if (e.target.tagName === 'BUTTON') {
-			const id = e.target.dataset.id; const btn = e.target;
-			if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = 'false'; btn.innerText = 'Remover'; }
-			else { document.querySelectorAll('#lista-contatos button[data-confirming="true"]').forEach(b => { b.dataset.confirming = 'false'; b.innerText = 'Remover'; }); btn.dataset.confirming = 'true'; btn.innerText = 'Confirmar?'; setTimeout(() => { if (btn.dataset.confirming === 'true') { btn.dataset.confirming = 'false'; btn.innerText = 'Remover'; } }, 3000); }
-		}
-	});
+    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value));
+    document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value)));
+    document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value)));
+    document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value));
+    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value)));
 
-	document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-abastecimento-btn')) {
-			const id = e.target.dataset.id; const btn = e.target;
-			if (btn.dataset.confirming) removerAbastecimento(id);
-			else { document.querySelectorAll('#lista-abastecimentos button[data-confirming="true"]').forEach(b => { b.dataset.confirming = 'false'; b.innerText = '×'; b.style.width = '30px'; }); btn.dataset.confirming = 'true'; btn.innerText = 'Confirmar?'; btn.style.width = 'auto'; setTimeout(() => { if (btn.dataset.confirming === 'true') { btn.dataset.confirming = 'false'; btn.innerText = '×'; btn.style.width = '30px'; } }, 3000); }
-		}
-	});
-
-	criarGraficos();
-	const hoje = new Date();
-	const dataFimPadrao = getLocalISODate(hoje);
-	const mesFimPadrao = dataFimPadrao.substring(0, 7);
-	hoje.setDate(hoje.getDate() - 59); 
-	const dataInicioPadrao = getLocalISODate(hoje);
-	document.getElementById('dataEscolhida').value = dataFimPadrao;
-	document.getElementById('mesEscolhido').value = mesFimPadrao;
-	document.getElementById('dataInicio').value = dataInicioPadrao;
-	document.getElementById('dataFim').value = dataFimPadrao;
-	
-	switchView('caixa'); 
-    document.getElementById('btnAtualizar').onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); };
-      
-    carregarConfiguracoesGerais().then(() => {
-        carregarHistoricoEConsumo().then(() => {
-            loopDeAtualizacao();
-            setInterval(loopDeAtualizacao, 2000);
-        });
+    document.getElementById('lista-contatos').addEventListener('click', (e) => {
+        if (e.target.closest('button')) {
+            const btn = e.target.closest('button'); const id = btn.dataset.id;
+            if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; }
+            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); }
+        }
     });
 
-	document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
-		btn.addEventListener('click', (e) => {
-			const parent = e.target.parentElement;
-			parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-			e.target.classList.add('active');
-			if (e.target.dataset.view) {
-				currentView = e.target.dataset.view; 
-				const pickers = { diario: document.getElementById('diario-picker'), mensal: document.getElementById('mensal-picker'), intervalo: document.getElementById('intervalo-picker') };
-				for(const key in pickers) { pickers[key].style.display = 'none'; }
-				if (pickers[currentView]) pickers[currentView].style.display = 'flex';
-                document.getElementById('btnAtualizar').click();
-			}
-		});
-	});
+    document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
+        if (e.target.closest('button')) {
+            const btn = e.target.closest('button'); const id = btn.dataset.id;
+            if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; }
+            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); }
+        }
+    });
+
+    criarGraficos();
+    const hoje = new Date(); const dataFim = getLocalISODate(hoje);
+    const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje);
+    
+    // Safe initialization for date inputs
+    const elDataEsc = document.getElementById('dataEscolhida');
+    if(elDataEsc) elDataEsc.value = dataFim;
+    const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo');
+    if(elDataEscConsumo) elDataEscConsumo.value = dataFim;
+
+    const elMesEsc = document.getElementById('mesEscolhido');
+    if(elMesEsc) elMesEsc.value = mesFim;
+    const elDataIni = document.getElementById('dataInicio');
+    if(elDataIni) elDataIni.value = dataIni;
+    const elDataFim = document.getElementById('dataFim');
+    if(elDataFim) elDataFim.value = dataFim;
+    
+    switchView('caixa'); 
+    const btnAt = document.getElementById('btnAtualizar');
+    if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); };
+      
+    carregarConfiguracoesGerais().then(() => { 
+        carregarHistoricoEConsumo().then(() => { 
+            loopDeAtualizacao(); 
+            // Usando setInterval com função para garantir que não pare
+            loopInterval = setInterval(loopDeAtualizacao, 2500); 
+        }); 
+    });
+    
+    // --- MOBILE FIX: RESTART ON VISIBILITY ---
+    // Detecta quando o usuário volta para a aba ou desbloqueia o celular
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') {
+            console.log("App visível novamente. Forçando atualização...");
+            loopDeAtualizacao(); // Atualiza nível imediatamente
+            carregarHistoricoEConsumo(); // Atualiza gráficos
+            // Reinicia o loop caso tenha sido morto pelo OS
+            clearInterval(loopInterval);
+            loopInterval = setInterval(loopDeAtualizacao, 2500);
+        }
+    });
+
+    document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            if (e.target.dataset.view) {
+                currentView = e.target.dataset.view; 
+                const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' };
+                for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none';
+                if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex';
+                if(btnAt) btnAt.click();
+            }
+        });
+    });
 };
 </script>
 </body>
