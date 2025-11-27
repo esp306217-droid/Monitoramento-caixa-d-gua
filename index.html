@@ -516,18 +516,7 @@ li {
         <h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1>
     </header>
     <div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
-        <!-- Seletor de Período para Abastecimento -->
-        <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 5px;">
-            <input type="month" id="mesAbastecimento">
-            <button id="btnAtualizarAbastecimento" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
-        </div>
-
-        <!-- Novo Gráfico de Comparação Semanal -->
-        <div class="chart-card glass-panel" style="width: 100%; max-width: 600px;">
-            <strong>Comparativo Semanal (Litros)</strong>
-            <canvas id="chartAbastecimento"></canvas>
-        </div>
-
+        <!-- Formulário Primeiro (Topo) -->
         <div id="abastecimento-form" class="config-card glass-panel" style="margin: 0; width: 100%; max-width: 500px;">
             <h2>Registrar Entrada</h2>
             <!-- Centralizado -->
@@ -538,9 +527,29 @@ li {
             <div id="status-abastecimento" class="small" style="font-weight:bold; margin: -10px 0 0 0;"></div>
         </div>
 
+        <!-- Lista Histórico (Meio) -->
         <div id="abastecimento-historico-card" class="glass-panel" style="width: 100%; max-width: 500px; padding: 20px;">
             <h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; text-align: left; border-bottom: 1px solid var(--text-sec); padding-bottom: 8px;">Histórico Recente</h3>
             <ul id="lista-abastecimentos"></ul>
+        </div>
+
+        <!-- Seletor de Período para Gráfico (Abaixo da Lista) -->
+        <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 5px; flex-wrap:wrap;">
+            <input type="month" id="mesAbastecimento">
+            <select id="filtroSemana" style="padding: 10px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); font-family: 'Poppins', sans-serif;">
+                <option value="todas">Visão Mensal</option>
+                <option value="1">Semana 1 (1-7)</option>
+                <option value="2">Semana 2 (8-14)</option>
+                <option value="3">Semana 3 (15-21)</option>
+                <option value="4">Semana 4 (22+)</option>
+            </select>
+            <button id="btnAtualizarAbastecimento" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <!-- Gráfico (Fundo) -->
+        <div class="chart-card glass-panel" style="width: 100%; max-width: 600px;">
+            <strong id="tituloGraficoAbastecimento">Comparativo Semanal (Litros)</strong>
+            <canvas id="chartAbastecimento"></canvas>
         </div>
     </div>
 </div>
@@ -1284,7 +1293,11 @@ async function removerAbastecimento(id) {
 async function carregarHistoricoAbastecimento() {
     const listaUL = document.getElementById('lista-abastecimentos');
     const elMes = document.getElementById('mesAbastecimento');
-    const mesAno = elMes ? elMes.value : getLocalISODate().substring(0, 7);
+    const elSemana = document.getElementById('filtroSemana');
+    
+    // Pega o valor do mês ou usa o atual
+    const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7);
+    const semanaFiltro = elSemana ? elSemana.value : 'todas';
     
     if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>';
     
@@ -1310,30 +1323,77 @@ async function carregarHistoricoAbastecimento() {
                 listaUL.appendChild(li);
             });
 
-            // 2. Gráfico (Filtrado pelo Mês Selecionado)
-            const totaisSemana = [0, 0, 0, 0]; // 4 Semanas fixas
-            
-            Object.keys(dados).forEach(key => {
-                const item = dados[key];
-                const d = new Date(item.timestamp);
-                // Converte para YYYY-MM local para comparar
-                const itemMesAno = getLocalISODate(d).substring(0, 7);
+            // 2. Lógica do Gráfico
+            let labelsGrafico = [];
+            let dadosGrafico = [];
+            let titulo = "Comparativo Semanal (Litros)";
+
+            // Se "Visão Mensal" (Todas as semanas)
+            if (semanaFiltro === 'todas') {
+                titulo = "Comparativo Semanal (Litros)";
+                const totaisSemana = [0, 0, 0, 0]; // 4 Semanas fixas
                 
-                if (itemMesAno === mesAno) {
-                    const dia = d.getDate();
-                    let idx = 0;
-                    if (dia <= 7) idx = 0;       // 1ª Semana
-                    else if (dia <= 14) idx = 1; // 2ª Semana
-                    else if (dia <= 21) idx = 2; // 3ª Semana
-                    else idx = 3;                // 4ª Semana (22+)
+                Object.keys(dados).forEach(key => {
+                    const item = dados[key];
+                    const d = new Date(item.timestamp);
+                    const itemMesAno = getLocalISODate(d).substring(0, 7);
                     
-                    totaisSemana[idx] += parseInt(item.litros || 0);
+                    if (itemMesAno === mesAno) {
+                        const dia = d.getDate();
+                        let idx = 0;
+                        if (dia <= 7) idx = 0;       // 1ª Semana
+                        else if (dia <= 14) idx = 1; // 2ª Semana
+                        else if (dia <= 21) idx = 2; // 3ª Semana
+                        else idx = 3;                // 4ª Semana (22+)
+                        totaisSemana[idx] += parseInt(item.litros || 0);
+                    }
+                });
+                labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'];
+                dadosGrafico = totaisSemana;
+
+            } else {
+                // Se for Semana Específica (1, 2, 3 ou 4)
+                titulo = `Detalhes: Semana ${semanaFiltro}`;
+                const diasMap = {};
+                
+                // Definir intervalo de dias baseado na semana
+                let diaInicio = 1, diaFim = 7;
+                if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; }
+                if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; }
+                if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; }
+
+                Object.keys(dados).forEach(key => {
+                    const item = dados[key];
+                    const d = new Date(item.timestamp);
+                    const itemMesAno = getLocalISODate(d).substring(0, 7);
+                    
+                    if (itemMesAno === mesAno) {
+                        const dia = d.getDate();
+                        if (dia >= diaInicio && dia <= diaFim) {
+                            const labelDia = `Dia ${String(dia).padStart(2, '0')}`;
+                            if (!diasMap[labelDia]) diasMap[labelDia] = 0;
+                            diasMap[labelDia] += parseInt(item.litros || 0);
+                        }
+                    }
+                });
+
+                // Ordenar dias para o gráfico
+                labelsGrafico = Object.keys(diasMap).sort();
+                dadosGrafico = labelsGrafico.map(l => diasMap[l]);
+                
+                if (labelsGrafico.length === 0) {
+                    labelsGrafico = ["Sem dados"];
+                    dadosGrafico = [0];
                 }
-            });
+            }
+
+            if(document.getElementById('tituloGraficoAbastecimento')) {
+                document.getElementById('tituloGraficoAbastecimento').innerText = titulo;
+            }
 
             if(chartAbastecimento) {
-                chartAbastecimento.data.labels = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'];
-                chartAbastecimento.data.datasets[0].data = totaisSemana;
+                chartAbastecimento.data.labels = labelsGrafico;
+                chartAbastecimento.data.datasets[0].data = dadosGrafico;
                 chartAbastecimento.update();
             }
 
