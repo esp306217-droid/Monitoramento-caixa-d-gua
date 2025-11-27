@@ -451,7 +451,11 @@ li {
     <div id="status-display" class="glass-panel">
         <div class="status-item item-level">
             <span class="status-label">Nível Atual</span>
-            <span class="status-value skeleton-text" id="status-level">--%</span>
+            <!-- Adicionado Span para o indicador simulado -->
+            <div style="display:flex; justify-content:center; align-items:center;">
+                <span class="status-value skeleton-text" id="status-level">--%</span>
+                <span id="simulated-indicator" style="display:none; background:#f59e0b; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; cursor:help; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Leitura Estimada (Sem Sinal)">?</span>
+            </div>
         </div>
         <div class="status-item item-litros">
             <span class="status-label">Volume</span>
@@ -719,6 +723,7 @@ let dataUltimaLeituraValida = Date.now();
 let historicoLeiturasValidas = []; 
 let loopInterval = null;
 let lastUpdateTimestamp = 0; // Para o Watchdog
+let contadorZerosConsecutivos = 0; // Contagem de falhas de leitura
 
 function calcularVolumeLitros(nivelPercentual) {
     if (nivelPercentual <= 0) return 0;
@@ -773,7 +778,7 @@ async function gerenciarRotacaoEmail(custoEnvio) {
             if (mesHoje > 11 || (mesHoje === 11 && diaHoje >= 30)) {
                  if (dadosControle.conta_ativa === 1) {
                      if (mesHoje > 11 || (mesHoje === 11 && diaHoje >= 30)) {
-                         novaContaId = 2; dadosControle.restantes = 200; 
+                          novaContaId = 2; dadosControle.restantes = 200; 
                      }
                  }
             }
@@ -1021,7 +1026,7 @@ function criarGraficos() {
             }
         });
     }
-       
+        
     if(document.getElementById('chartConsumoLinha')) {
         const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
         if(chartConsumoLinha) chartConsumoLinha.destroy();
@@ -1354,6 +1359,34 @@ async function carregarContatos() {
     } catch (e) {}
 }
 
+function calcularNivelDeEmergencia(nivelBase, timestampBase) {
+    if (!nivelBase || !timestampBase) return 0;
+    const agora = Date.now();
+    let diffHoras = (agora - timestampBase) / (1000 * 60 * 60);
+    
+    let nivelSimulado = nivelBase;
+    
+    // Lógica iterativa de consumo simulado
+    while (diffHoras > 0) {
+        // Se nível atual > 20%, o passo é 6 horas. Senão é 4 horas.
+        let passoHoras = (nivelSimulado > 20) ? 6 : 4;
+        
+        if (diffHoras >= passoHoras) {
+            nivelSimulado -= 5;
+            diffHoras -= passoHoras;
+        } else {
+            break; // Não passou tempo suficiente para a próxima queda
+        }
+        
+        if (nivelSimulado <= 0) {
+            nivelSimulado = 0;
+            break;
+        }
+    }
+    return nivelSimulado;
+}
+
+
 async function loopDeAtualizacao() {
     const liveIndicator = document.getElementById('live-indicator');
     
@@ -1382,20 +1415,56 @@ async function loopDeAtualizacao() {
         const config = await rConfig.json();
         
         let nivelRecebido = j.nivel_pct || j.nivel || 0;
+        
+        // Lógica Principal de Leitura e Emergência
         if (nivelRecebido > 0) {
-            historicoLeiturasValidas.push(nivelRecebido); if (historicoLeiturasValidas.length > 3) historicoLeiturasValidas.shift(); 
-            ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1]; dataUltimaLeituraValida = Date.now();
-            nivelAtual = nivelRecebido; document.getElementById('emergency-badge').style.display = 'none';
+            // --- CENÁRIO: LEITURA VÁLIDA ---
+            contadorZerosConsecutivos = 0;
+            
+            // Grava no buffer de ultimas 3 leituras validas (nunca grava 0)
+            historicoLeiturasValidas.push(nivelRecebido); 
+            if (historicoLeiturasValidas.length > 3) historicoLeiturasValidas.shift(); 
+            
+            // Atualiza referencias
+            ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1]; 
+            dataUltimaLeituraValida = Date.now();
+            
+            // Atualiza tela
+            nivelAtual = nivelRecebido; 
+            document.getElementById('emergency-badge').style.display = 'none';
+            // Esconde o indicador simulado se estiver visível
+            document.getElementById('simulated-indicator').style.display = 'none';
+
         } else {
+            // --- CENÁRIO: EMERGÊNCIA (0% ou Null) ---
+            contadorZerosConsecutivos++;
+
+            // 1. Mostra Badge de Emergência (Sem Sinal)
+            document.getElementById('emergency-badge').style.display = 'flex';
+            
+            // 2. Se não tem buffer local, busca no Firebase histórico
             if (historicoLeiturasValidas.length === 0) {
                 if (ultimoNivelValido === null) await buscarUltimaLeituraHistorico();
                 if (ultimoNivelValido > 0) historicoLeiturasValidas.push(ultimoNivelValido);
-            } else ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
-            document.getElementById('emergency-badge').style.display = 'flex';
+            } else {
+                ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
+            }
+
+            // 3. Aplica Lógica de Tempo (se persistir por 4 leituras ~ 10s)
+            if (contadorZerosConsecutivos >= 4) {
+                 // Usa o ultimo valor valido e aplica o desconto baseado no tempo que passou
+                 nivelAtual = calcularNivelDeEmergencia(ultimoNivelValido, dataUltimaLeituraValida);
+                 // Mostra o indicador de ?
+                 document.getElementById('simulated-indicator').style.display = 'flex';
+            } else {
+                 // Mantém o valor congelado por enquanto
+                 nivelAtual = ultimoNivelValido !== null ? ultimoNivelValido : 0;
+                 document.getElementById('simulated-indicator').style.display = 'none';
+            }
             
-            nivelAtual = ultimoNivelValido; 
             if (nivelAtual < 0) nivelAtual = 0; 
         }
+
         if (config) nivelAlertaConfigurado = parseInt(config) || 30; 
         
         const statusDisplay = document.getElementById('status-display');
@@ -1419,6 +1488,7 @@ async function loopDeAtualizacao() {
         if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
         const agora = new Date(); const horaAtual = agora.getHours(); const agoraMs = agora.getTime();
+        // A função salvarLeituraNoFirebase já tem a proteção para NÃO salvar se o badge estiver ativo
         if (horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) { 
             await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs);
             ultimoHorarioSalvo = horaAtual; ultimoTempoSalvo = agoraMs;
