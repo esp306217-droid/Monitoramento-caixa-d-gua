@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.21 Clean</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.22 Mobile UX</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -292,21 +292,44 @@ li {
 .modal-body { padding: 25px; color: var(--text-main); font-size: 1rem; }
 .modal-footer { padding: 15px 20px; background: rgba(0,0,0,0.05); text-align: right; }
 
-/* Config & Abastecimento Layout (Centralizado) */
-.config-board { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 900px; }
-.config-card, #abastecimento-form { text-align: center; display: flex; flex-direction: column; align-items: center; } 
-.config-card h2, #abastecimento-form h2 { width: 100%; }
+/* Config & Abastecimento Layout (Melhorado para Mobile) */
+.config-board { 
+    display: grid; 
+    /* Layout inteligente: cria colunas automaticamente baseadas na largura */
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+    gap: 12px; 
+    width: 100%; 
+    max-width: 900px; 
+    padding: 0 5px;
+}
+
+.config-card, #abastecimento-form { 
+    text-align: center; display: flex; flex-direction: column; align-items: center; 
+    padding: 15px; /* Padding reduzido */
+} 
+.config-card h2, #abastecimento-form h2 { 
+    width: 100%; font-size: 1rem; margin: 0 0 10px 0; /* Título menor */
+}
 
 .config-card .form-group, #abastecimento-form .form-group { 
     display: flex; flex-direction: column; 
-    gap: 15px; align-items: center; justify-content: center; width: 100%; margin-top: 10px;
+    gap: 10px; align-items: center; justify-content: center; width: 100%;
 }
+/* Inputs mais compactos */
 .config-card .form-group input, .config-card .form-group select,
 #abastecimento-form .form-group input { 
-    width: 90%; min-width: 200px; text-align: center;
+    width: 100%; min-width: 0; text-align: center;
+    padding: 8px; font-size: 0.95rem;
 }
+/* Botões mais compactos */
 .config-card .form-group button, #abastecimento-form .form-group button { 
-    width: 60%; padding: 12px 25px; min-width: 120px; margin-top: 5px;
+    width: 100%; padding: 8px; min-width: 0; margin-top: 0;
+    font-size: 0.9rem;
+}
+
+/* Card de lista ocupa largura total */
+.config-card:last-child {
+    grid-column: 1 / -1;
 }
 
 
@@ -325,8 +348,7 @@ li {
         transform-origin: top center; 
     }
     canvas { height: 260px !important; }
-    .config-board { grid-template-columns: 1fr; }
-    .config-card .form-group button, #abastecimento-form .form-group button { width: 90%; }
+    /* Config board já é responsivo com grid-auto-fit */
 }
 /* Telas muito pequenas */
 @media (max-height: 700px) {
@@ -385,7 +407,8 @@ li {
 <div id="emergency-badge" title="Sem Sinal">!</div>
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
-    <button id="theme-toggle-btn" class="theme-toggle"><i class="fas fa-moon"></i></button>
+    <!-- FIX: Onclick direto para funcionar em WebView -->
+    <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
     <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
     <div class="nav-group">
         <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
@@ -893,10 +916,22 @@ function criarGraficos() {
     const zoomOptions = {
         pan: { enabled: true, mode: 'x' },
         zoom: { 
-            wheel: { enabled: true, speed: 0.05 }, 
-            pinch: { enabled: true, sensitivity: 0.5 }, 
+            wheel: { enabled: true, speed: 0.02 }, // Reduced sensitivity 
+            pinch: { enabled: true, sensitivity: 0.1 }, // Reduced sensitivity
             mode: 'x' 
         }
+    };
+
+    // Common X-Axis config to avoid crowding
+    const xAxisConfig = {
+        ticks: { 
+            autoSkip: true, 
+            maxRotation: 0, 
+            minRotation: 0,
+            maxTicksLimit: 6, // Show fewer ticks by default on mobile
+            color: textColor 
+        }, 
+        grid: { display: true, color: gridColor }
     };
 
     if(document.getElementById('chartLinha')) {
@@ -912,7 +947,7 @@ function criarGraficos() {
             options: { 
                 animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
                 scales: { 
-                    x: { ticks: { autoSkip: false, maxTicksLimit: 12, color: textColor }, grid: { display: true, color: gridColor } }, 
+                    x: xAxisConfig, 
                     y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } 
                 },
                 layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } }
@@ -929,7 +964,7 @@ function criarGraficos() {
             options: { 
                 animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
                 scales: { 
-                    x: { ticks: { autoSkip: false, maxTicksLimit: 12, color: textColor }, grid: { display: true, color: gridColor } }, 
+                    x: xAxisConfig, 
                     y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } 
                 } 
             }
@@ -945,7 +980,7 @@ function criarGraficos() {
             options: { 
                 animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round } }, 
                 scales: { 
-                    x: { ticks: { autoSkip: false, maxTicksLimit: 24, color: textColor }, grid: { display: true, color: gridColor } }, 
+                    x: xAxisConfig, 
                     y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } 
                 },
                 layout: { padding: { top: 20 } }
@@ -962,7 +997,7 @@ function criarGraficos() {
             options: { 
                 animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
                 scales: { 
-                    x: { ticks: { autoSkip: false, maxTicksLimit: 24, color: textColor }, grid: { display: true, color: gridColor } }, 
+                    x: xAxisConfig, 
                     y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } 
                 },
                 layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } }
@@ -1397,7 +1432,7 @@ window.onload = function() {
     if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo'));
     if(btns.config) btns.config.addEventListener('click', () => switchView('config'));
 
-    document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+    // document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme); // Removed as inline click is safer for webview
     document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta);
 
     document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value));
@@ -1444,14 +1479,8 @@ window.onload = function() {
     if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); };
       
     // Inicialização em Paralelo (Mais Robusta)
-    // 1. Inicia configurações (sem bloquear o resto)
     carregarConfiguracoesGerais();
-    
-    // 2. Inicia histórico (sem bloquear o resto)
     carregarHistoricoEConsumo();
-
-    // 3. Inicia o loop de tempo real IMEDIATAMENTE
-    // Isso garante que o nível atual apareça mesmo se o histórico falhar
     loopDeAtualizacao(); 
     loopInterval = setInterval(loopDeAtualizacao, 2500);
     
@@ -1465,7 +1494,6 @@ window.onload = function() {
     }, 5000);
     
     // --- MOBILE FIX: RESTART ON VISIBILITY ---
-    // Detecta quando o usuário volta para a aba ou desbloqueia o celular
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === 'visible') {
             console.log("App visível novamente. Forçando atualização...");
