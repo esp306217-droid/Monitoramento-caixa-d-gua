@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.19 Browser Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.20 GitHub Fix</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -309,6 +309,14 @@ li {
     width: 60%; padding: 12px 25px; min-width: 120px; margin-top: 5px;
 }
 
+/* Footer Versão */
+.app-version {
+    margin-top: 20px;
+    font-size: 0.7rem;
+    color: var(--text-sec);
+    opacity: 0.6;
+}
+
 
 /* Responsividade */
 @media (max-width: 800px) {
@@ -436,6 +444,7 @@ li {
             </g>
         </svg>
     </div>
+    <div class="app-version">v.3.20</div>
 </div>
 
 <div id="grafico-container" style="display:none;">
@@ -676,7 +685,12 @@ async function safeFetch(url, options = {}) {
         cache: 'no-store', // Instrução padrão para o navegador não cachear
         // Headers manuais removidos para evitar problemas de CORS (Preflight)
     };
-    return fetch(getNoCacheUrl(url), finalOptions);
+    try {
+        return await fetch(getNoCacheUrl(url), finalOptions);
+    } catch(e) {
+        console.error("Falha no Fetch:", url, e);
+        throw e;
+    }
 }
 
 async function gerenciarRotacaoEmail(custoEnvio) {
@@ -1424,23 +1438,26 @@ window.onload = function() {
     const btnAt = document.getElementById('btnAtualizar');
     if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); };
       
-    carregarConfiguracoesGerais().then(() => { 
-        carregarHistoricoEConsumo().then(() => { 
-            loopDeAtualizacao(); 
-            // Usando setInterval com função para garantir que não pare
-            loopInterval = setInterval(loopDeAtualizacao, 2500); 
-            
-            // --- WATCHDOG (App Inventor Fix) ---
-            // Verifica se o loop travou (comum em WebViews de baixa prioridade)
-            setInterval(() => {
-                const now = Date.now();
-                if (now - lastUpdateTimestamp > 10000) { // Se não atualizou em 10s
-                    console.log("Watchdog: Reiniciando loop travado...");
-                    loopDeAtualizacao();
-                }
-            }, 5000);
-        }); 
-    });
+    // Inicialização em Paralelo (Mais Robusta)
+    // 1. Inicia configurações (sem bloquear o resto)
+    carregarConfiguracoesGerais();
+    
+    // 2. Inicia histórico (sem bloquear o resto)
+    carregarHistoricoEConsumo();
+
+    // 3. Inicia o loop de tempo real IMEDIATAMENTE
+    // Isso garante que o nível atual apareça mesmo se o histórico falhar
+    loopDeAtualizacao(); 
+    loopInterval = setInterval(loopDeAtualizacao, 2500);
+    
+    // 4. Watchdog (Reinicia se travar)
+    setInterval(() => {
+        const now = Date.now();
+        if (now - lastUpdateTimestamp > 10000) { 
+            console.log("Watchdog: Reiniciando loop travado...");
+            loopDeAtualizacao();
+        }
+    }, 5000);
     
     // --- MOBILE FIX: RESTART ON VISIBILITY ---
     // Detecta quando o usuário volta para a aba ou desbloqueia o celular
