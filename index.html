@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.23 Mobile Touch Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.24 Button Fix</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -97,6 +97,29 @@ body {
     border-radius: 16px;
 }
 
+/* Botão de Tema Flutuante (FIXED) - Correção para App Inventor */
+.theme-toggle {
+    background: var(--card-bg); 
+    border: 1px solid var(--card-border);
+    color: var(--text-main);
+    font-size: 1.4rem; 
+    cursor: pointer; 
+    width: 48px; 
+    height: 48px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    border-radius: 50%; 
+    transition: all 0.3s;
+    position: fixed; /* Muda de absolute para fixed */
+    top: 12px; 
+    left: 12px; 
+    z-index: 9999; /* Z-Index altíssimo para garantir o clique */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    -webkit-tap-highlight-color: transparent;
+}
+.theme-toggle:active { transform: scale(0.9); }
+
 /* Cabeçalho Centralizado */
 .main-header {
     width: 100%; padding: 10px 10px;
@@ -110,16 +133,9 @@ body {
     transition: background-color 0.3s ease;
     flex-wrap: wrap;
     gap: 10px;
+    padding-left: 60px; /* Espaço para o botão flutuante não cobrir o menu */
 }
 .nav-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0; justify-content: center; }
-
-.theme-toggle {
-    background: none; border: none; color: var(--text-main);
-    font-size: 1.4rem; cursor: pointer; padding: 10px; /* Aumentado área de toque */
-    border-radius: 50%; transition: all 0.3s;
-    position: absolute; left: 20px; 
-    z-index: 2000; /* FIX: Garante que fique ACIMA de tudo */
-}
 
 /* Indicador de Conexão (Novo) */
 .live-indicator {
@@ -336,14 +352,15 @@ li {
 
 /* Responsividade */
 @media (max-width: 800px) {
-    .main-header { overflow-x: hidden; justify-content: center; }
-    .nav-group { width: 100%; justify-content: center; overflow-x: auto; }
-    .theme-toggle { 
-        position: absolute; 
-        top: 15px; 
-        left: 15px; 
-        z-index: 2000; /* Força estar ACIMA de tudo */
+    .main-header { 
+        overflow-x: hidden; 
+        justify-content: center;
+        padding-left: 60px; /* Força espaço para o botão flutuante */
     }
+    .nav-group { width: 100%; justify-content: center; overflow-x: auto; }
+    
+    /* Removido estilo específico do toggle aqui porque agora ele é global fixo */
+    
     .nav-button span { display: none; } 
     .nav-button i { font-size: 1.3rem; }
     .nav-button { padding: 10px 15px; }
@@ -412,9 +429,10 @@ li {
 <!-- Badge de Emergência -->
 <div id="emergency-badge" title="Sem Sinal">!</div>
 
+<!-- FIX: Botão movido para FORA do header para garantir o clique (Z-Index alto) -->
+<button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
-    <!-- FIX: Onclick direto para funcionar em WebView -->
-    <button id="theme-toggle-btn" class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
     <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
     <div class="nav-group">
         <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
