@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.22 Mobile UX</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.23 Mobile Touch Fix</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -115,9 +115,10 @@ body {
 
 .theme-toggle {
     background: none; border: none; color: var(--text-main);
-    font-size: 1.2rem; cursor: pointer; padding: 8px;
+    font-size: 1.4rem; cursor: pointer; padding: 10px; /* Aumentado área de toque */
     border-radius: 50%; transition: all 0.3s;
     position: absolute; left: 20px; 
+    z-index: 2000; /* FIX: Garante que fique ACIMA de tudo */
 }
 
 /* Indicador de Conexão (Novo) */
@@ -337,7 +338,12 @@ li {
 @media (max-width: 800px) {
     .main-header { overflow-x: hidden; justify-content: center; }
     .nav-group { width: 100%; justify-content: center; overflow-x: auto; }
-    .theme-toggle { position: absolute; top: 15px; left: 15px; }
+    .theme-toggle { 
+        position: absolute; 
+        top: 15px; 
+        left: 15px; 
+        z-index: 2000; /* Força estar ACIMA de tudo */
+    }
     .nav-button span { display: none; } 
     .nav-button i { font-size: 1.3rem; }
     .nav-button { padding: 10px 15px; }
