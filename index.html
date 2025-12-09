@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.30 MIT Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.31 MIT LED Fix</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -376,16 +376,27 @@ li {
 #reservatorio-svg .taca-solida { fill: url(#grad-metal); stroke: #1e293b; stroke-width: 2.5; opacity: 0.3; }
 #reservatorio-svg .guarda-corpo { fill: none; stroke: #1e293b; stroke-width: 2.5; opacity: 0.5; }
 
-/* LEDs CHAMATIVOS */
+/* LEDs CHAMATIVOS - SIMPLIFICADO PARA WEBVIEW */
 @keyframes pisca { 
-    0% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); } 
-    50% { opacity: 0.4; filter: drop-shadow(0 0 2px currentColor); } 
-    100% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); }
+    0% { opacity: 1; fill: #ff0000; } 
+    50% { opacity: 0.3; fill: #500000; } 
+    100% { opacity: 1; fill: #ff0000; }
 }
+@keyframes pisca-amarelo { 
+    0% { opacity: 1; fill: #ffdd00; } 
+    50% { opacity: 0.3; fill: #504400; } 
+    100% { opacity: 1; fill: #ffdd00; }
+}
+@keyframes pisca-verde { 
+    0% { opacity: 1; fill: #00ff00; } 
+    50% { opacity: 0.3; fill: #005000; } 
+    100% { opacity: 1; fill: #00ff00; }
+}
+
 .led-base { stroke: #222; stroke-width: 1; transition: all 0.3s ease; fill: #333; }
-.led-base.aceso.vermelho { fill: #ff0000; color: #ff0000; animation: pisca 0.8s infinite; }
-.led-base.aceso.amarelo { fill: #ffdd00; color: #ffdd00; animation: pisca 0.8s infinite; }
-.led-base.aceso.verde { fill: #00ff00; color: #00ff00; animation: pisca 0.8s infinite; }
+.led-base.aceso.vermelho { animation: pisca 0.8s infinite; }
+.led-base.aceso.amarelo { animation: pisca-amarelo 0.8s infinite; }
+.led-base.aceso.verde { animation: pisca-verde 0.8s infinite; }
 
 /* Animação Água */
 .agua-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
@@ -1326,6 +1337,22 @@ async function loopDeAtualizacao() {
             statusTime.style.color = "var(--level-danger)";
             // Mantém o relógio rodando mesmo com erro de conexão, para não parecer travado
             statusTime.innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        
+        // --- CORREÇÃO FINAL: FORÇAR ATUALIZAÇÃO MESMO COM ERRO DE REDE ---
+        // Se der erro de rede, assume modo emergência e atualiza a tela
+        // Tenta pegar valor simulado ou salvo
+        let saved = null;
+        try { saved = JSON.parse(localStorage.getItem('last_valid_reading')); } catch(e){}
+        
+        if (saved) {
+             nivelAtual = calcularNivelSimulado(); // Continua simulando decaimento
+             atualizarCaixaDOM(nivelAtual);
+             document.getElementById('emergency-badge').style.display = 'flex';
+             document.getElementById('simulated-indicator').style.display = 'flex';
+             
+             if(document.getElementById('status-level')) document.getElementById('status-level').innerText = nivelAtual + '%';
+             if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivelAtual).toFixed(0)} <small>L</small>`;
         }
     }
 }
