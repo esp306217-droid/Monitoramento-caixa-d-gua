@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.38 UI Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.41 Inertia Filter</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -165,12 +165,13 @@ body {
 /* Indicador de Conexão (Movido para dentro do card) */
 .live-indicator {
     position: absolute; 
-    top: 10px; /* Topo do card */
-    right: 10px; /* Direita do card */
-    width: 10px; height: 10px; border-radius: 50%;
+    top: 15px; /* Topo do card */
+    right: 15px; /* Direita do card */
+    width: 12px; height: 12px; border-radius: 50%;
     background-color: #64748b;
     transition: background-color 0.3s;
     z-index: 20;
+    border: 1px solid rgba(0,0,0,0.1);
 }
 .live-indicator.online { background-color: var(--level-ok); box-shadow: 0 0 8px var(--level-ok); animation: pulse-green 2s infinite; }
 .live-indicator.offline { background-color: var(--level-danger); }
@@ -464,7 +465,7 @@ li {
 <button id="refresh-btn" class="refresh-toggle" onclick="window.location.reload(true)"><i class="fas fa-sync-alt"></i></button>
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
-    <!-- LIVE INDICATOR MOVIDO DAQUI -->
+    <!-- MOVIDO: O live-indicator foi retirado daqui e colocado dentro do #status-display -->
     <div class="nav-group">
         <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
         <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
@@ -478,7 +479,7 @@ li {
     <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     
     <div id="status-display" class="glass-panel">
-        <!-- LIVE INDICATOR AGORA AQUI DENTRO (CANTO DIREITO) -->
+        <!-- Indicador de Conexão (AGORA AQUI DENTRO) -->
         <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
         
         <div class="status-item item-level">
@@ -691,34 +692,28 @@ li {
 
 
 <script>
-// --- CONFIGURAÇÃO DE CONTAS EMAIL (ATUALIZADA) ---
+// --- CONFIGURAÇÃO DE CONTAS EMAIL (ATUALIZADA COM LOCALSTORAGE) ---
 const CONTAS_EMAIL = [
     { 
         id: 0, 
         service: "service_lubx0i8", 
         template: "template_ll79qy1", 
         key: "I1HnvhgWehPP7EXxX", 
-        quota_inicial: 0, 
-        dia_reinicio: 18, 
-        mes_reinicio: 11 // Dezembro (0-based)
+        quota_inicial: 200 // Padrão
     },
     { 
         id: 1, 
         service: "service_n365um4", 
         template: "template_fjhnurn", 
         key: "ivGT9BYMpO_IMpcJI", 
-        quota_inicial: 75,
-        dia_reinicio: 25, 
-        mes_reinicio: 11 // Dezembro (0-based)
+        quota_inicial: 200 // Padrão
     },
     { 
         id: 2, 
         service: "service_txwft9l", 
         template: "template_c5l1j8r", 
         key: "xwk898VhH0VS-PSg9", 
-        quota_inicial: 6,
-        dia_reinicio: 30, 
-        mes_reinicio: 11 // Dezembro (0-based)
+        quota_inicial: 200 // Padrão
     }
 ];
 
@@ -840,12 +835,32 @@ async function safeFetch(url, options = {}) {
     }
 }
 
-// --- LÓGICA DE E-MAIL (CORRIGIDA) ---
+// --- LÓGICA DE E-MAIL (COM LOCALSTORAGE E ROTAÇÃO) ---
+function carregarDadosEmailLocal() {
+    try {
+        const dados = localStorage.getItem('email_usage_data');
+        if (dados) return JSON.parse(dados);
+    } catch(e) {}
+    // Padrão inicial se não houver dados salvos
+    return {
+        conta_ativa_index: 0,
+        cotas_restantes: [200, 200, 200], // Array para as 3 contas
+        datas_inicio_ciclo: [null, null, null] // Array para as 3 contas
+    };
+}
+
+function salvarDadosEmailLocal(dados) {
+    try {
+        localStorage.setItem('email_usage_data', JSON.stringify(dados));
+    } catch(e) {}
+}
+
 async function enviarEmailAlerta(nivel) {
     const urlTimestamp = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/ultimo_disparo_timestamp.json';
     
     if (emailEnviadoNessaSessao) return false;
 
+    // Verifica bloqueio de tempo (12h) no firebase
     try {
         const rTime = await safeFetch(urlTimestamp);
         if (rTime) {
@@ -859,6 +874,7 @@ async function enviarEmailAlerta(nivel) {
         }
     } catch (e) {}
 
+    // Carrega contatos
     let contatos = {};
     try {
         const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
@@ -869,35 +885,62 @@ async function enviarEmailAlerta(nivel) {
     const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor);
     if (emailsParaEnviar.length === 0) return false;
 
-    let credenciais = null;
-    const hoje = new Date();
-    
-    for (let conta of CONTAS_EMAIL) {
-        let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio);
-        if (hoje >= dataReinicio && conta.quota_inicial < 200) {
-             conta.quota_inicial = 200; 
+    // --- GESTÃO DE ROTAÇÃO E COTAS ---
+    let emailData = carregarDadosEmailLocal();
+    const agoraTime = Date.now();
+    let contaUsavelIndex = -1;
+
+    // Itera sobre as contas para achar uma válida ou rotacionar
+    // Começa checando a conta ativa salva
+    for (let i = 0; i < CONTAS_EMAIL.length; i++) {
+        // Lógica circular começando da conta ativa salva
+        let idx = (emailData.conta_ativa_index + i) % CONTAS_EMAIL.length;
+        
+        // Verifica Reset de 30 dias para esta conta
+        if (emailData.datas_inicio_ciclo[idx]) {
+            const diasPassados = (agoraTime - emailData.datas_inicio_ciclo[idx]) / (1000 * 60 * 60 * 24);
+            if (diasPassados >= 30) {
+                // Passou 30 dias, reseta cota
+                emailData.cotas_restantes[idx] = 200;
+                emailData.datas_inicio_ciclo[idx] = null; // Vai setar nova data no próximo envio
+            }
         }
-        if (conta.quota_inicial >= emailsParaEnviar.length) {
-            credenciais = conta;
+
+        // Verifica se tem cota suficiente para enviar a lista toda
+        if (emailData.cotas_restantes[idx] >= emailsParaEnviar.length) {
+            contaUsavelIndex = idx;
+            emailData.conta_ativa_index = idx; // Atualiza conta ativa
             break;
         }
     }
 
-    if (!credenciais) {
-        console.warn("Sem cota de e-mail disponível em nenhuma conta.");
+    if (contaUsavelIndex === -1) {
+        console.warn("Todas as contas de email estão sem cota.");
         return false;
     }
 
+    const credenciais = CONTAS_EMAIL[contaUsavelIndex];
     let todosEnviadosComSucesso = true;
+
+    // Envia para cada contato
     for (const email of emailsParaEnviar) {
         const templateParams = { "%": nivel, "email": email };
         try { 
             await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); 
+            // Sucesso: Decrementa cota
+            emailData.cotas_restantes[contaUsavelIndex]--;
+            // Se for o primeiro email do ciclo, marca a data
+            if (!emailData.datas_inicio_ciclo[contaUsavelIndex]) {
+                emailData.datas_inicio_ciclo[contaUsavelIndex] = Date.now();
+            }
         } catch (err) { 
             console.error("Erro envio emailjs", err);
             todosEnviadosComSucesso = false; 
         }
     }
+
+    // Salva o estado atualizado das cotas
+    salvarDadosEmailLocal(emailData);
 
     if (todosEnviadosComSucesso) {
         emailEnviadoNessaSessao = true;
@@ -1562,44 +1605,48 @@ function obterMediana(arr) {
     return sorted[mid];
 }
 
+// --- FUNÇÃO DE SIMULAÇÃO EXATA (ATUALIZADA 3.39) ---
 function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
     const agora = Date.now();
     let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
     
     let nivelSimulado = nivelInicial;
-    let quedasAplicadas = 0;
-
-    // Loop de tempo para aplicar quedas
+    
+    // Loop de decaimento por blocos de tempo
     while (horasPassadas > 0 && nivelSimulado > 0) {
-        let duracaoBloco = 2; // Default (rapido)
-        quedasAplicadas++;
+        let duracaoBloco = 0;
+        let queda = 0;
 
-        // Regra solicitada:
-        // 4x 8h (32h)
-        // 2x 6h (12h)
-        // 2x 4h (8h)
-        // Resto 2h
-        if (quedasAplicadas <= 4) {
-            duracaoBloco = 8;
-        } else if (quedasAplicadas <= 6) {
+        // Regra 1: Acima de 30% -> Queda de 5% a cada 6h
+        if (nivelSimulado > 30) {
             duracaoBloco = 6;
-        } else if (quedasAplicadas <= 8) {
+            queda = 5;
+        } 
+        // Regra 2: Entre 30% e 25% -> Queda de 5% em 4h
+        else if (nivelSimulado > 25) {
             duracaoBloco = 4;
-        } else {
+            queda = 5;
+        }
+        // Regra 3: Entre 25% e 15% -> Queda de 10% em 2h
+        else if (nivelSimulado > 15) {
             duracaoBloco = 2;
+            queda = 10;
+        }
+        // Regra 4: Abaixo de 15% -> Queda de 5% em 2h até zerar
+        else {
+            duracaoBloco = 2;
+            queda = 5;
         }
 
         if (horasPassadas >= duracaoBloco) {
-            nivelSimulado -= 5;
-            horasPassadas -= duracaoBloco; // Desconta o tempo usado
+            nivelSimulado -= queda;
+            horasPassadas -= duracaoBloco; // Consome o tempo
         } else {
-            // Não passou tempo suficiente para a próxima queda
-            break; 
+            break; // Não passou tempo suficiente para o próximo degrau
         }
     }
     
-    if (nivelSimulado < 0) nivelSimulado = 0;
-    return nivelSimulado;
+    return Math.max(0, nivelSimulado);
 }
 
 async function loopDeAtualizacao() {
@@ -1655,37 +1702,53 @@ async function loopDeAtualizacao() {
         let nivelRecebido = Number(nivelRecebidoRaw);
         let tipoDado = 'real'; // Default
 
-        // --- LÓGICA DE FILTRO DE MEDIANA (V.3.35) ---
-        if (nivelRecebido > 0) {
-            // Se o buffer estiver vazio, preenche tudo com o primeiro valor para resposta rapida
-            if (bufferLeituras.length === 0) {
-                for(let i=0; i<9; i++) bufferLeituras.push(nivelRecebido);
-            } else {
-                // Buffer para pegar mediana (9 amostras)
-                bufferLeituras.push(nivelRecebido);
-                if (bufferLeituras.length > 9) bufferLeituras.shift();
-            }
-            
-            // Calcula MEDIANA (ignora outliers instantaneos)
-            let nivelEstavel = obterMediana(bufferLeituras);
+        // --- FILTRO AVANÇADO V.3.41 ---
+        if (nivelRecebido > 0 && nivelRecebido <= 100) {
+            // Adiciona ao buffer
+            bufferLeituras.push(nivelRecebido);
+            if (bufferLeituras.length > 11) bufferLeituras.shift(); // Buffer maior (approx 27s)
 
-            // --- LÓGICA ANTI-PICO (TRAVA FÍSICA) ---
-            if (ultimoNivelValidoLatch !== null && Math.abs(nivelEstavel - ultimoNivelValidoLatch) > 5) {
-                contadorLeiturasFantasmas++;
-                // Se persistiu por 5 loops (~12s), aceita a mudança brusca
-                if (contadorLeiturasFantasmas < 5) {
-                    nivelEstavel = ultimoNivelValidoLatch; 
-                } else {
-                    contadorLeiturasFantasmas = 0; 
+            // 1. OBTÉM A MEDIANA (Valor central estatístico)
+            // Isso já elimina picos isolados (ex: 88, 88, 10, 88, 88 -> Mediana é 88)
+            let mediana = obterMediana(bufferLeituras);
+
+            // 2. LÓGICA DE INÉRCIA (Anti-Pico Inteligente)
+            // Se ainda não temos um valor travado, aceitamos a mediana inicial
+            if (ultimoNivelValidoLatch === null) {
+                ultimoNivelValidoLatch = mediana;
+                nivelAtual = mediana;
+            } else {
+                const diferenca = mediana - ultimoNivelValidoLatch;
+                
+                // Cenário A: SUBIDA BRUSCA (Abastecimento)
+                // Aceita mais rápido, mas ainda exige confirmação
+                if (diferenca > 3) {
+                    contadorLeiturasFantasmas++;
+                    if (contadorLeiturasFantasmas >= 3) { // ~7 segundos confirmando subida
+                        ultimoNivelValidoLatch = mediana; // Aceita novo nível
+                        contadorLeiturasFantasmas = 0;
+                    }
                 }
-            } else {
-                contadorLeiturasFantasmas = 0; 
+                // Cenário B: QUEDA BRUSCA (Ruído ou "Fantasma")
+                // Água não desce rápido (exceto vazamento grave). Bloqueia agressivamente.
+                else if (diferenca < -2) {
+                    contadorLeiturasFantasmas++;
+                    if (contadorLeiturasFantasmas >= 12) { // ~30 segundos confirmando descida forte
+                         ultimoNivelValidoLatch = mediana;
+                         contadorLeiturasFantasmas = 0;
+                    }
+                    // Se não confirmou, MANTÉM O VALOR ANTIGO (Ignora o fantasma)
+                    // Visualmente o nível não mexe.
+                }
+                // Cenário C: VARIAÇÃO NORMAL (Pequena oscilação natural)
+                else {
+                    contadorLeiturasFantasmas = 0;
+                    ultimoNivelValidoLatch = mediana; // Atualiza suavemente
+                }
             }
-
-            nivelAtual = nivelEstavel;
-            tipoDado = 'real';
             
-            ultimoNivelValidoLatch = nivelEstavel; 
+            nivelAtual = ultimoNivelValidoLatch; // O nível oficial é o travado
+            tipoDado = 'real';
             timestampLatch = Date.now();
             
             document.getElementById('emergency-badge').style.display = 'none';
@@ -1694,7 +1757,7 @@ async function loopDeAtualizacao() {
             // SINAL INVÁLIDO (0 ou Null)
             document.getElementById('emergency-badge').style.display = 'flex';
             
-            // Se temos um latch gravado, usamos ele como base
+            // Se temos um latch gravado, usamos ele como base para a SIMULAÇÃO
             if (ultimoNivelValidoLatch !== null && timestampLatch !== null) {
                 nivelAtual = calcularNivelSimuladoLatch(ultimoNivelValidoLatch, timestampLatch);
                 document.getElementById('simulated-indicator').style.display = 'flex';
