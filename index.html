@@ -8,12 +8,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Monit. Água">
 
-<!-- META TAGS PARA FORÇAR NÃO-CACHE (MIT App Inventor Fix) -->
+<!-- META TAGS PARA FORÇAR NÃO-CACHE -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.25 Theme Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.37 Network Fix</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -121,6 +121,30 @@ body {
 }
 .theme-toggle:active { transform: scale(0.9); background-color: var(--accent); color: white; }
 
+/* Botão de Recarregar Flutuante */
+.refresh-toggle {
+    background: var(--card-bg); 
+    border: 1px solid var(--card-border);
+    color: var(--text-main);
+    font-size: 1.4rem; 
+    cursor: pointer; 
+    width: 45px; 
+    height: 45px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    border-radius: 50%; 
+    transition: all 0.2s;
+    position: fixed; 
+    top: 10px; 
+    left: 70px; /* Ao lado do tema */
+    z-index: 99999; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    touch-action: manipulation;
+}
+.refresh-toggle:active { transform: rotate(180deg); background-color: var(--accent); color: white; }
+
+
 /* Cabeçalho Centralizado */
 .main-header {
     width: 100%; padding: 10px 10px;
@@ -134,7 +158,7 @@ body {
     transition: background-color 0.3s ease;
     flex-wrap: wrap;
     gap: 10px;
-    padding-left: 70px; /* Espaço extra para o botão flutuante */
+    padding-left: 120px; /* Espaço extra para os botões flutuantes */
 }
 .nav-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0; justify-content: center; }
 
@@ -356,7 +380,7 @@ li {
     .main-header { 
         overflow-x: hidden; 
         justify-content: center;
-        padding-left: 70px; /* Força espaço para o botão flutuante */
+        padding-left: 120px; /* Força espaço para o botão flutuante */
     }
     .nav-group { width: 100%; justify-content: center; overflow-x: auto; }
     
@@ -433,6 +457,8 @@ li {
 <!-- FIX: Botão flutuante FORA do header para garantir o clique (Z-Index alto) -->
 <!-- Evento direto no HTML para garantir funcionamento em WebViews antigas -->
 <button id="theme-toggle-btn" class="theme-toggle"><i class="fas fa-moon"></i></button>
+<!-- NOVO: Botão de Recarregar Página (Manual Fix) -->
+<button id="refresh-btn" class="refresh-toggle" onclick="window.location.reload(true)"><i class="fas fa-sync-alt"></i></button>
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
     <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
@@ -466,6 +492,7 @@ li {
             <span class="status-value skeleton-text" id="status-time" style="font-size: 1.2rem;">--:--</span>
         </div>
     </div>
+    
     <div class="reservatorio-wrapper" id="caixa-container">
         <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
             <defs>
@@ -658,18 +685,41 @@ li {
 
 
 <script>
+// --- CONFIGURAÇÃO DE CONTAS EMAIL (ATUALIZADA) ---
 const CONTAS_EMAIL = [
-    { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0 },
-    { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 200 },
-    { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 0 }
+    { 
+        id: 0, 
+        service: "service_lubx0i8", 
+        template: "template_ll79qy1", 
+        key: "I1HnvhgWehPP7EXxX", 
+        quota_inicial: 0, 
+        dia_reinicio: 18, 
+        mes_reinicio: 11 // Dezembro (0-based)
+    },
+    { 
+        id: 1, 
+        service: "service_n365um4", 
+        template: "template_fjhnurn", 
+        key: "ivGT9BYMpO_IMpcJI", 
+        quota_inicial: 75,
+        dia_reinicio: 25, 
+        mes_reinicio: 11 // Dezembro (0-based)
+    },
+    { 
+        id: 2, 
+        service: "service_txwft9l", 
+        template: "template_c5l1j8r", 
+        key: "xwk898VhH0VS-PSg9", 
+        quota_inicial: 6,
+        dia_reinicio: 30, 
+        mes_reinicio: 11 // Dezembro (0-based)
+    }
 ];
 
 /* --- SISTEMA DE TEMA ROBUSTO (APP INVENTOR FIX) --- */
-// Variável global para controlar estado do tema
 let isDarkMode = false;
 
 function checkAutoTheme() {
-    // Se o usuário já definiu uma preferência salva, respeita ela (prioridade)
     try {
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) {
@@ -679,7 +729,6 @@ function checkAutoTheme() {
         }
     } catch (e) {}
 
-    // Senão, usa o horário
     const hora = new Date().getHours();
     isDarkMode = (hora >= 18 || hora < 6);
     applyTheme();
@@ -695,7 +744,6 @@ function applyTheme() {
         try { localStorage.setItem('theme', 'dark'); } catch(e){}
     } else {
         body.removeAttribute('data-theme');
-        // FORCE REDRAW: Truque para WebViews antigas que não atualizam o fundo
         body.style.display='none'; body.offsetHeight; body.style.display='';
         if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
         try { localStorage.setItem('theme', 'light'); } catch(e){}
@@ -706,14 +754,11 @@ function applyTheme() {
 }
 
 function toggleTheme(e) {
-    // Previne comportamento padrão e propagação (para evitar duplo clique)
     if(e) { e.preventDefault(); e.stopPropagation(); }
-    
     isDarkMode = !isDarkMode;
     applyTheme();
 }
 
-// Inicialização segura
 try {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
@@ -728,7 +773,7 @@ let currentView = 'diario';
 let activeTab = 'caixa'; 
 let nivelAtual = 0;
 let nivelAlertaConfigurado = 30; 
-let capacidadeTotal = 8000; 
+let capacidadeTotal = 7955; // AJUSTADO PARA 88% = 7000L
 let alturaCaixa = 0; 
 let alertaModalMostrado = false; 
 let verificacaoInicialConcluida = false;
@@ -740,17 +785,25 @@ let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
 let snoozeCount = 0, snoozeUntil = 0; 
 const SNOOZE_DURATION_MINUTES = 10; 
 const AUTO_SNOOZE_SECONDS = 30; 
-let ultimoNivelValido = null; 
-let dataUltimaLeituraValida = Date.now(); 
+
+// --- VARIÁVEIS LATCH & FILTRO ---
+let ultimoNivelValidoLatch = null; 
+let timestampLatch = null; 
 let historicoLeiturasValidas = []; 
 let loopInterval = null;
-let lastUpdateTimestamp = 0; // Para o Watchdog
-let contadorZerosConsecutivos = 0; // Contagem de falhas de leitura
+let lastUpdateTimestamp = 0; 
+let contadorZerosConsecutivos = 0; 
+
+// NOVO: Buffer para Mediana
+let bufferLeituras = []; 
+let contadorLeiturasFantasmas = 0; // Para persistência de pico
+let ultimoNivelExibido = -1; // Para travar o display (Anti-Jitter)
 
 function calcularVolumeLitros(nivelPercentual) {
     if (nivelPercentual <= 0) return 0;
     if (nivelPercentual > 100) nivelPercentual = 100;
-    return (nivelPercentual / 100) * capacidadeTotal;
+    // Arredonda para ficar bonito no display
+    return Math.floor((nivelPercentual / 100) * capacidadeTotal);
 }
 
 function getLocalISODate(dateObj) {
@@ -760,94 +813,88 @@ function getLocalISODate(dateObj) {
     return localDate.toISOString().split('T')[0];
 }
 
-/* --- FUNÇÃO AUXILIAR PARA CORRIGIR CACHE MOBILE --- */
 function getNoCacheUrl(url) {
-    // Adiciona timestamp para forçar requisição nova
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}nocache=${Date.now()}`;
+    return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`;
 }
 
-/* --- FUNÇÃO DE FETCH ROBUSTA PARA WEBVIEW & BROWSER --- */
+// --- REDE ROBUSTA (SILENT FAIL) ---
 async function safeFetch(url, options = {}) {
     const finalOptions = {
         ...options,
-        cache: 'no-store', // Instrução padrão para o navegador não cachear
-        // Headers manuais removidos para evitar problemas de CORS (Preflight)
+        cache: 'no-store', 
     };
     try {
-        return await fetch(getNoCacheUrl(url), finalOptions);
+        const response = await fetch(getNoCacheUrl(url), finalOptions);
+        if (!response.ok) throw new Error(response.statusText);
+        return response;
     } catch(e) {
-        console.error("Falha no Fetch:", url, e);
-        throw e;
+        console.warn("Fetch falhou (Offline/Bloqueado):", url); // Apenas aviso, não erro
+        return null; // Retorna nulo para indicar falha sem quebrar o loop
     }
 }
 
-async function gerenciarRotacaoEmail(custoEnvio) {
-    const dbPath = 'PP7_config/controle_email_rotativo.json';
-    const baseUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/';
-    const hoje = new Date();
-    const diaHoje = hoje.getDate();
-    const mesHoje = hoje.getMonth() + 1; 
-
-    try {
-        let r = await safeFetch(baseUrl + dbPath);
-        let dadosControle = await r.json();
-        if (!dadosControle) {
-            dadosControle = { conta_ativa: 1, restantes: 200, mes_referencia: `${hoje.getFullYear()}-${mesHoje}` };
-        }
-        if (dadosControle.restantes < custoEnvio) {
-            let novaContaId = -1;
-            if (mesHoje > 11 || (mesHoje === 11 && diaHoje >= 30)) {
-                 if (dadosControle.conta_ativa === 1) {
-                     if (mesHoje > 11 || (mesHoje === 11 && diaHoje >= 30)) {
-                          novaContaId = 2; dadosControle.restantes = 200; 
-                     }
-                 }
-            }
-            if (mesHoje === 12 && diaHoje >= 18) {
-                if (dadosControle.conta_ativa === 2 || novaContaId === -1) {
-                    novaContaId = 0; dadosControle.restantes = 200; 
-                }
-            }
-            if (novaContaId !== -1) {
-                dadosControle.conta_ativa = novaContaId;
-                dadosControle.restantes -= custoEnvio;
-            } else return null; 
-        } else dadosControle.restantes -= custoEnvio;
-        await fetch(baseUrl + dbPath, { method: 'PUT', body: JSON.stringify(dadosControle) });
-        return CONTAS_EMAIL[dadosControle.conta_ativa];
-    } catch (e) { return CONTAS_EMAIL[1]; }
-}
-
+// --- LÓGICA DE E-MAIL (CORRIGIDA) ---
 async function enviarEmailAlerta(nivel) {
     const urlTimestamp = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/ultimo_disparo_timestamp.json';
+    
+    if (emailEnviadoNessaSessao) return false;
+
     try {
         const rTime = await safeFetch(urlTimestamp);
-        const ultimoDisparo = await rTime.json();
-        const agora = Date.now();
-        if (ultimoDisparo) {
-            const diferenca = agora - ultimoDisparo;
-            const horas6 = 6 * 60 * 60 * 1000; 
-            if (diferenca < horas6) return false; 
+        if (rTime) {
+            const ultimoDisparo = await rTime.json();
+            const agora = Date.now();
+            if (ultimoDisparo) {
+                const diferenca = agora - ultimoDisparo;
+                const horas12 = 12 * 60 * 60 * 1000; 
+                if (diferenca < horas12) return false; 
+            }
         }
     } catch (e) {}
+
     let contatos = {};
     try {
         const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
-        contatos = await r.json();
+        if (r) contatos = await r.json();
         if (!contatos) return false; 
     } catch (e) { return false; }
+
     const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor);
     if (emailsParaEnviar.length === 0) return false;
-    const custoEnvio = emailsParaEnviar.length; 
-    const credenciais = await gerenciarRotacaoEmail(custoEnvio);
-    if (!credenciais) return false;
+
+    let credenciais = null;
+    const hoje = new Date();
+    
+    for (let conta of CONTAS_EMAIL) {
+        let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio);
+        if (hoje >= dataReinicio && conta.quota_inicial < 200) {
+             conta.quota_inicial = 200; 
+        }
+        if (conta.quota_inicial >= emailsParaEnviar.length) {
+            credenciais = conta;
+            break;
+        }
+    }
+
+    if (!credenciais) {
+        console.warn("Sem cota de e-mail disponível em nenhuma conta.");
+        return false;
+    }
+
     let todosEnviadosComSucesso = true;
     for (const email of emailsParaEnviar) {
         const templateParams = { "%": nivel, "email": email };
-        try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { todosEnviadosComSucesso = false; }
+        try { 
+            await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); 
+        } catch (err) { 
+            console.error("Erro envio emailjs", err);
+            todosEnviadosComSucesso = false; 
+        }
     }
+
     if (todosEnviadosComSucesso) {
+        emailEnviadoNessaSessao = true;
         const agoraMs = Date.now();
         try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {}
     }
@@ -882,6 +929,12 @@ function controlarAlarme(play) {
 }
 
 function atualizarCaixaDOM(nivel) {
+    // --- LÓGICA DE TRAVA VISUAL (Anti-Jitter) ---
+    if (ultimoNivelExibido !== -1 && Math.abs(nivel - ultimoNivelExibido) < 1) {
+        return; 
+    }
+    ultimoNivelExibido = nivel;
+
     const aguaDiv = document.getElementById('agua');
     if(aguaDiv) {
         aguaDiv.style.height = nivel + '%';
@@ -900,27 +953,43 @@ function atualizarCaixaDOM(nivel) {
         else ledVermelho.classList.add('aceso');
     }
     
-    // Mudar cor do texto de porcentagem
     const txtNivel = document.getElementById('status-level');
     if(txtNivel) {
+        txtNivel.innerText = nivel + '%'; 
         if (nivel > 60) txtNivel.style.color = 'var(--level-ok)';
         else if (nivel > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)';
         else txtNivel.style.color = 'var(--level-danger)';
     }
+    
+    if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivel)} <small>L</small>`;
+    if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+// --- NOVA INTERPOLAÇÃO INTELIGENTE (SEM RAMPA FALSA) ---
 function interpolacaoLinear(arr) {
     let filled = [...arr];
     let indices = [];
     for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); }
     if(indices.length === 0) return filled;
+    
     for(let k = 0; k < indices.length - 1; k++) {
         let startIdx = indices[k]; let endIdx = indices[k+1];
         let startVal = filled[startIdx]; let endVal = filled[endIdx];
         let steps = endIdx - startIdx;
-        for(let j = 1; j < steps; j++) {
-            let val = startVal + (endVal - startVal) * (j / steps);
-            filled[startIdx + j] = Math.round(val);
+        
+        // --- DETECÇÃO DE ABASTECIMENTO (JUMP) ---
+        // Se o valor subiu mais de 30% em um intervalo (ex: abastecimento), 
+        // NÃO faz rampa. Mantém o valor baixo até o final.
+        if (endVal > startVal + 30) {
+             for(let j = 1; j < steps; j++) {
+                filled[startIdx + j] = startVal; // Mantém baixo (ex: 5%)
+             }
+        } else {
+            // Interpolação normal para consumo ou pequenas variações
+            for(let j = 1; j < steps; j++) {
+                let val = startVal + (endVal - startVal) * (j / steps);
+                filled[startIdx + j] = Math.round(val);
+            }
         }
     }
     if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; }
@@ -945,13 +1014,9 @@ function atualizarGraficosConsumo(result) {
     const consumoData = result.consumo || []; const consumoLabels = result.labels || [];
     const infoTexto = document.getElementById('consumo-info-texto');
     if (infoTexto) {
-        // Calculo de Total SIMPLIFICADO (somente o que caiu, ignorando subidas)
         let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
-        
         let statusTexto = "Normal";
         let corStatus = "var(--accent)";
-        
-        // Faixas ajustadas para caixa de 8000L
         if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; }
         else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; }
         
@@ -977,19 +1042,18 @@ function criarGraficos() {
     const zoomOptions = {
         pan: { enabled: true, mode: 'x' },
         zoom: { 
-            wheel: { enabled: true, speed: 0.02 }, // Reduced sensitivity 
-            pinch: { enabled: true, sensitivity: 0.1 }, // Reduced sensitivity
+            wheel: { enabled: true, speed: 0.02 }, 
+            pinch: { enabled: true, sensitivity: 0.1 }, 
             mode: 'x' 
         }
     };
 
-    // Common X-Axis config to avoid crowding
     const xAxisConfig = {
         ticks: { 
             autoSkip: true, 
             maxRotation: 0, 
             minRotation: 0,
-            maxTicksLimit: 6, // Show fewer ticks by default on mobile
+            maxTicksLimit: 6, 
             color: textColor 
         }, 
         grid: { display: true, color: gridColor }
@@ -1048,7 +1112,7 @@ function criarGraficos() {
                         anchor: 'end', 
                         align: 'top', 
                         formatter: Math.round,
-                        font: { size: 10 } // Fonte reduzida
+                        font: { size: 10 } 
                     } 
                 }, 
                 scales: { 
@@ -1056,7 +1120,7 @@ function criarGraficos() {
                     y: { 
                         ticks: { color: textColor }, 
                         min: 0, 
-                        suggestedMax: 2000, // Máximo sugerido ajustado
+                        suggestedMax: 2000, 
                         grid: { color: gridColor } 
                     } 
                 },
@@ -1082,7 +1146,6 @@ function criarGraficos() {
         });
     }
 
-    // --- NOVO GRÁFICO DE ABASTECIMENTO (VELA/COLUNA) ---
     if(document.getElementById('chartAbastecimento')) {
         const ctxA = document.getElementById('chartAbastecimento').getContext('2d');
         if(chartAbastecimento) chartAbastecimento.destroy();
@@ -1101,59 +1164,20 @@ function criarGraficos() {
     }
 }
 
-async function salvarLeituraNoFirebase(nivel, timestamp) {
-    if (nivel <= 0 && nivel !== null) return; 
+// --- FIX: Agora aceita tipo para diferenciar real/estimado e permite salvar 0% ---
+async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
+    if (nivel === null || nivel === undefined) return; 
     
-    // --- CORREÇÃO DE EMERGÊNCIA ---
-    const badge = document.getElementById('emergency-badge');
-    if (badge && badge.style.display !== 'none') {
-        return; // NÃO SALVA se estiver sem sinal
-    }
-
+    // Proteção: Se for real, só salva se > 0 (evita salvar o bug do sensor no histórico)
+    if (tipo === 'real' && nivel <= 0) return; 
+    
     const d = new Date(timestamp);
     const localDate = getLocalISODate(d);
     const horaKey = String(d.getHours()).padStart(2, '0'); 
     const path = `PP7_config/historico/${localDate}/${horaKey}.json`;
     const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
-    const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: 'real' }; 
+    const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; 
     try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {}
-}
-
-async function buscarUltimaLeituraHistorico() {
-    if (ultimoNivelValido !== null && Date.now() - dataUltimaLeituraValida < 60000) return; 
-    const hoje = new Date(); const dataHoje = getLocalISODate(hoje);
-    let url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataHoje}.json`;
-    try {
-        let r = await safeFetch(url); let dados = await r.json(); let encontrou = false;
-        if (dados) {
-            const horarios = Object.keys(dados).sort((a, b) => parseInt(a) - parseInt(b)).reverse();
-            for (const h of horarios) {
-                const leitura = dados[h]; const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
-                if (val > 0 && leitura.tipo !== 'estimado') {
-                    ultimoNivelValido = val; const [hh, mm] = h.includes(':') ? h.split(':') : [h, 0];
-                    const dataLeitura = new Date(hoje); dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
-                    dataUltimaLeituraValida = dataLeitura.getTime(); encontrou = true; historicoLeiturasValidas.push(val); break;
-                }
-            }
-        }
-        if (!encontrou) {
-            const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1); const dataOntem = getLocalISODate(ontem);
-            url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataOntem}.json`;
-            r = await safeFetch(url); dados = await r.json();
-            if (dados) {
-                const horarios = Object.keys(dados).sort((a, b) => parseInt(a) - parseInt(b)).reverse();
-                for (const h of horarios) {
-                    const leitura = dados[h]; const val = leitura.nivel_pct ?? leitura.nivel ?? 0;
-                    if (val > 0 && leitura.tipo !== 'estimado') {
-                        ultimoNivelValido = val; const [hh, mm] = h.includes(':') ? h.split(':') : [h, 0];
-                        const dataLeitura = new Date(ontem); dataLeitura.setHours(parseInt(hh), parseInt(mm), 0, 0);
-                        dataUltimaLeituraValida = dataLeitura.getTime(); encontrou = true; historicoLeiturasValidas.push(val); break;
-                    }
-                }
-            }
-        }
-        if (!encontrou && ultimoNivelValido === null) { ultimoNivelValido = 63; dataUltimaLeituraValida = Date.now(); historicoLeiturasValidas.push(63); }
-    } catch (e) {}
 }
 
 async function carregarHistoricoEConsumo() {
@@ -1190,11 +1214,11 @@ async function carregarHistoricoEConsumo() {
                     const horaInt = parseInt(key.split(':')[0]);
                     const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null;
                     
-                    if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; }
+                    if (horaInt >= 0 && horaInt < 24) { 
+                        if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; 
+                    }
 
                     if (val !== null && previousVal !== null) {
-                        // --- FILTRO ANTI-FANTASMA V.3.10 ---
-                        
                         if (val > previousVal + 5) { 
                              detectedRefillIdx = horaInt;
                         }
@@ -1202,7 +1226,6 @@ async function carregarHistoricoEConsumo() {
                         if (previousVal > val) {
                             const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val);
                             const diff = volAnterior - volAtual; 
-                            // Filtro de Ruido (Max 800L/h ~ 10%)
                             if(diff < 800) {
                                 const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap;
                                 for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; }
@@ -1212,14 +1235,27 @@ async function carregarHistoricoEConsumo() {
                     if (val !== null) { previousVal = val; lastHoraInt = horaInt; }
                 });
                 if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal;
+                
+                // USANDO A NOVA INTERPOLAÇÃO INTELIGENTE
                 const niveisInterpolados = interpolacaoLinear(niveisFixed);
                 for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h];
             } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; }
             return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
         };
         try {
-            const [rHoje, rOntem] = await Promise.all([safeFetch(url), safeFetch(urlOntem)]);
-            const dadosHoje = await rHoje.json(); const dadosOntem = await rOntem.json();
+            // FIX: Handle Data Fetch failure
+            let dadosHoje = null;
+            try {
+                const rHoje = await safeFetch(url);
+                if (rHoje) dadosHoje = await rHoje.json();
+            } catch(e) { console.warn("Fetch data failed"); }
+
+            let dadosOntem = null;
+            try {
+                const rOntem = await safeFetch(urlOntem);
+                if (rOntem) dadosOntem = await rOntem.json();
+            } catch(e) { console.warn("Fetch yesterday failed"); }
+
             result = processData(dadosHoje, dadosOntem);
             atualizarGraficosHistorico(result); atualizarGraficosConsumo(result);
         } catch (e) {}
@@ -1279,7 +1315,13 @@ async function carregarHistoricoEConsumo() {
             return { labels: displayLabels, niveis: niveis, consumo: consumo }; 
         };
         try {
-            const r = await safeFetch(url); const dados = await r.json();
+            // FIX: Handle fetch failure gracefully
+            let dados = null;
+            try {
+                const r = await safeFetch(url);
+                if (r) dados = await r.json();
+            } catch(e) { console.warn("Fetch range failed"); }
+            
             result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] };
             atualizarGraficosHistorico(result); atualizarGraficosConsumo(result);
         } catch (e) {}
@@ -1295,23 +1337,23 @@ async function carregarHistoricoAbastecimento() {
     const elMes = document.getElementById('mesAbastecimento');
     const elSemana = document.getElementById('filtroSemana');
     
-    // Pega o valor do mês ou usa o atual
     const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7);
     const semanaFiltro = elSemana ? elSemana.value : 'todas';
     
     if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>';
     
     try {
-        // Busca um histórico maior para filtrar localmente
-        const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=100');
-        const dados = await r.json();
+        let dados = null;
+        try {
+            const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=100');
+            if (r) dados = await r.json();
+        } catch(e) { console.warn("Fetch abastecimentos failed"); }
         
         if(listaUL) listaUL.innerHTML = ''; 
         
         if (dados) {
             const ids = Object.keys(dados).sort().reverse(); 
             
-            // 1. Lista (Últimos 5 globais para controle)
             const idsParaLista = ids.slice(0, 5);
             if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
             
@@ -1323,15 +1365,13 @@ async function carregarHistoricoAbastecimento() {
                 listaUL.appendChild(li);
             });
 
-            // 2. Lógica do Gráfico
             let labelsGrafico = [];
             let dadosGrafico = [];
             let titulo = "Comparativo Semanal (Litros)";
 
-            // Se "Visão Mensal" (Todas as semanas)
             if (semanaFiltro === 'todas') {
                 titulo = "Comparativo Semanal (Litros)";
-                const totaisSemana = [0, 0, 0, 0]; // 4 Semanas fixas
+                const totaisSemana = [0, 0, 0, 0]; 
                 
                 Object.keys(dados).forEach(key => {
                     const item = dados[key];
@@ -1341,10 +1381,10 @@ async function carregarHistoricoAbastecimento() {
                     if (itemMesAno === mesAno) {
                         const dia = d.getDate();
                         let idx = 0;
-                        if (dia <= 7) idx = 0;       // 1ª Semana
-                        else if (dia <= 14) idx = 1; // 2ª Semana
-                        else if (dia <= 21) idx = 2; // 3ª Semana
-                        else idx = 3;                // 4ª Semana (22+)
+                        if (dia <= 7) idx = 0;       
+                        else if (dia <= 14) idx = 1; 
+                        else if (dia <= 21) idx = 2; 
+                        else idx = 3;                
                         totaisSemana[idx] += parseInt(item.litros || 0);
                     }
                 });
@@ -1352,11 +1392,9 @@ async function carregarHistoricoAbastecimento() {
                 dadosGrafico = totaisSemana;
 
             } else {
-                // Se for Semana Específica (1, 2, 3 ou 4)
                 titulo = `Detalhes: Semana ${semanaFiltro}`;
                 const diasMap = {};
                 
-                // Definir intervalo de dias baseado na semana
                 let diaInicio = 1, diaFim = 7;
                 if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; }
                 if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; }
@@ -1377,7 +1415,6 @@ async function carregarHistoricoAbastecimento() {
                     }
                 });
 
-                // Ordenar dias para o gráfico
                 labelsGrafico = Object.keys(diasMap).sort();
                 dadosGrafico = labelsGrafico.map(l => diasMap[l]);
                 
@@ -1403,17 +1440,14 @@ async function carregarHistoricoAbastecimento() {
     } catch (e) { console.error(e); }
 }
 
-/* --- JS HELPER: Animação de Sucesso --- */
 function animarBotaoSucesso(btnId) {
     const btn = document.getElementById(btnId);
     if(!btn) return;
     const originalHTML = btn.innerHTML;
     
-    // Adiciona classe e muda conteúdo
     btn.classList.add('btn-success');
     btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
 
-    // Reverte após 2 segundos
     setTimeout(() => {
         btn.classList.remove('btn-success');
         btn.innerHTML = originalHTML;
@@ -1427,52 +1461,54 @@ async function salvarAbastecimento(litros) {
     try { await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json', { method: 'POST', body: JSON.stringify(dados) }); 
           document.getElementById('litros-abastecidos').value = ''; 
           carregarHistoricoAbastecimento();
-          animarBotaoSucesso('btn-salvar-abastecimento'); // Animação
+          animarBotaoSucesso('btn-salvar-abastecimento'); 
     } catch (e) {}
 }
 async function salvarConfig(endpoint, valor) {
      try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {}
 }
 
-/* --- FUNÇÕES ESPECÍFICAS DE CONFIGURAÇÃO (FIX) --- */
 async function salvarCapacidade(valor) {
     if(!valor || valor <= 0) return;
     await salvarConfig('capacidade', valor);
     capacidadeTotal = valor;
-    // const el = document.getElementById('status-capacidade');
-    // if(el) { el.innerText = 'Salvo!'; setTimeout(() => el.innerText = '', 2000); }
-    animarBotaoSucesso('btn-salvar-capacidade'); // Nova Animação
+    animarBotaoSucesso('btn-salvar-capacidade'); 
 }
 
 async function salvarAltura(valor) {
     if(!valor || valor <= 0) return;
     await salvarConfig('altura_cm', valor);
     alturaCaixa = valor;
-    // const el = document.getElementById('status-altura');
-    // if(el) { el.innerText = 'Salvo!'; setTimeout(() => el.innerText = '', 2000); }
-    animarBotaoSucesso('btn-salvar-altura'); // Nova Animação
+    animarBotaoSucesso('btn-salvar-altura'); 
 }
 
 async function salvarNivelAlerta(valor) {
     if(!valor || valor <= 0 || valor >= 100) return;
     await salvarConfig('nivel_alerta', valor);
     nivelAlertaConfigurado = valor;
-    // const el = document.getElementById('status-alerta');
-    // if(el) { el.innerText = 'Salvo!'; setTimeout(() => el.innerText = '', 2000); }
-    animarBotaoSucesso('btn-salvar-nivel-alerta'); // Nova Animação
+    animarBotaoSucesso('btn-salvar-nivel-alerta'); 
 }
 
 async function carregarConfiguracoesGerais() {
     try {
-        const [rAlerta, rCap, rAlt] = await Promise.all([
-            safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json'),
-            safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json'),
-            safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json')
-        ]);
-        const nivelSalvo = await rAlerta.json(); const capSalvo = await rCap.json(); const altSalvo = await rAlt.json();
-        if (nivelSalvo) { document.getElementById('nivel-alerta-valor').value = nivelSalvo; nivelAlertaConfigurado = parseInt(nivelSalvo); }
-        if (capSalvo) { document.getElementById('capacidade-total-valor').value = capSalvo; capacidadeTotal = parseInt(capSalvo); }
-        if (altSalvo) { document.getElementById('altura-caixa-valor').value = altSalvo; alturaCaixa = parseInt(altSalvo); }
+        // FIX: Handle individual failures so one bad config doesn't break everything
+        let rAlerta = null, rCap = null, rAlt = null;
+        try { rAlerta = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json'); } catch(e) {}
+        try { rCap = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json'); } catch(e) {}
+        try { rAlt = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json'); } catch(e) {}
+
+        if(rAlerta) {
+            const nivelSalvo = await rAlerta.json();
+            if (nivelSalvo) { document.getElementById('nivel-alerta-valor').value = nivelSalvo; nivelAlertaConfigurado = parseInt(nivelSalvo); }
+        }
+        if(rCap) {
+            const capSalvo = await rCap.json();
+            if (capSalvo) { document.getElementById('capacidade-total-valor').value = capSalvo; capacidadeTotal = parseInt(capSalvo); }
+        }
+        if(rAlt) {
+            const altSalvo = await rAlt.json();
+            if (altSalvo) { document.getElementById('altura-caixa-valor').value = altSalvo; alturaCaixa = parseInt(altSalvo); }
+        }
     } catch (e) {}
 }
 async function adicionarContato(valor, tipo) {
@@ -1481,7 +1517,7 @@ async function adicionarContato(valor, tipo) {
     try { await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', { method: 'POST', body: JSON.stringify(novoContato) });
           document.getElementById('contato-valor').value = ''; 
           carregarContatos(); 
-          animarBotaoSucesso('btn-add-contato'); // Animação
+          animarBotaoSucesso('btn-add-contato'); 
     } catch (e) {} 
 }
 async function removerContato(id) {
@@ -1491,8 +1527,12 @@ async function carregarContatos() {
     const listaUL = document.getElementById('lista-contatos');
     if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>';
     try {
-        const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
-        const contatos = await r.json();
+        let contatos = null;
+        try {
+            const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
+            if (r) contatos = await r.json();
+        } catch(e) { console.warn("Fetch contatos failed"); }
+
         if(listaUL) listaUL.innerHTML = ''; 
         if (contatos && listaUL) {
             Object.keys(contatos).forEach(id => {
@@ -1508,33 +1548,53 @@ async function carregarContatos() {
     } catch (e) {}
 }
 
-function calcularNivelDeEmergencia(nivelBase, timestampBase) {
-    if (!nivelBase || !timestampBase) return 0;
-    const agora = Date.now();
-    let diffHoras = (agora - timestampBase) / (1000 * 60 * 60);
-    
-    let nivelSimulado = nivelBase;
-    
-    // Lógica iterativa de consumo simulado
-    while (diffHoras > 0) {
-        // Se nível atual > 20%, o passo é 6 horas. Senão é 4 horas.
-        let passoHoras = (nivelSimulado > 20) ? 6 : 4;
-        
-        if (diffHoras >= passoHoras) {
-            nivelSimulado -= 5;
-            diffHoras -= passoHoras;
-        } else {
-            break; // Não passou tempo suficiente para a próxima queda
-        }
-        
-        if (nivelSimulado <= 0) {
-            nivelSimulado = 0;
-            break;
-        }
-    }
-    return nivelSimulado;
+// --- FUNÇÃO AUXILIAR: FILTRO DE MEDIANA (ESTATÍSTICO) ---
+function obterMediana(arr) {
+    if(arr.length === 0) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted[mid];
 }
 
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
+    const agora = Date.now();
+    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
+    
+    let nivelSimulado = nivelInicial;
+    let quedasAplicadas = 0;
+
+    // Loop de tempo para aplicar quedas
+    while (horasPassadas > 0 && nivelSimulado > 0) {
+        let duracaoBloco = 2; // Default (rapido)
+        quedasAplicadas++;
+
+        // Regra solicitada:
+        // 4x 8h (32h)
+        // 2x 6h (12h)
+        // 2x 4h (8h)
+        // Resto 2h
+        if (quedasAplicadas <= 4) {
+            duracaoBloco = 8;
+        } else if (quedasAplicadas <= 6) {
+            duracaoBloco = 6;
+        } else if (quedasAplicadas <= 8) {
+            duracaoBloco = 4;
+        } else {
+            duracaoBloco = 2;
+        }
+
+        if (horasPassadas >= duracaoBloco) {
+            nivelSimulado -= 5;
+            horasPassadas -= duracaoBloco; // Desconta o tempo usado
+        } else {
+            // Não passou tempo suficiente para a próxima queda
+            break; 
+        }
+    }
+    
+    if (nivelSimulado < 0) nivelSimulado = 0;
+    return nivelSimulado;
+}
 
 async function loopDeAtualizacao() {
     const liveIndicator = document.getElementById('live-indicator');
@@ -1542,76 +1602,102 @@ async function loopDeAtualizacao() {
     try {
         if (!verificacaoInicialConcluida) return;
         
-        lastUpdateTimestamp = Date.now(); // WATCHDOG: Atualiza hora da última execução
+        lastUpdateTimestamp = Date.now(); 
 
         const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
         const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
         
-        // --- MOBILE FIX: Cache Buster ---
-        const [r, rConfig] = await Promise.all([
-            safeFetch(dataUrl), 
-            safeFetch(configUrl)
-        ]);
-        
-        if(liveIndicator) { 
-            liveIndicator.classList.remove('offline'); 
-            liveIndicator.classList.add('online'); 
-            // Pequeno "pisco" extra para debug visual
-            liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5');
+        // --- FIX: FETCH ROBUSTNESS (Silent Fail) ---
+        let j = {};
+        let config = null;
+        let fetchSuccess = false;
+
+        // Fetch de DADOS com try/catch silencioso
+        try {
+            const r = await safeFetch(dataUrl);
+            if (r) {
+                j = await r.json();
+                fetchSuccess = true;
+            }
+        } catch (err) {
+            console.warn("Falha ao buscar dados (Modo Offline/Simulado ativo)");
+            // j permanece vazio, vai cair no else do if(nivelRecebido > 0)
         }
 
-        const j = await r.json();
-        const config = await rConfig.json();
+        // Fetch de CONFIG com try/catch silencioso
+        try {
+            const rConfig = await safeFetch(configUrl);
+            if (rConfig) config = await rConfig.json();
+        } catch (err) {
+            // Ignora falha de config, usa padrão
+        }
         
-        let nivelRecebido = j.nivel_pct || j.nivel || 0;
+        // Indicador Visual de Status
+        if(liveIndicator) { 
+            if (fetchSuccess) {
+                liveIndicator.classList.remove('offline'); 
+                liveIndicator.classList.add('online'); 
+                liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5');
+            } else {
+                liveIndicator.classList.remove('online');
+                liveIndicator.classList.add('offline');
+                liveIndicator.style.opacity = '1';
+            }
+        }
         
-        // Lógica Principal de Leitura e Emergência
+        let nivelRecebidoRaw = j && (j.nivel_pct || j.nivel) ? (j.nivel_pct || j.nivel) : 0;
+        let nivelRecebido = Number(nivelRecebidoRaw);
+        let tipoDado = 'real'; // Default
+
+        // --- LÓGICA DE FILTRO DE MEDIANA (V.3.35) ---
         if (nivelRecebido > 0) {
-            // --- CENÁRIO: LEITURA VÁLIDA ---
-            contadorZerosConsecutivos = 0;
+            // Se o buffer estiver vazio, preenche tudo com o primeiro valor para resposta rapida
+            if (bufferLeituras.length === 0) {
+                for(let i=0; i<9; i++) bufferLeituras.push(nivelRecebido);
+            } else {
+                // Buffer para pegar mediana (9 amostras)
+                bufferLeituras.push(nivelRecebido);
+                if (bufferLeituras.length > 9) bufferLeituras.shift();
+            }
             
-            // Grava no buffer de ultimas 3 leituras validas (nunca grava 0)
-            historicoLeiturasValidas.push(nivelRecebido); 
-            if (historicoLeiturasValidas.length > 3) historicoLeiturasValidas.shift(); 
+            // Calcula MEDIANA (ignora outliers instantaneos)
+            let nivelEstavel = obterMediana(bufferLeituras);
+
+            // --- LÓGICA ANTI-PICO (TRAVA FÍSICA) ---
+            if (ultimoNivelValidoLatch !== null && Math.abs(nivelEstavel - ultimoNivelValidoLatch) > 5) {
+                contadorLeiturasFantasmas++;
+                // Se persistiu por 5 loops (~12s), aceita a mudança brusca
+                if (contadorLeiturasFantasmas < 5) {
+                    nivelEstavel = ultimoNivelValidoLatch; 
+                } else {
+                    contadorLeiturasFantasmas = 0; 
+                }
+            } else {
+                contadorLeiturasFantasmas = 0; 
+            }
+
+            nivelAtual = nivelEstavel;
+            tipoDado = 'real';
             
-            // Atualiza referencias
-            ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1]; 
-            dataUltimaLeituraValida = Date.now();
+            ultimoNivelValidoLatch = nivelEstavel; 
+            timestampLatch = Date.now();
             
-            // Atualiza tela
-            nivelAtual = nivelRecebido; 
             document.getElementById('emergency-badge').style.display = 'none';
-            // Esconde o indicador simulado se estiver visível
             document.getElementById('simulated-indicator').style.display = 'none';
-
         } else {
-            // --- CENÁRIO: EMERGÊNCIA (0% ou Null) ---
-            contadorZerosConsecutivos++;
-
-            // 1. Mostra Badge de Emergência (Sem Sinal)
+            // SINAL INVÁLIDO (0 ou Null)
             document.getElementById('emergency-badge').style.display = 'flex';
             
-            // 2. Se não tem buffer local, busca no Firebase histórico
-            if (historicoLeiturasValidas.length === 0) {
-                if (ultimoNivelValido === null) await buscarUltimaLeituraHistorico();
-                if (ultimoNivelValido > 0) historicoLeiturasValidas.push(ultimoNivelValido);
+            // Se temos um latch gravado, usamos ele como base
+            if (ultimoNivelValidoLatch !== null && timestampLatch !== null) {
+                nivelAtual = calcularNivelSimuladoLatch(ultimoNivelValidoLatch, timestampLatch);
+                document.getElementById('simulated-indicator').style.display = 'flex';
+                tipoDado = 'estimado';
             } else {
-                ultimoNivelValido = historicoLeiturasValidas[historicoLeiturasValidas.length - 1];
+                // Se o sistema iniciou já sem sinal, assume 0
+                nivelAtual = 0;
+                tipoDado = 'estimado'; // Ou real 0, mas assumimos estimado/erro
             }
-
-            // 3. Aplica Lógica de Tempo (se persistir por 4 leituras ~ 10s)
-            if (contadorZerosConsecutivos >= 4) {
-                 // Usa o ultimo valor valido e aplica o desconto baseado no tempo que passou
-                 nivelAtual = calcularNivelDeEmergencia(ultimoNivelValido, dataUltimaLeituraValida);
-                 // Mostra o indicador de ?
-                 document.getElementById('simulated-indicator').style.display = 'flex';
-            } else {
-                 // Mantém o valor congelado por enquanto
-                 nivelAtual = ultimoNivelValido !== null ? ultimoNivelValido : 0;
-                 document.getElementById('simulated-indicator').style.display = 'none';
-            }
-            
-            if (nivelAtual < 0) nivelAtual = 0; 
         }
 
         if (config) nivelAlertaConfigurado = parseInt(config) || 30; 
@@ -1619,12 +1705,27 @@ async function loopDeAtualizacao() {
         const statusDisplay = document.getElementById('status-display');
         if(statusDisplay) {
             statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
+            
+            // --- VERIFICAÇÃO DE ALERTA ---
             if (nivelAtual <= nivelAlertaConfigurado) {
                 statusDisplay.classList.add('level-danger');
+                
+                // Dispara o som (Se não estiver em soneca e não estiver confirmado)
+                if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) {
+                     controlarAlarme(true); 
+                }
+
+                // Dispara o Email e Modal (apenas se modal nao foi mostrado)
                 if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) {
-                    enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; controlarAlarme(true);
+                    enviarEmailAlerta(nivelAtual); 
+                    mostrarAlertaModal(); 
+                    alertaModalMostrado = true; 
                     setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000);
-                } else enviarEmailAlerta(nivelAtual);
+                } else {
+                    // Tenta enviar email mesmo se estiver em soneca, caso a sessao tenha resetado
+                    enviarEmailAlerta(nivelAtual);
+                }
+
             } else { 
                 if (nivelAtual > 50) { if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; }
                 if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); else statusDisplay.classList.add('level-ok');
@@ -1632,50 +1733,39 @@ async function loopDeAtualizacao() {
             }
         }
         atualizarCaixaDOM(nivelAtual);
-        if(document.getElementById('status-level')) document.getElementById('status-level').innerText = nivelAtual + '%';
-        if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivelAtual).toFixed(0)} <small>L</small>`;
-        if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
         const agora = new Date(); const horaAtual = agora.getHours(); const agoraMs = agora.getTime();
-        // A função salvarLeituraNoFirebase já tem a proteção para NÃO salvar se o badge estiver ativo
+        
+        // --- FIX DE SALVAMENTO: Grava mesmo se for 0 ou estimado ---
         if (horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) { 
-            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs);
+            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs, tipoDado);
             ultimoHorarioSalvo = horaAtual; ultimoTempoSalvo = agoraMs;
             if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo();
         }
     } catch(e) {
-        console.error("Erro no loop:", e);
+        console.error("Erro fatal no loop (Contatando suporte...):", e);
         if(liveIndicator) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); }
     }
 }
 
 window.onload = function() {
-    // Add Dedicated Touch Event Listener for Theme Toggle
     const themeBtn = document.getElementById('theme-toggle-btn');
     if(themeBtn) {
-        // Remove click to avoid conflict if touchstart works
-        // themeBtn.onclick = null; 
-        
-        // Handle click (Desktop)
         themeBtn.addEventListener('click', toggleTheme);
-        
-        // Handle touch (Mobile) - using touchend for better UX
         themeBtn.addEventListener('touchend', (e) => {
-            e.preventDefault(); // Prevent mouse event simulation
+            e.preventDefault(); 
             toggleTheme(e);
         }, {passive: false});
     }
 
-    checkAutoTheme(); // Set initial theme
+    checkAutoTheme(); 
     const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') };
     const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') };
     const dateControls = document.getElementById('date-controls');
     
-    // Inicialização segura dos inputs de data
     const hoje = new Date(); 
     const mesAtual = getLocalISODate(hoje).substring(0, 7);
     
-    // Inicializa o seletor de abastecimento
     const elMesAbast = document.getElementById('mesAbastecimento');
     if(elMesAbast) {
         elMesAbast.value = mesAtual;
@@ -1699,7 +1789,6 @@ window.onload = function() {
         if (btns[viewName]) { btns[viewName].classList.add('active'); }
         if(dateControls) dateControls.style.display = 'none'; 
         if (viewName === 'grafico' || viewName === 'consumo') {
-            // Recarrega dados ao entrar na aba
             carregarHistoricoEConsumo();
         } 
         if (viewName === 'caixa') carregarHistoricoAbastecimento();
@@ -1746,7 +1835,6 @@ window.onload = function() {
     const dataFim = getLocalISODate(hoje);
     const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje);
     
-    // Safe initialization for date inputs
     const elDataEsc = document.getElementById('dataEscolhida');
     if(elDataEsc) elDataEsc.value = dataFim;
     const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo');
@@ -1763,13 +1851,11 @@ window.onload = function() {
     const btnAt = document.getElementById('btnAtualizar');
     if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); };
       
-    // Inicialização em Paralelo (Mais Robusta)
     carregarConfiguracoesGerais();
     carregarHistoricoEConsumo();
     loopDeAtualizacao(); 
     loopInterval = setInterval(loopDeAtualizacao, 2500);
     
-    // 4. Watchdog (Reinicia se travar)
     setInterval(() => {
         const now = Date.now();
         if (now - lastUpdateTimestamp > 10000) { 
@@ -1778,13 +1864,11 @@ window.onload = function() {
         }
     }, 5000);
     
-    // --- MOBILE FIX: RESTART ON VISIBILITY ---
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === 'visible') {
             console.log("App visível novamente. Forçando atualização...");
-            loopDeAtualizacao(); // Atualiza nível imediatamente
-            carregarHistoricoEConsumo(); // Atualiza gráficos
-            // Reinicia o loop caso tenha sido morto pelo OS
+            loopDeAtualizacao(); 
+            carregarHistoricoEConsumo(); 
             clearInterval(loopInterval);
             loopInterval = setInterval(loopDeAtualizacao, 2500);
         }
