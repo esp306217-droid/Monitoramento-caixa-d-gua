@@ -13,7 +13,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.37 Network Fix</title>
+<title>Monitoramento Caixa D'Água PP7 - V.3.38 UI Fix</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -162,12 +162,15 @@ body {
 }
 .nav-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0; justify-content: center; }
 
-/* Indicador de Conexão (Novo) */
+/* Indicador de Conexão (Movido para dentro do card) */
 .live-indicator {
-    position: absolute; right: 20px;
+    position: absolute; 
+    top: 10px; /* Topo do card */
+    right: 10px; /* Direita do card */
     width: 10px; height: 10px; border-radius: 50%;
     background-color: #64748b;
     transition: background-color 0.3s;
+    z-index: 20;
 }
 .live-indicator.online { background-color: var(--level-ok); box-shadow: 0 0 8px var(--level-ok); animation: pulse-green 2s infinite; }
 .live-indicator.offline { background-color: var(--level-danger); }
@@ -461,7 +464,7 @@ li {
 <button id="refresh-btn" class="refresh-toggle" onclick="window.location.reload(true)"><i class="fas fa-sync-alt"></i></button>
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
-    <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
+    <!-- LIVE INDICATOR MOVIDO DAQUI -->
     <div class="nav-group">
         <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
         <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
@@ -475,6 +478,9 @@ li {
     <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     
     <div id="status-display" class="glass-panel">
+        <!-- LIVE INDICATOR AGORA AQUI DENTRO (CANTO DIREITO) -->
+        <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
+        
         <div class="status-item item-level">
             <span class="status-label">Nível Atual</span>
             <!-- Adicionado Span para o indicador simulado -->
