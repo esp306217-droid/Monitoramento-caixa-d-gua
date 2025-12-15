@@ -143,17 +143,6 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 #app-overlay.active { display: block; }
 #app-frame { width: 100%; height: 100%; border: none; }
 
-/* Botão Voltar Simplificado */
-.btn-voltar-app {
-    position: fixed; top: 15px; left: 15px; z-index: 10000;
-    background: rgba(255, 255, 255, 0.95); border: 1px solid #ccc;
-    color: #333; width: 45px; height: 45px; border-radius: 50%;
-    font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    display: none; justify-content: center; align-items: center;
-    font-size: 1.2rem; transition: transform 0.2s;
-}
-.btn-voltar-app:active { transform: scale(0.9); background: #eee; }
-.btn-voltar-app.active { display: flex; }
 </style>
 </head>
 <body>
@@ -175,8 +164,6 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 
 <!-- OVERLAY PARA EXIBIR OS APPS ORIGINAIS -->
 <div id="app-overlay">
-    <!-- Botão Voltar Simplificado (Apenas Seta) -->
-    <button class="btn-voltar-app" onclick="fecharApp()" title="Voltar ao Painel"><i class="fas fa-arrow-left"></i></button>
     <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
 </div>
 
@@ -212,12 +199,13 @@ body { font-family: 'Poppins', sans-serif; text-align: center; background: var(-
 * { -ms-overflow-style: none; scrollbar-width: none; }
 .glass-panel { background: var(--card-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--card-border); box-shadow: var(--shadow-card); border-radius: 16px; }
 
-/* Botões da Barra de Tarefas (Nav Group) */
-.nav-button-icon-only { width: 35px; height: 35px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-sec); cursor: pointer; transition: all 0.2s; }
-.nav-button-icon-only:active { background: var(--accent); color: white; }
+/* Botões da Barra de Tarefas (Nav Group) SEM Sombra */
+.nav-button-icon-only { width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-sec); cursor: pointer; transition: all 0.2s; box-shadow: none; }
+.nav-button-icon-only:active { background: var(--accent); color: white; transform: translateY(2px); }
 
-.main-header { width: 100%; padding: 10px 10px; background-color: var(--header-bg); backdrop-filter: blur(10px); box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); display: flex; justify-content: center; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; flex-wrap: wrap; gap: 10px; padding-left: 0; margin-top: 50px; } 
-.nav-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0; justify-content: center; align-items: center; }
+/* Ajuste da Barra de Tarefas para o Topo (Sem margem) */
+.main-header { width: 100%; padding: 10px 5px; background-color: var(--header-bg); backdrop-filter: blur(10px); box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); display: flex; justify-content: center; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; flex-wrap: wrap; gap: 8px; padding-left: 0; margin-top: 0; } 
+.nav-group { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 0; justify-content: center; align-items: center; }
 
 /* Indicador Live no Quadro Branco */
 .status-indicator-box { position: absolute; top: 10px; right: 10px; }
@@ -248,7 +236,7 @@ body { font-family: 'Poppins', sans-serif; text-align: center; background: var(-
 input, select { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-main); padding: 12px; border-radius: 8px; font-family: 'Poppins', sans-serif; outline: none; width: 100%; text-align: center; }
 input:focus, select:focus { border-color: var(--accent); }
 header h1 { margin: 0; font-size: 1.5rem; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 10px;}
-.nav-button { padding: 10px 15px; border: none; background: transparent; color: var(--text-sec); font-weight: 600; font-family: 'Poppins', sans-serif; font-size: 0.9rem; cursor: pointer; transition: all 0.3s; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
+.nav-button { padding: 10px 15px; border: none; background: transparent; color: var(--text-sec); font-weight: 600; font-family: 'Poppins', sans-serif; font-size: 0.9rem; cursor: pointer; transition: all 0.3s; border-radius: 10px; display: flex; align-items: center; gap: 6px; box-shadow: none; }
 .nav-button.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(6,182,212,0.2); }
 .nav-button:hover:not(.active) { background: rgba(150,150,150,0.1); color: var(--text-main); }
 .header-right { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; justify-content: center; width: 100%; }
@@ -303,8 +291,10 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
-<!-- Botões de Tema e Atualizar movidos para a Barra de Tarefas -->
-<button class="nav-button-icon-only" onclick="toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
+<!-- Botão Voltar (Movido para cá) -->
+<button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
+<!-- Botões de Tema e Atualizar -->
+<button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
 <button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
 <!-- Botões de Navegação -->
 <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
@@ -521,9 +511,15 @@ const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
 // CONTAS DE EMAIL ROTATIVAS
 const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
 let isDarkMode = false;
+// TORNAR GLOBAL PARA SER ACESSADA PELO ONCLICK
+window.toggleTheme = function(e) { 
+    if(e) { e.preventDefault(); e.stopPropagation(); } 
+    isDarkMode = !isDarkMode; 
+    applyTheme(); 
+};
 function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
 function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); }
-function toggleTheme(e) { if(e) { e.preventDefault(); e.stopPropagation(); } isDarkMode = !isDarkMode; applyTheme(); }
+
 try { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
 let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
 let historicoNiveis = [], historicoLabels = [];
@@ -571,8 +567,167 @@ async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/conta
 async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
 function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted[mid]; }
 function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
-async function loopDeAtualizacao() { const liveIndicator = document.getElementById('live-indicator'); try { if (!verificacaoInicialConcluida) return; lastUpdateTimestamp = Date.now(); let j = {}; let fetchSuccess = false; try { const r = await safeFetch(PATH_TEMPO_REAL); if (r) { j = await r.json(); fetchSuccess = true; } } catch (err) {} if(liveIndicator) { if (fetchSuccess) { liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online'); liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5'); } else { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); liveIndicator.style.opacity = '1'; } } let nivelRecebidoRaw = 0; if (j && j.nivel_pct !== undefined) nivelRecebidoRaw = j.nivel_pct; else if (j && j.percentual_atual !== undefined) nivelRecebidoRaw = j.percentual_atual; let nivelRecebido = Number(nivelRecebidoRaw); let tipoDado = 'real'; let statusSensor = j && j.status_leitura ? j.status_leitura : "OFFLINE"; if (nivelRecebido > 0 && statusSensor !== "ERRO_SENSOR") { if (bufferLeituras.length === 0) { for(let i=0; i<9; i++) bufferLeituras.push(nivelRecebido); } else { bufferLeituras.push(nivelRecebido); if (bufferLeituras.length > 9) bufferLeituras.shift(); } let nivelEstavel = obterMediana(bufferLeituras); if (ultimoNivelValidoLatch !== null && Math.abs(nivelEstavel - ultimoNivelValidoLatch) > 5) { contadorLeiturasFantasmas++; if (contadorLeiturasFantasmas < 5) { nivelEstavel = ultimoNivelValidoLatch; } else { contadorLeiturasFantasmas = 0; } } else { contadorLeiturasFantasmas = 0; } nivelAtual = nivelEstavel; tipoDado = 'real'; ultimoNivelValidoLatch = nivelEstavel; timestampLatch = Date.now(); localStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelEstavel); localStorage.setItem('__STORAGE_KEY_PREFIX___last_time', timestampLatch); document.getElementById('emergency-badge').style.display = 'none'; document.getElementById('simulated-indicator').style.display = 'none'; } else { let backupUsado = false; if (j && j.ultima_valida_pct > 0 && j.ultima_valida_time > 0) { nivelAtual = calcularNivelSimuladoLatch(j.ultima_valida_pct, j.ultima_valida_time); backupUsado = true; } else if (ultimoNivelValidoLatch !== null && timestampLatch !== null) { nivelAtual = calcularNivelSimuladoLatch(ultimoNivelValidoLatch, timestampLatch); backupUsado = true; } else { const savedLvl = localStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); const savedTime = localStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); if(savedLvl && savedTime) { ultimoNivelValidoLatch = Number(savedLvl); timestampLatch = Number(savedTime); nivelAtual = calcularNivelSimuladoLatch(ultimoNivelValidoLatch, timestampLatch); backupUsado = true; } else { nivelAtual = 0; } } document.getElementById('emergency-badge').style.display = 'flex'; if (backupUsado) { document.getElementById('simulated-indicator').style.display = 'flex'; tipoDado = 'estimado'; } else { tipoDado = 'real'; } } const statusDisplay = document.getElementById('status-display'); if(statusDisplay) { statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger'); if (nivelAtual <= nivelAlertaConfigurado) { statusDisplay.classList.add('level-danger'); if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); } else { enviarEmailAlerta(nivelAtual); } } else { if (nivelAtual > 50) { if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; } if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); else statusDisplay.classList.add('level-ok'); if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; } } atualizarCaixaDOM(nivelAtual); const agora = new Date(); const horaAtual = agora.getHours(); const agoraMs = agora.getTime(); if ((horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) && nivelAtual > 0) { await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs, tipoDado); ultimoHorarioSalvo = horaAtual; ultimoTempoSalvo = agoraMs; if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); } } catch(e) { if(liveIndicator) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); } } }
-window.onload = function() { const themeBtn = document.querySelector('.nav-button-icon-only[title="Alternar Tema"]'); if(themeBtn) { themeBtn.addEventListener('click', toggleTheme); themeBtn.addEventListener('touchend', (e) => { e.preventDefault(); toggleTheme(e); }, {passive: false}); } checkAutoTheme(); const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; const dateControls = document.getElementById('date-controls'); const hoje = new Date(); const mesAtual = getLocalISODate(hoje).substring(0, 7); const elMesAbast = document.getElementById('mesAbastecimento'); if(elMesAbast) { elMesAbast.value = mesAtual; } const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; } setupAudio(); function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true }); verificacaoInicialConcluida = true; function switchView(viewName) { activeTab = viewName; for (const key in views) { if(views[key]) views[key].style.display = 'none'; } if (views[viewName]) { views[viewName].style.display = 'flex'; } document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); if (btns[viewName]) { btns[viewName].classList.add('active'); } if(dateControls) dateControls.style.display = 'none'; if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } if (viewName === 'caixa') carregarHistoricoAbastecimento(); else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); } else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); } else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); if(chartAbastecimento) chartAbastecimento.resize(); } else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); } } if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); if(btns.config) btns.config.addEventListener('click', () => switchView('config')); document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta); document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)); document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))); document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))); document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)); document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))); document.getElementById('lista-contatos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); document.getElementById('lista-abastecimentos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } }); criarGraficos(); const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; switchView('caixa'); const btnAt = document.getElementById('btnAtualizar'); if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; carregarConfiguracoesGerais(); carregarHistoricoEConsumo(); loopDeAtualizacao(); loopInterval = setInterval(loopDeAtualizacao, 2500); setInterval(() => { const now = Date.now(); if (now - lastUpdateTimestamp > 10000) { console.log("Watchdog: Reiniciando loop travado..."); loopDeAtualizacao(); } }, 5000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible') { console.log("App visível novamente. Forçando atualização..."); loopDeAtualizacao(); carregarHistoricoEConsumo(); clearInterval(loopInterval); loopInterval = setInterval(loopDeAtualizacao, 2500); } }); document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); }); };
+
+// Nova Função para buscar dados históricos caso o realtime esteja 0/offline
+async function buscarBackupHistorico() {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        // Busca a última entrada do dia
+        const r = await fetch(`${PATH_HISTORICO}/${today}.json?orderBy="$key"&limitToLast=1`);
+        const d = await r.json();
+        if(d) {
+            const keys = Object.keys(d);
+            if(keys.length > 0) {
+                const lastEntry = d[keys[0]];
+                return {
+                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
+                    time: lastEntry.timestamp || 0
+                };
+            }
+        }
+    } catch(e) { console.log('Erro ao buscar backup historico', e); }
+    return null;
+}
+
+async function loopDeAtualizacao() { 
+    const liveIndicator = document.getElementById('live-indicator'); 
+    try { 
+        if (!verificacaoInicialConcluida) return; 
+        lastUpdateTimestamp = Date.now(); 
+        let j = {}; 
+        let fetchSuccess = false; 
+        try { 
+            const r = await safeFetch(PATH_TEMPO_REAL); 
+            if (r) { j = await r.json(); fetchSuccess = true; } 
+        } catch (err) {} 
+        
+        if(liveIndicator) { 
+            if (fetchSuccess) { 
+                liveIndicator.classList.remove('offline'); 
+                liveIndicator.classList.add('online'); 
+                liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5'); 
+            } else { 
+                liveIndicator.classList.remove('online'); 
+                liveIndicator.classList.add('offline'); 
+                liveIndicator.style.opacity = '1'; 
+            } 
+        } 
+        
+        let nivelRecebidoRaw = 0; 
+        if (j && j.nivel_pct !== undefined) nivelRecebidoRaw = j.nivel_pct; 
+        else if (j && j.percentual_atual !== undefined) nivelRecebidoRaw = j.percentual_atual; 
+        let nivelRecebido = Number(nivelRecebidoRaw); 
+        let tipoDado = 'real'; 
+        let statusSensor = j && j.status_leitura ? j.status_leitura : "OFFLINE"; 
+        
+        if (nivelRecebido > 0 && statusSensor !== "ERRO_SENSOR") { 
+            if (bufferLeituras.length === 0) { for(let i=0; i<9; i++) bufferLeituras.push(nivelRecebido); } 
+            else { bufferLeituras.push(nivelRecebido); if (bufferLeituras.length > 9) bufferLeituras.shift(); } 
+            let nivelEstavel = obterMediana(bufferLeituras); 
+            if (ultimoNivelValidoLatch !== null && Math.abs(nivelEstavel - ultimoNivelValidoLatch) > 5) { 
+                contadorLeiturasFantasmas++; 
+                if (contadorLeiturasFantasmas < 5) { nivelEstavel = ultimoNivelValidoLatch; } 
+                else { contadorLeiturasFantasmas = 0; } 
+            } else { contadorLeiturasFantasmas = 0; } 
+            
+            nivelAtual = nivelEstavel; 
+            tipoDado = 'real'; 
+            ultimoNivelValidoLatch = nivelEstavel; 
+            timestampLatch = Date.now(); 
+            localStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelEstavel); 
+            localStorage.setItem('__STORAGE_KEY_PREFIX___last_time', timestampLatch); 
+            document.getElementById('emergency-badge').style.display = 'none'; 
+            document.getElementById('simulated-indicator').style.display = 'none'; 
+        } else { 
+            let backupUsado = false; 
+            let pctBackup = 0;
+            let timeBackup = 0;
+
+            // Prioridade 1: Dados do JSON em tempo real (se tiver ultima valida)
+            if (j && j.ultima_valida_pct > 0 && j.ultima_valida_time > 0) { 
+                pctBackup = j.ultima_valida_pct;
+                timeBackup = j.ultima_valida_time;
+            } 
+            // Prioridade 2: Memória Local (Latch)
+            else if (ultimoNivelValidoLatch !== null && timestampLatch !== null) { 
+                pctBackup = ultimoNivelValidoLatch;
+                timeBackup = timestampLatch;
+            } 
+            // Prioridade 3: LocalStorage persistente
+            else { 
+                const savedLvl = localStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); 
+                const savedTime = localStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); 
+                if(savedLvl && savedTime) { 
+                    pctBackup = Number(savedLvl);
+                    timeBackup = Number(savedTime);
+                } else {
+                    // Prioridade 4: Busca forçada no histórico (última chance antes de mostrar 0%)
+                    const histData = await buscarBackupHistorico();
+                    if (histData) {
+                        pctBackup = histData.pct;
+                        timeBackup = histData.time;
+                        // Salva para o próximo ciclo não precisar buscar
+                        ultimoNivelValidoLatch = pctBackup;
+                        timestampLatch = timeBackup;
+                    }
+                }
+            } 
+
+            if (pctBackup > 0) {
+                nivelAtual = calcularNivelSimuladoLatch(pctBackup, timeBackup);
+                backupUsado = true;
+            } else {
+                nivelAtual = 0;
+            }
+
+            document.getElementById('emergency-badge').style.display = 'flex'; 
+            if (backupUsado) { 
+                document.getElementById('simulated-indicator').style.display = 'flex'; 
+                tipoDado = 'estimado'; 
+            } else { 
+                tipoDado = 'real'; 
+            } 
+        } 
+        
+        const statusDisplay = document.getElementById('status-display'); 
+        if(statusDisplay) { 
+            statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger'); 
+            if (nivelAtual <= nivelAlertaConfigurado) { 
+                statusDisplay.classList.add('level-danger'); 
+                if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } 
+                if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { 
+                    enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; 
+                    setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); 
+                } else { enviarEmailAlerta(nivelAtual); } 
+            } else { 
+                if (nivelAtual > 50) { 
+                    if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; 
+                    if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; 
+                } 
+                if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); 
+                else statusDisplay.classList.add('level-ok'); 
+                if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } 
+                controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; 
+            } 
+        } 
+        atualizarCaixaDOM(nivelAtual); 
+        const agora = new Date(); 
+        const horaAtual = agora.getHours(); 
+        const agoraMs = agora.getTime(); 
+        if ((horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) && nivelAtual > 0) { 
+            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs, tipoDado); 
+            ultimoHorarioSalvo = horaAtual; 
+            ultimoTempoSalvo = agoraMs; 
+            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
+        } 
+    } catch(e) { 
+        if(liveIndicator) { 
+            liveIndicator.classList.remove('online'); 
+            liveIndicator.classList.add('offline'); 
+        } 
+    } 
+}
+window.onload = function() { checkAutoTheme(); const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; const dateControls = document.getElementById('date-controls'); const hoje = new Date(); const mesAtual = getLocalISODate(hoje).substring(0, 7); const elMesAbast = document.getElementById('mesAbastecimento'); if(elMesAbast) { elMesAbast.value = mesAtual; } const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; } setupAudio(); function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true }); verificacaoInicialConcluida = true; function switchView(viewName) { activeTab = viewName; for (const key in views) { if(views[key]) views[key].style.display = 'none'; } if (views[viewName]) { views[viewName].style.display = 'flex'; } document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); if (btns[viewName]) { btns[viewName].classList.add('active'); } if(dateControls) dateControls.style.display = 'none'; if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } if (viewName === 'caixa') carregarHistoricoAbastecimento(); else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); } else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); } else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); if(chartAbastecimento) chartAbastecimento.resize(); } else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); } } if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); if(btns.config) btns.config.addEventListener('click', () => switchView('config')); document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta); document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)); document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))); document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))); document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)); document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))); document.getElementById('lista-contatos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); document.getElementById('lista-abastecimentos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } }); criarGraficos(); const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; switchView('caixa'); const btnAt = document.getElementById('btnAtualizar'); if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; carregarConfiguracoesGerais(); carregarHistoricoEConsumo(); loopDeAtualizacao(); loopInterval = setInterval(loopDeAtualizacao, 2500); setInterval(() => { const now = Date.now(); if (now - lastUpdateTimestamp > 10000) { console.log("Watchdog: Reiniciando loop travado..."); loopDeAtualizacao(); } }, 5000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible') { console.log("App visível novamente. Forçando atualização..."); loopDeAtualizacao(); carregarHistoricoEConsumo(); clearInterval(loopInterval); loopInterval = setInterval(loopDeAtualizacao, 2500); } }); document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); }); };
 </script>
 </body>
 </html>
@@ -601,7 +756,7 @@ const listPP = [
         firebaseDataPath: '/PP7.json',
         firebaseConfigPath: '/PP7_config',
         firebaseHistPath: '/PP7_config/historico', // Caminho antigo do PP7
-        title: 'Praça de pedágio 7 - Capim branco/MG'
+        title: 'Praça de pedágio 7 - Capim Branco/MG'
     }
 ];
 
@@ -677,7 +832,8 @@ function prepararAbertura(id) {
     let rawHTML = document.getElementById('app-template').value;
 
     // SUBSTITUI AS VARIÁVEIS PELOS DADOS ESPECÍFICOS DA CAIXA
-    rawHTML = rawHTML.replace('__APP_TITLE__', item.title);
+    // replaceAll ou regex global para garantir que TODOS os __APP_TITLE__ sejam trocados
+    rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title);
     rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
     rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
     rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath);
@@ -690,14 +846,12 @@ function prepararAbertura(id) {
 function abrirApp(htmlContent) {
     const overlay = document.getElementById('app-overlay');
     const iframe = document.getElementById('app-frame');
-    const btnVoltar = document.querySelector('.btn-voltar-app');
     
     // Injeta no iframe
     iframe.srcdoc = htmlContent;
     
     // Mostra overlay
     overlay.classList.add('active');
-    btnVoltar.classList.add('active');
     
     // Pausa atualização do dashboard
     if(dashboardInterval) clearInterval(dashboardInterval);
@@ -706,14 +860,12 @@ function abrirApp(htmlContent) {
 function fecharApp() {
     const overlay = document.getElementById('app-overlay');
     const iframe = document.getElementById('app-frame');
-    const btnVoltar = document.querySelector('.btn-voltar-app');
     
     // Limpa iframe
     iframe.srcdoc = "";
     
     // Esconde overlay
     overlay.classList.remove('active');
-    btnVoltar.classList.remove('active');
     
     // Retoma atualização
     updateDashboardData();
