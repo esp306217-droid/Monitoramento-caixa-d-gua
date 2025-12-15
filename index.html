@@ -167,7 +167,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 
 <!-- OVERLAY PARA EXIBIR OS APPS ORIGINAIS -->
 <div id="app-overlay">
-    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"></iframe>
 </div>
 
 <!-- ========================================================================= -->
@@ -302,7 +302,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
 <!-- Botões de Tema e Atualizar -->
 <button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
-<button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
+<button class="nav-button-icon-only" onclick="window.executarAtualizacao()" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
 <!-- Botões de Navegação -->
 <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
 <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
@@ -518,16 +518,32 @@ const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
 // CONTAS DE EMAIL ROTATIVAS
 const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
 let isDarkMode = false;
-// TORNAR GLOBAL PARA SER ACESSADA PELO ONCLICK
+
+// FUNÇÕES GLOBAIS SEGURAS PARA ONCLICK
 window.toggleTheme = function(e) { 
     if(e) { e.preventDefault(); e.stopPropagation(); } 
     isDarkMode = !isDarkMode; 
     applyTheme(); 
 };
-function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
-function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); }
 
-try { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
+window.executarAtualizacao = function() {
+    loopDeAtualizacao();
+};
+
+// SAFE STORAGE WRAPPER
+const safeStorage = {
+    getItem: function(key) {
+        try { return localStorage.getItem(key); } catch(e) { return null; }
+    },
+    setItem: function(key, val) {
+        try { localStorage.setItem(key, val); } catch(e) {}
+    }
+};
+
+function checkAutoTheme() { try { const savedTheme = safeStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
+function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { safeStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { safeStorage.setItem('theme', 'light'); } catch(e){} } criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); }
+
+try { const savedTheme = safeStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
 let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
 let historicoNiveis = [], historicoLabels = [];
 let currentView = 'diario'; let activeTab = 'caixa'; 
@@ -641,8 +657,8 @@ async function loopDeAtualizacao() {
             tipoDado = 'real'; 
             ultimoNivelValidoLatch = nivelEstavel; 
             timestampLatch = Date.now(); 
-            localStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelEstavel); 
-            localStorage.setItem('__STORAGE_KEY_PREFIX___last_time', timestampLatch); 
+            safeStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelEstavel); 
+            safeStorage.setItem('__STORAGE_KEY_PREFIX___last_time', timestampLatch); 
             document.getElementById('emergency-badge').style.display = 'none'; 
             document.getElementById('simulated-indicator').style.display = 'none'; 
         } else { 
@@ -662,8 +678,8 @@ async function loopDeAtualizacao() {
             } 
             // Prioridade 3: LocalStorage persistente
             else { 
-                const savedLvl = localStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); 
-                const savedTime = localStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); 
+                const savedLvl = safeStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); 
+                const savedTime = safeStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); 
                 if(savedLvl && savedTime) { 
                     pctBackup = Number(savedLvl);
                     timeBackup = Number(savedTime);
@@ -734,88 +750,7 @@ async function loopDeAtualizacao() {
         } 
     } 
 }
-// Inicialização modificada para chamar o loop imediatamente após o load
-window.onload = function() { 
-    const themeBtn = document.getElementById('btn-theme-inner'); 
-    if(themeBtn) { 
-        themeBtn.addEventListener('click', toggleTheme); 
-        themeBtn.addEventListener('touchend', (e) => { e.preventDefault(); toggleTheme(e); }, {passive: false}); 
-    } 
-    checkAutoTheme(); 
-    
-    // Configurações e botões
-    const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; 
-    const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; 
-    const dateControls = document.getElementById('date-controls'); 
-    const hoje = new Date(); 
-    const mesAtual = getLocalISODate(hoje).substring(0, 7); 
-    const elMesAbast = document.getElementById('mesAbastecimento'); 
-    if(elMesAbast) { elMesAbast.value = mesAtual; } 
-    const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); 
-    if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; } 
-    setupAudio(); 
-    function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } 
-    document.body.addEventListener('click', despertarAudio, { once: true }); 
-    document.body.addEventListener('touchstart', despertarAudio, { once: true }); 
-    
-    verificacaoInicialConcluida = true; 
-    
-    function switchView(viewName) { 
-        activeTab = viewName; 
-        for (const key in views) { if(views[key]) views[key].style.display = 'none'; } 
-        if (views[viewName]) { views[viewName].style.display = 'flex'; } 
-        document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); 
-        if (btns[viewName]) { btns[viewName].classList.add('active'); } 
-        if(dateControls) dateControls.style.display = 'none'; 
-        if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } 
-        if (viewName === 'caixa') carregarHistoricoAbastecimento(); 
-        else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); } 
-        else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); } 
-        else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); if(chartAbastecimento) chartAbastecimento.resize(); } 
-        else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); } 
-    } 
-    
-    if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); 
-    if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); 
-    if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); 
-    if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); 
-    if(btns.config) btns.config.addEventListener('click', () => switchView('config')); 
-    document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta); 
-    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)); 
-    document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))); 
-    document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))); 
-    document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)); 
-    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))); 
-    
-    // Listeners
-    document.getElementById('lista-contatos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); 
-    document.getElementById('lista-abastecimentos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } }); 
-    
-    criarGraficos(); 
-    
-    const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); 
-    const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; 
-    const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; 
-    const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; 
-    const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; 
-    const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; 
-    
-    switchView('caixa'); 
-    
-    const btnAt = document.getElementById('btnAtualizar'); 
-    if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; 
-    
-    carregarConfiguracoesGerais(); 
-    carregarHistoricoEConsumo(); 
-    
-    // Forçar atualização imediata para evitar tela vazia
-    setTimeout(loopDeAtualizacao, 100); 
-    
-    loopInterval = setInterval(loopDeAtualizacao, 2500); 
-    setInterval(() => { const now = Date.now(); if (now - lastUpdateTimestamp > 10000) { console.log("Watchdog: Reiniciando loop travado..."); loopDeAtualizacao(); } }, 5000); 
-    document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible') { console.log("App visível novamente. Forçando atualização..."); loopDeAtualizacao(); carregarHistoricoEConsumo(); clearInterval(loopInterval); loopInterval = setInterval(loopDeAtualizacao, 2500); } }); 
-    document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); }); 
-};
+window.onload = function() { checkAutoTheme(); const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; const dateControls = document.getElementById('date-controls'); const hoje = new Date(); const mesAtual = getLocalISODate(hoje).substring(0, 7); const elMesAbast = document.getElementById('mesAbastecimento'); if(elMesAbast) { elMesAbast.value = mesAtual; } const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; } setupAudio(); function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true }); verificacaoInicialConcluida = true; function switchView(viewName) { activeTab = viewName; for (const key in views) { if(views[key]) views[key].style.display = 'none'; } if (views[viewName]) { views[viewName].style.display = 'flex'; } document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); if (btns[viewName]) { btns[viewName].classList.add('active'); } if(dateControls) dateControls.style.display = 'none'; if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } if (viewName === 'caixa') carregarHistoricoAbastecimento(); else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); } else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); } else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); if(chartAbastecimento) chartAbastecimento.resize(); } else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); } } if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); if(btns.config) btns.config.addEventListener('click', () => switchView('config')); document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta); document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)); document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))); document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))); document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)); document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))); document.getElementById('lista-contatos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); document.getElementById('lista-abastecimentos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } }); criarGraficos(); const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; switchView('caixa'); const btnAt = document.getElementById('btnAtualizar'); if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; carregarConfiguracoesGerais(); carregarHistoricoEConsumo(); setTimeout(loopDeAtualizacao, 100); loopInterval = setInterval(loopDeAtualizacao, 2500); setInterval(() => { const now = Date.now(); if (now - lastUpdateTimestamp > 10000) { console.log("Watchdog: Reiniciando loop travado..."); loopDeAtualizacao(); } }, 5000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible') { console.log("App visível novamente. Forçando atualização..."); loopDeAtualizacao(); carregarHistoricoEConsumo(); clearInterval(loopInterval); loopInterval = setInterval(loopDeAtualizacao, 2500); } }); document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); }); };
 </script>
 </body>
 </html>
@@ -935,11 +870,19 @@ function abrirApp(htmlContent) {
     const overlay = document.getElementById('app-overlay');
     const iframe = document.getElementById('app-frame');
     
-    // Injeta no iframe
-    iframe.srcdoc = htmlContent;
-    
     // Mostra overlay
     overlay.classList.add('active');
+    
+    // Limpa o src para garantir que o iframe seja "novo"
+    iframe.src = 'about:blank';
+    
+    // Usa document.write para máxima compatibilidade com WebView (MIT App Inventor)
+    setTimeout(() => {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
+    }, 50);
     
     // Pausa atualização do dashboard
     if(dashboardInterval) clearInterval(dashboardInterval);
@@ -950,7 +893,7 @@ function fecharApp() {
     const iframe = document.getElementById('app-frame');
     
     // Limpa iframe
-    iframe.srcdoc = "";
+    iframe.src = "";
     
     // Esconde overlay
     overlay.classList.remove('active');
