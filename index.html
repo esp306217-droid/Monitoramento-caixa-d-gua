@@ -4,55 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Monit. Água">
+<title>Monitoramento Via Cristais - Central</title>
 
-<!-- META TAGS PARA FORÇAR NÃO-CACHE -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-
-<title>Monitoramento Caixa D'Água PP7 - V.3.41 Inertia Filter</title>
-
-<!-- Fontes Google (Poppins) -->
+<!-- Fontes e Ícones -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-<!-- FontAwesome Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- Chart.js Core -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
-<!-- Chart.js DataLabels -->
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<!-- Dependência para gestos de toque (Zoom) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-<!-- Plugin de Zoom do Chart.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
-
-<!-- EmailJS SDK -->
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-
 <style>
-/* --- VARIÁVEIS DE TEMA --- */
+/* --- ESTILO GERAL DO DASHBOARD --- */
 :root {
     --bg-body: #f0f2f5;
     --text-main: #1e293b;
     --text-sec: #64748b;
     --card-bg: rgba(255, 255, 255, 0.95);
     --card-border: rgba(226, 232, 240, 0.8);
-    --header-bg: rgba(255, 255, 255, 0.98);
     --accent: #06b6d4; 
-    --accent-hover: #0891b2;
-    --input-bg: #f8fafc;
-    --input-border: #cbd5e1;
-    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     
     --level-ok: #10b981;
     --level-warn: #f59e0b;
     --level-danger: #ef4444;
+    --level-offline: #94a3b8;
 }
 
 [data-theme="dark"] {
@@ -61,392 +35,263 @@
     --text-sec: #94a3b8;
     --card-bg: rgba(30, 41, 59, 0.85);
     --card-border: rgba(255, 255, 255, 0.1);
-    --header-bg: rgba(15, 23, 42, 0.95);
     --accent: #22d3ee;
-    --accent-hover: #67e8f9;
-    --input-bg: #1e293b;
-    --input-border: #334155;
     --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-html, body { height: 100%; margin: 0; padding: 0; }
 body {
-    font-family: 'Poppins', sans-serif; 
-    text-align: center;
+    font-family: 'Poppins', sans-serif;
     background: var(--bg-body);
     background-image: radial-gradient(at 0% 0%, hsla(192,70%,80%,0.05) 0, transparent 50%), radial-gradient(at 100% 100%, hsla(200,80%,80%,0.05) 0, transparent 50%);
-    color: var(--text-main);    
-    overflow-x: hidden;
-    padding-bottom: 0; 
-    transition: background-color 0.3s ease, color 0.3s ease;
+    color: var(--text-main);
+    margin: 0; padding: 20px;
+    transition: background-color 0.3s ease;
 }
 
-/* REMOVE BARRA DE ROLAGEM TOTALMENTE (PC e Mobile) */
+/* Header */
+.header { text-align: center; margin-bottom: 40px; position: relative; }
+.logo { width: 160px; mix-blend-mode: multiply; margin-bottom: 10px; }
+[data-theme="dark"] .logo { filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2); mix-blend-mode: screen; }
+h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Botão Tema Dashboard */
+.theme-toggle {
+    position: absolute; top: 0; right: 0;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    color: var(--text-main); width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    cursor: pointer; box-shadow: var(--shadow-card);
+}
+
+/* Grid */
+.section-title {
+    font-size: 1.1rem; font-weight: 700; color: var(--text-main);
+    margin: 30px 0 15px 5px; border-left: 5px solid var(--accent); padding-left: 10px;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    max-width: 1200px; margin: 0 auto;
+}
+
+/* Card */
+.card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-card); cursor: pointer;
+    text-decoration: none; position: relative; overflow: hidden;
+    transition: transform 0.2s; min-height: 150px;
+}
+.card:active { transform: scale(0.96); }
+.card.inactive { opacity: 0.6; filter: grayscale(1); cursor: default; pointer-events: none; }
+
+/* Fundo Animado de Água */
+.card-water-bg {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
+    background: linear-gradient(to top, rgba(6,182,212,0.2), rgba(6,182,212,0.5));
+    transition: height 0.5s ease-out; z-index: 0;
+}
+
+/* Conteúdo do Card */
+.card-content {
+    position: relative; z-index: 1; padding: 20px 15px;
+    width: 100%; display: flex; flex-direction: column; align-items: center;
+}
+
+/* Barra Lateral Status */
+.card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    background: var(--level-offline); transition: background 0.3s; z-index: 2;
+}
+.card[data-status="ok"]::before { background: var(--level-ok); }
+.card[data-status="warn"]::before { background: var(--level-warn); }
+.card[data-status="danger"]::before { background: var(--level-danger); }
+.card[data-status="simulated"]::before { background: #d97706; } /* Cor Laranja Escuro para Estimado */
+
+/* Ícone e Texto */
+.card-icon { font-size: 2rem; color: var(--text-sec); margin-bottom: 10px; }
+.card-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; }
+.card-level { font-size: 1.5rem; font-weight: 800; color: var(--text-sec); }
+.card-status { font-size: 0.75rem; color: var(--text-sec); margin-top: 5px; }
+
+/* Indicador de Leitura Estimada no Card */
+.simulated-badge {
+    position: absolute; top: 10px; left: 10px; 
+    background: #d97706; color: white; border-radius: 50%; width: 22px; height: 22px;
+    font-size: 14px; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 2;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.card[data-status="simulated"] .simulated-badge { display: flex; }
+
+/* Animação Online */
+.live-dot {
+    position: absolute; top: 10px; right: 10px; width: 10px; height: 10px;
+    background: var(--level-ok); border-radius: 50%; box-shadow: 0 0 5px var(--level-ok);
+    display: none; animation: pulse 2s infinite; z-index: 2;
+}
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+/* --- IFRAME FULLSCREEN --- */
+#app-overlay {
+    display: none;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #fff; z-index: 9999;
+}
+#app-overlay.active { display: block; }
+#app-frame { width: 100%; height: 100%; border: none; }
+
+/* Botão Voltar Simplificado */
+.btn-voltar-app {
+    position: fixed; top: 15px; left: 15px; z-index: 10000;
+    background: rgba(255, 255, 255, 0.95); border: 1px solid #ccc;
+    color: #333; width: 45px; height: 45px; border-radius: 50%;
+    font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    display: none; justify-content: center; align-items: center;
+    font-size: 1.2rem; transition: transform 0.2s;
+}
+.btn-voltar-app:active { transform: scale(0.9); background: #eee; }
+.btn-voltar-app.active { display: flex; }
+</style>
+</head>
+<body>
+
+<!-- DASHBOARD VISÍVEL INICIALMENTE -->
+<div id="dashboard-container">
+    <div class="header">
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+        <h1>Central de Monitoramento</h1>
+    </div>
+
+    <div class="section-title">Praças de Pedágio</div>
+    <div class="grid" id="grid-pp"></div>
+
+    <div class="section-title">Bases SAU</div>
+    <div class="grid" id="grid-sau"></div>
+</div>
+
+<!-- OVERLAY PARA EXIBIR OS APPS ORIGINAIS -->
+<div id="app-overlay">
+    <!-- Botão Voltar Simplificado (Apenas Seta) -->
+    <button class="btn-voltar-app" onclick="fecharApp()" title="Voltar ao Painel"><i class="fas fa-arrow-left"></i></button>
+    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TEMPLATE UNIVERSAL ÚNICO (Para TODAS as Caixas)                           -->
+<!-- Este código é injetado no iframe, substituindo as variáveis __VARS__      -->
+<!-- ========================================================================= -->
+<textarea id="app-template" style="display:none;">
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<title>__APP_TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<style>
+/* CSS do App Interno */
+:root { --bg-body: #f0f2f5; --text-main: #1e293b; --text-sec: #64748b; --card-bg: rgba(255, 255, 255, 0.95); --card-border: rgba(226, 232, 240, 0.8); --header-bg: rgba(255, 255, 255, 0.98); --accent: #06b6d4; --accent-hover: #0891b2; --input-bg: #f8fafc; --input-border: #cbd5e1; --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --level-ok: #10b981; --level-warn: #f59e0b; --level-danger: #ef4444; }
+[data-theme="dark"] { --bg-body: #0f172a; --text-main: #f1f5f9; --text-sec: #94a3b8; --card-bg: rgba(30, 41, 59, 0.85); --card-border: rgba(255, 255, 255, 0.1); --header-bg: rgba(15, 23, 42, 0.95); --accent: #22d3ee; --accent-hover: #67e8f9; --input-bg: #1e293b; --input-border: #334155; --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; padding: 0; }
+body { font-family: 'Poppins', sans-serif; text-align: center; background: var(--bg-body); background-image: radial-gradient(at 0% 0%, hsla(192,70%,80%,0.05) 0, transparent 50%), radial-gradient(at 100% 100%, hsla(200,80%,80%,0.05) 0, transparent 50%); color: var(--text-main); overflow-x: hidden; padding-bottom: 0; transition: background-color 0.3s ease, color 0.3s ease; }
 ::-webkit-scrollbar { display: none; }
 * { -ms-overflow-style: none; scrollbar-width: none; }
+.glass-panel { background: var(--card-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--card-border); box-shadow: var(--shadow-card); border-radius: 16px; }
 
-/* Classes Utilitárias */
-.glass-panel {
-    background: var(--card-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--card-border);
-    box-shadow: var(--shadow-card);
-    border-radius: 16px;
-}
+/* Botões da Barra de Tarefas (Nav Group) */
+.nav-button-icon-only { width: 35px; height: 35px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-sec); cursor: pointer; transition: all 0.2s; }
+.nav-button-icon-only:active { background: var(--accent); color: white; }
 
-/* Botão de Tema Flutuante (FIXED) - Correção para App Inventor */
-.theme-toggle {
-    background: var(--card-bg); 
-    border: 1px solid var(--card-border);
-    color: var(--text-main);
-    font-size: 1.6rem; /* Aumentado para facilitar toque */
-    cursor: pointer; 
-    width: 52px; /* Aumentado */
-    height: 52px; /* Aumentado */
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    border-radius: 50%; 
-    transition: all 0.2s;
-    position: fixed; 
-    top: 10px; 
-    left: 10px; 
-    z-index: 99999; /* Z-Index máximo */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    -webkit-tap-highlight-color: transparent; /* Remove highlight azul no Android */
-    touch-action: manipulation; /* Melhora resposta ao toque */
-}
-.theme-toggle:active { transform: scale(0.9); background-color: var(--accent); color: white; }
+.main-header { width: 100%; padding: 10px 10px; background-color: var(--header-bg); backdrop-filter: blur(10px); box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); display: flex; justify-content: center; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; flex-wrap: wrap; gap: 10px; padding-left: 0; margin-top: 50px; } 
+.nav-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0; justify-content: center; align-items: center; }
 
-/* Botão de Recarregar Flutuante */
-.refresh-toggle {
-    background: var(--card-bg); 
-    border: 1px solid var(--card-border);
-    color: var(--text-main);
-    font-size: 1.4rem; 
-    cursor: pointer; 
-    width: 45px; 
-    height: 45px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    border-radius: 50%; 
-    transition: all 0.2s;
-    position: fixed; 
-    top: 10px; 
-    left: 70px; /* Ao lado do tema */
-    z-index: 99999; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    touch-action: manipulation;
-}
-.refresh-toggle:active { transform: rotate(180deg); background-color: var(--accent); color: white; }
-
-
-/* Cabeçalho Centralizado */
-.main-header {
-    width: 100%; padding: 10px 10px;
-    background-color: var(--header-bg);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
-    position: sticky; top: 0; z-index: 1000;
-    transition: background-color 0.3s ease;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding-left: 120px; /* Espaço extra para os botões flutuantes */
-}
-.nav-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0; justify-content: center; }
-
-/* Indicador de Conexão (Movido para dentro do card) */
-.live-indicator {
-    position: absolute; 
-    top: 15px; /* Topo do card */
-    right: 15px; /* Direita do card */
-    width: 12px; height: 12px; border-radius: 50%;
-    background-color: #64748b;
-    transition: background-color 0.3s;
-    z-index: 20;
-    border: 1px solid rgba(0,0,0,0.1);
-}
+/* Indicador Live no Quadro Branco */
+.status-indicator-box { position: absolute; top: 10px; right: 10px; }
+.live-indicator { width: 10px; height: 10px; border-radius: 50%; background-color: #64748b; transition: background-color 0.3s; display: inline-block; }
 .live-indicator.online { background-color: var(--level-ok); box-shadow: 0 0 8px var(--level-ok); animation: pulse-green 2s infinite; }
 .live-indicator.offline { background-color: var(--level-danger); }
-@keyframes pulse-green {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { transform: scale(1.0); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
+@keyframes pulse-green { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1.0); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
+#caixa-view, #grafico-container, #config-view, #abastecimento-view, #consumo-view { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 0.5rem; overflow-y: auto; min-height: calc(100vh - 70px); }
+.logo { width: 140px; margin-bottom: 5px; opacity: 0.95; display: block; margin-left: auto; margin-right: auto; mix-blend-mode: multiply; transition: all 0.3s ease; }
+[data-theme="dark"] .logo { filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2); mix-blend-mode: screen; opacity: 1; margin-bottom: 10px; }
+#emergency-badge { position: fixed; top: 80px; right: 20px; width: 50px; height: 50px; background-color: var(--level-danger); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.6); z-index: 1500; animation: pulse-red 1.5s infinite; cursor: help; }
+@keyframes pulse-red { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-/* Views */
-#caixa-view, #grafico-container, #config-view,
-#abastecimento-view, #consumo-view { 
-    width: 100%; max-width: 1200px; margin: 0 auto; 
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: flex-start; 
-    padding: 0.5rem; /* Padding reduzido */
-    overflow-y: auto;
-    min-height: calc(100vh - 70px); 
-}
-
-/* Logo Style */
-.logo {
-    width: 140px; margin-bottom: 5px; opacity: 0.95;
-    display: block; margin-left: auto; margin-right: auto; 
-    mix-blend-mode: multiply; 
-    transition: all 0.3s ease;
-}
-[data-theme="dark"] .logo {
-    filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2);
-    mix-blend-mode: screen;
-    opacity: 1;
-    margin-bottom: 10px;
-}
-
-/* Badge de Emergência */
-#emergency-badge {
-    position: fixed; top: 80px; right: 20px; width: 50px; height: 50px;
-    background-color: var(--level-danger); color: white; border-radius: 50%;
-    display: none; align-items: center; justify-content: center;
-    font-weight: bold; font-size: 24px;
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.6);
-    z-index: 1500; animation: pulse-red 1.5s infinite; cursor: help;
-}
-@keyframes pulse-red {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-/* Status Display - Compacto */
-#status-display {
-    width: 100%; max-width: 360px; 
-    padding: 12px; margin: 0 auto 0 auto; /* Margem inferior zerada */
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; 
-    position: relative; z-index: 10; /* Garante que fique sobre a caixa se sobrepor */
-}
+#status-display { width: 100%; max-width: 360px; padding: 15px; margin: 0 auto 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; position: relative; z-index: 10; margin-top: 10px; }
 .status-item { display: flex; flex-direction: column; text-align: center; }
 .status-item.item-time { grid-column: 1 / 3; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 5px; margin-top: 2px; }
-.status-label {
-    font-size: 0.7rem; font-weight: 600; color: var(--text-sec);
-    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px;
-}
+.status-label { font-size: 0.7rem; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px; }
 .status-value { font-size: 1.8rem; font-weight: 700; line-height: 1.1; color: var(--accent); transition: color 0.3s ease; }
 #status-litros { font-size: 1.5rem; display: flex; justify-content: center; align-items: baseline; gap: 5px; }
 #status-litros small { font-size: 0.85rem; font-weight: 400; color: var(--text-sec); }
 #status-time { font-size: 1rem; color: var(--text-main); }
-
-/* Reservatório Compacto e Colado no Quadro */
-.reservatorio-wrapper {
-    width: 280px; 
-    height: 460px; 
-    position: relative;
-    /* Puxa a caixa pra cima para grudar no quadro */
-    margin: -40px auto 0 auto; 
-    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));
-    transform-origin: top center;
-    transform: scale(0.9); /* Leve redução padrão */
-}
-
-/* Botões */
-.modern-button {
-    background: var(--accent); border: none; color: #fff; font-weight: 600; 
-    padding: 12px 24px; border-radius: 10px; cursor: pointer;
-    font-family: 'Poppins', sans-serif; font-size: 0.95rem; 
-    box-shadow: 0 4px 10px rgba(6,182,212,0.2); transition: all 0.2s ease;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-}
+.reservatorio-wrapper { width: 280px; height: 460px; position: relative; margin: -40px auto 0 auto; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1)); transform-origin: top center; transform: scale(0.9); }
+.modern-button { background: var(--accent); border: none; color: #fff; font-weight: 600; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(6,182,212,0.2); transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .modern-button:hover { background: var(--accent-hover); transform: translateY(-2px); }
 .modern-button:active { transform: translateY(0); }
-
-/* Botão de Sucesso (Feedback) */
-.modern-button.btn-success {
-    background-color: var(--level-ok) !important;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-    pointer-events: none; /* Evita cliques duplos */
-}
-
-/* Inputs */
-input, select {
-    background: var(--input-bg); border: 1px solid var(--input-border);
-    color: var(--text-main); padding: 12px; border-radius: 8px;
-    font-family: 'Poppins', sans-serif; outline: none; width: 100%;
-    text-align: center; 
-}
+.modern-button.btn-success { background-color: var(--level-ok) !important; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); pointer-events: none; }
+input, select { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-main); padding: 12px; border-radius: 8px; font-family: 'Poppins', sans-serif; outline: none; width: 100%; text-align: center; }
 input:focus, select:focus { border-color: var(--accent); }
-
-/* Headers */
 header h1 { margin: 0; font-size: 1.5rem; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 10px;}
-
-/* Navegação */
-.nav-button {
-    padding: 10px 15px; border: none; background: transparent;
-    color: var(--text-sec); font-weight: 600; font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem; cursor: pointer; transition: all 0.3s;
-    border-radius: 10px; display: flex; align-items: center; gap: 6px;
-}
+.nav-button { padding: 10px 15px; border: none; background: transparent; color: var(--text-sec); font-weight: 600; font-family: 'Poppins', sans-serif; font-size: 0.9rem; cursor: pointer; transition: all 0.3s; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
 .nav-button.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(6,182,212,0.2); }
 .nav-button:hover:not(.active) { background: rgba(150,150,150,0.1); color: var(--text-main); }
-
-/* Controles */
 .header-right { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; justify-content: center; width: 100%; }
 .view-selector { display: flex; gap: 5px; background: var(--input-bg); padding: 4px; border-radius: 10px; }
-.view-btn {
-    padding: 8px 16px; border: none; border-radius: 8px; background: transparent;
-    color: var(--text-sec); font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif;
-    display: flex; align-items: center; justify-content: center; 
-}
+.view-btn { padding: 8px 16px; border: none; border-radius: 8px; background: transparent; color: var(--text-sec); font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; }
 .view-btn.active { background: var(--card-bg); color: var(--accent); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-
-/* Gráficos */
 .board { width: 100%; padding: 0; background: transparent; box-shadow: none; border: none; }
 .charts { display: grid; grid-template-columns: 1fr; gap: 25px; }
 .chart-card { padding: 20px; }
 .chart-card strong { color: var(--text-main); display: block; margin-bottom: 15px; }
 canvas { width: 100%!important; height: 320px!important; }
-
-/* Listas */
 ul { list-style: none; padding: 0; }
-li {
-    background: var(--input-bg); padding: 12px 15px; border-radius: 10px;
-    margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
-    border: 1px solid var(--input-border); color: var(--text-main);
-}
-.delete-abastecimento-btn {
-    background: #fee2e2; color: #ef4444; border: none; width: 32px; height: 32px;
-    border-radius: 8px; font-weight: 700; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-}
+li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--input-border); color: var(--text-main); }
+.delete-abastecimento-btn { background: #fee2e2; color: #ef4444; border: none; width: 32px; height: 32px; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
 .delete-abastecimento-btn:hover { background: #ef4444; color: white; }
-
-/* Modal */
-#alert-modal {
-    display: none; position: fixed; z-index: 2000; left: 0; top: 0;
-    width: 100%; height: 100%; background: rgba(0,0,0,0.7);
-    align-items: center; justify-content: center; backdrop-filter: blur(5px);
-}
-.modal-content {
-    background: var(--card-bg); padding: 0; border-radius: 20px;
-    width: 90%; max-width: 400px; overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid var(--card-border);
-}
+#alert-modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+.modal-content { background: var(--card-bg); padding: 0; border-radius: 20px; width: 90%; max-width: 400px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid var(--card-border); }
 .modal-header { background: var(--level-danger); color: white; padding: 20px; font-weight: 700; font-size: 1.2rem; }
 .modal-body { padding: 25px; color: var(--text-main); font-size: 1rem; }
 .modal-footer { padding: 15px 20px; background: rgba(0,0,0,0.05); text-align: right; }
-
-/* Config & Abastecimento Layout (Melhorado para Mobile) */
-.config-board { 
-    display: grid; 
-    /* Layout inteligente: cria colunas automaticamente baseadas na largura */
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
-    gap: 12px; 
-    width: 100%; 
-    max-width: 900px; 
-    padding: 0 5px;
-}
-
-.config-card, #abastecimento-form { 
-    text-align: center; display: flex; flex-direction: column; align-items: center; 
-    padding: 15px; /* Padding reduzido */
-} 
-.config-card h2, #abastecimento-form h2 { 
-    width: 100%; font-size: 1rem; margin: 0 0 10px 0; /* Título menor */
-}
-
-.config-card .form-group, #abastecimento-form .form-group { 
-    display: flex; flex-direction: column; 
-    gap: 10px; align-items: center; justify-content: center; width: 100%;
-}
-/* Inputs mais compactos */
-.config-card .form-group input, .config-card .form-group select,
-#abastecimento-form .form-group input { 
-    width: 100%; min-width: 0; text-align: center;
-    padding: 8px; font-size: 0.95rem;
-}
-/* Botões mais compactos */
-.config-card .form-group button, #abastecimento-form .form-group button { 
-    width: 100%; padding: 8px; min-width: 0; margin-top: 0;
-    font-size: 0.9rem;
-}
-
-/* Card de lista ocupa largura total */
-.config-card:last-child {
-    grid-column: 1 / -1;
-}
-
-
-/* Responsividade */
-@media (max-width: 800px) {
-    .main-header { 
-        overflow-x: hidden; 
-        justify-content: center;
-        padding-left: 120px; /* Força espaço para o botão flutuante */
-    }
-    .nav-group { width: 100%; justify-content: center; overflow-x: auto; }
-    
-    /* Removido estilo específico do toggle aqui porque agora ele é global fixo */
-    
-    .nav-button span { display: none; } 
-    .nav-button i { font-size: 1.3rem; }
-    .nav-button { padding: 10px 15px; }
-    /* Ajuste da caixa para caber sem scroll */
-    .reservatorio-wrapper { 
-        transform: scale(0.8); 
-        margin: -50px auto 0 auto; /* Sobe bastante */
-        transform-origin: top center; 
-    }
-    canvas { height: 260px !important; }
-    /* Config board já é responsivo com grid-auto-fit */
-}
-/* Telas muito pequenas */
-@media (max-height: 700px) {
-     .reservatorio-wrapper { transform: scale(0.7); margin-top: -60px; }
-}
-
-/* SVG Styles - Clássico Cinza/Preto */
+.config-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; width: 100%; max-width: 900px; padding: 0 5px; }
+.config-card, #abastecimento-form { text-align: center; display: flex; flex-direction: column; align-items: center; padding: 15px; } 
+.config-card h2, #abastecimento-form h2 { width: 100%; font-size: 1rem; margin: 0 0 10px 0; }
+.config-card .form-group, #abastecimento-form .form-group { display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; width: 100%; }
+.config-card .form-group input, .config-card .form-group select, #abastecimento-form .form-group input { width: 100%; min-width: 0; text-align: center; padding: 8px; font-size: 0.95rem; }
+.config-card .form-group button, #abastecimento-form .form-group button { width: 100%; padding: 8px; min-width: 0; margin-top: 0; font-size: 0.9rem; }
+.config-card:last-child { grid-column: 1 / -1; }
+@media (max-width: 800px) { .main-header { overflow-x: hidden; justify-content: center; padding-left: 0; } .nav-group { width: 100%; justify-content: center; overflow-x: auto; } .nav-button span { display: none; } .nav-button i { font-size: 1.3rem; } .nav-button { padding: 10px 15px; } .reservatorio-wrapper { transform: scale(0.8); margin: -50px auto 0 auto; transform-origin: top center; } canvas { height: 260px !important; } }
+@media (max-height: 700px) { .reservatorio-wrapper { transform: scale(0.7); margin-top: -60px; } }
 #reservatorio-svg .estrutura-solida { fill: url(#grad-metal); stroke: #475569; stroke-width: 2.5; opacity: 0.8; }
 #reservatorio-svg .base-concreto { fill: #cbd5e1; stroke: #475569; stroke-width: 2; opacity: 0.9; }
 #reservatorio-svg .suportes-base { fill: #94a3b8; stroke: #475569; stroke-width: 2; opacity: 0.9; }
 #reservatorio-svg .faixa-metalica { stroke: #475569; stroke-width: 2; opacity: 0.4; fill: none; }
 #reservatorio-svg .taca-solida { fill: url(#grad-metal); stroke: #1e293b; stroke-width: 2.5; opacity: 0.3; }
 #reservatorio-svg .guarda-corpo { fill: none; stroke: #1e293b; stroke-width: 2.5; opacity: 0.5; }
-
-/* LEDs CHAMATIVOS */
-@keyframes pisca { 
-    0% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); } 
-    50% { opacity: 0.4; filter: drop-shadow(0 0 2px currentColor); } 
-    100% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); }
-}
-.led-base { stroke: #222; stroke-width: 1; transition: all 0.3s ease; fill: #333; /* Apagado */ }
-/* Cores vivas para estado aceso */
+@keyframes pisca { 0% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); } 50% { opacity: 0.4; filter: drop-shadow(0 0 2px currentColor); } 100% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); } }
+.led-base { stroke: #222; stroke-width: 1; transition: all 0.3s ease; fill: #333; }
 .led-base.aceso.vermelho { fill: #ff0000; color: #ff0000; animation: pisca 0.8s infinite; }
 .led-base.aceso.amarelo { fill: #ffdd00; color: #ffdd00; animation: pisca 0.8s infinite; }
 .led-base.aceso.verde { fill: #00ff00; color: #00ff00; animation: pisca 0.8s infinite; }
-
-/* Animação Água - Horizontal na Superfície */
 .agua-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
-.agua {
-    position: absolute; bottom: 0; width: 100%; height: 0%;
-    background: linear-gradient(to top, #06b6d4, #3b82f6);
-    transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: visible; 
-    color: white; font-weight: 800; text-align: center; font-size: 1.3rem;
-    display: flex; align-items: center; justify-content: center;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-/* Pseudo-elementos alinhados horizontalmente */
-.agua::before, .agua::after {
-    content: ""; position: absolute; 
-    width: 200%; height: 20px; 
-    top: -15px; left: 0;
-    background-repeat: repeat-x;
-    border-radius: 45%; 
-    background: rgba(255,255,255,0.3);
-}
+.agua { position: absolute; bottom: 0; width: 100%; height: 0%; background: linear-gradient(to top, #06b6d4, #3b82f6); transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1); overflow: visible; color: white; font-weight: 800; text-align: center; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.agua::before, .agua::after { content: ""; position: absolute; width: 200%; height: 20px; top: -15px; left: 0; background-repeat: repeat-x; border-radius: 45%; background: rgba(255,255,255,0.3); }
 .agua::before { transform: translateX(-50%); animation: onda1 4s linear infinite; }
 .agua::after { top: -12px; transform: translateX(-50%); background: rgba(255,255,255,0.15); animation: onda2 6s linear infinite; }
 @keyframes onda1 { 0% { transform: translateX(0) translateY(0) scaleY(1); } 50% { transform: translateX(-25%) translateY(2px) scaleY(0.9); } 100% { transform: translateX(-50%) translateY(0) scaleY(1); } }
@@ -454,1508 +299,593 @@ li {
 </style>
 </head>
 <body>
-
-<!-- Badge de Emergência -->
 <div id="emergency-badge" title="Sem Sinal">!</div>
 
-<!-- FIX: Botão flutuante FORA do header para garantir o clique (Z-Index alto) -->
-<!-- Evento direto no HTML para garantir funcionamento em WebViews antigas -->
-<button id="theme-toggle-btn" class="theme-toggle"><i class="fas fa-moon"></i></button>
-<!-- NOVO: Botão de Recarregar Página (Manual Fix) -->
-<button id="refresh-btn" class="refresh-toggle" onclick="window.location.reload(true)"><i class="fas fa-sync-alt"></i></button>
-
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
-    <!-- MOVIDO: O live-indicator foi retirado daqui e colocado dentro do #status-display -->
-    <div class="nav-group">
-        <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
-        <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
-        <button id="btn-view-abastecimento" class="nav-button"><i class="fas fa-truck-droplet"></i> <span>Abastecimento</span></button>
-        <button id="btn-view-consumo" class="nav-button"><i class="fas fa-chart-bar"></i> <span>Consumo</span></button>
-        <button id="btn-view-config" class="nav-button"><i class="fas fa-cog"></i> <span>Config</span></button>
-    </div>
+<div class="nav-group">
+<!-- Botões de Tema e Atualizar movidos para a Barra de Tarefas -->
+<button class="nav-button-icon-only" onclick="toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
+<button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
+<!-- Botões de Navegação -->
+<button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
+<button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
+<button id="btn-view-abastecimento" class="nav-button"><i class="fas fa-truck-droplet"></i> <span>Abastecimento</span></button>
+<button id="btn-view-consumo" class="nav-button"><i class="fas fa-chart-bar"></i> <span>Consumo</span></button>
+<button id="btn-view-config" class="nav-button"><i class="fas fa-cog"></i> <span>Config</span></button>
 </div>
-
+</div>
 <div id="caixa-view">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-    
-    <div id="status-display" class="glass-panel">
-        <!-- Indicador de Conexão (AGORA AQUI DENTRO) -->
-        <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
-        
-        <div class="status-item item-level">
-            <span class="status-label">Nível Atual</span>
-            <!-- Adicionado Span para o indicador simulado -->
-            <div style="display:flex; justify-content:center; align-items:center;">
-                <span class="status-value skeleton-text" id="status-level">--%</span>
-                <span id="simulated-indicator" style="display:none; background:#f59e0b; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; cursor:help; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Leitura Estimada (Sem Sinal)">?</span>
-            </div>
-        </div>
-        <div class="status-item item-litros">
-            <span class="status-label">Volume</span>
-            <span class="status-value skeleton-text" id="status-litros">---- <small>L</small></span>
-        </div>
-        <div class="status-item item-time">
-            <span class="status-label">Hora</span>
-            <span class="status-value skeleton-text" id="status-time" style="font-size: 1.2rem;">--:--</span>
-        </div>
-    </div>
-    
-    <div class="reservatorio-wrapper" id="caixa-container">
-        <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
-            <defs>
-            <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/>
-                </linearGradient>
-                <clipPath id="mascara-agua">
-                    <path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
-                </clipPath>
-            </defs>
-            <foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
-                <div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
-                    <div class="agua" id="agua">0%</div>
-                </div>
-            </foreignObject>
-            <g id="estrutura-reservatorio">
-                <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
-                <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
-                <g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
-                <g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
-            </g>
-        </svg>
-    </div>
+<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+
+<!-- Título Específico da Caixa -->
+<h2 style="font-size: 1rem; color: var(--text-sec); margin: 5px 0 10px 0; font-weight: 600; text-align: center;">__APP_TITLE__</h2>
+
+<div id="status-display" class="glass-panel">
+<!-- Indicador LED dentro do quadro branco -->
+<div class="status-indicator-box">
+<div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
 </div>
 
+<div class="status-item item-level">
+<span class="status-label">Nível Atual</span>
+<div style="display:flex; justify-content:center; align-items:center;">
+<span class="status-value skeleton-text" id="status-level">--%</span>
+<span id="simulated-indicator" style="display:none; background:#f59e0b; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; cursor:help; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Leitura Estimada (Sem Sinal)">?</span>
+</div>
+</div>
+<div class="status-item item-litros">
+<span class="status-label">Volume</span>
+<span class="status-value skeleton-text" id="status-litros">---- <small>L</small></span>
+</div>
+<div class="status-item item-time">
+<span class="status-label">Hora</span>
+<span class="status-value skeleton-text" id="status-time" style="font-size: 1.2rem;">--:--</span>
+</div>
+</div>
+<div class="reservatorio-wrapper" id="caixa-container">
+<svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
+<defs>
+<linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/>
+</linearGradient>
+<clipPath id="mascara-agua">
+<path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
+</clipPath>
+</defs>
+<foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
+<div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
+<div class="agua" id="agua">0%</div>
+</div>
+</foreignObject>
+<g id="estrutura-reservatorio">
+<g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
+<g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
+<g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
+<g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
+</g>
+</svg>
+</div>
+</div>
 <div id="grafico-container" style="display:none;">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-    <header>
-        <h1><i class="fas fa-chart-line" style="color: var(--accent);"></i> Histórico de Nível</h1>
-    </header>
-    <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
-        <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
-        <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
-        <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
-        <button id="btnAtualizar" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
-    </div>
-    <div class="board">
-        <div class="charts">
-            <div class="chart-card glass-panel"><strong>Variação de Nível (%)</strong><canvas id="chartLinha"></canvas></div>
-            <div class="chart-card glass-panel"><strong>Nível Médio por Hora (%)</strong><canvas id="chartBlocos"></canvas></div>
-        </div>
-    </div>
+<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+<header>
+<h1><i class="fas fa-chart-line" style="color: var(--accent);"></i> Histórico de Nível</h1>
+</header>
+<div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
+<div id="diario-picker"><input type="date" id="dataEscolhida"></div>
+<div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
+<div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
+<button id="btnAtualizar" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
 </div>
-
+<div class="board">
+<div class="charts">
+<div class="chart-card glass-panel"><strong>Variação de Nível (%)</strong><canvas id="chartLinha"></canvas></div>
+<div class="chart-card glass-panel"><strong>Nível Médio por Hora (%)</strong><canvas id="chartBlocos"></canvas></div>
+</div>
+</div>
+</div>
 <div id="abastecimento-view" style="display:none;">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-    <header>
-        <h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1>
-    </header>
-    <div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
-        <!-- Formulário Primeiro (Topo) -->
-        <div id="abastecimento-form" class="config-card glass-panel" style="margin: 0; width: 100%; max-width: 500px;">
-            <h2>Registrar Entrada</h2>
-            <!-- Centralizado -->
-            <div class="form-group">
-                <input type="number" id="litros-abastecidos" placeholder="Qtd. Litros (ex: 5000)" min="1">
-                <button id="btn-salvar-abastecimento" class="modern-button"><i class="fas fa-save"></i> Salvar</button>
-            </div>
-            <div id="status-abastecimento" class="small" style="font-weight:bold; margin: -10px 0 0 0;"></div>
-        </div>
-
-        <!-- Lista Histórico (Meio) -->
-        <div id="abastecimento-historico-card" class="glass-panel" style="width: 100%; max-width: 500px; padding: 20px;">
-            <h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; text-align: left; border-bottom: 1px solid var(--text-sec); padding-bottom: 8px;">Histórico Recente</h3>
-            <ul id="lista-abastecimentos"></ul>
-        </div>
-
-        <!-- Seletor de Período para Gráfico (Abaixo da Lista) -->
-        <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 5px; flex-wrap:wrap;">
-            <input type="month" id="mesAbastecimento">
-            <select id="filtroSemana" style="padding: 10px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); font-family: 'Poppins', sans-serif;">
-                <option value="todas">Visão Mensal</option>
-                <option value="1">Semana 1 (1-7)</option>
-                <option value="2">Semana 2 (8-14)</option>
-                <option value="3">Semana 3 (15-21)</option>
-                <option value="4">Semana 4 (22+)</option>
-            </select>
-            <button id="btnAtualizarAbastecimento" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
-        </div>
-
-        <!-- Gráfico (Fundo) -->
-        <div class="chart-card glass-panel" style="width: 100%; max-width: 600px;">
-            <strong id="tituloGraficoAbastecimento">Comparativo Semanal (Litros)</strong>
-            <canvas id="chartAbastecimento"></canvas>
-        </div>
-    </div>
+<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+<header>
+<h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1>
+</header>
+<div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+<div id="abastecimento-form" class="config-card glass-panel" style="margin: 0; width: 100%; max-width: 500px;">
+<h2>Registrar Entrada</h2>
+<div class="form-group">
+<input type="number" id="litros-abastecidos" placeholder="Qtd. Litros (ex: 5000)" min="1">
+<button id="btn-salvar-abastecimento" class="modern-button"><i class="fas fa-save"></i> Salvar</button>
 </div>
-
+<div id="status-abastecimento" class="small" style="font-weight:bold; margin: -10px 0 0 0;"></div>
+</div>
+<div id="abastecimento-historico-card" class="glass-panel" style="width: 100%; max-width: 500px; padding: 20px;">
+<h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; text-align: left; border-bottom: 1px solid var(--text-sec); padding-bottom: 8px;">Histórico Recente</h3>
+<ul id="lista-abastecimentos"></ul>
+</div>
+<div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 5px; flex-wrap:wrap;">
+<input type="month" id="mesAbastecimento">
+<select id="filtroSemana" style="padding: 10px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); font-family: 'Poppins', sans-serif;">
+<option value="todas">Visão Mensal</option>
+<option value="1">Semana 1 (1-7)</option>
+<option value="2">Semana 2 (8-14)</option>
+<option value="3">Semana 3 (15-21)</option>
+<option value="4">Semana 4 (22+)</option>
+</select>
+<button id="btnAtualizarAbastecimento" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
+</div>
+<div class="chart-card glass-panel" style="width: 100%; max-width: 600px;">
+<strong id="tituloGraficoAbastecimento">Comparativo Semanal (Litros)</strong>
+<canvas id="chartAbastecimento"></canvas>
+</div>
+</div>
+</div>
 <div id="consumo-view" style="display:none;">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-    <header>
-        <h1><i class="fas fa-chart-bar" style="color: var(--accent);"></i> Consumo Diário</h1>
-    </header>
-    <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
-        <!-- Copia dos controles para a aba consumo -->
-        <input type="date" id="dataEscolhidaConsumo" onchange="document.getElementById('dataEscolhida').value=this.value; document.getElementById('btnAtualizar').click();">
-        <button onclick="document.getElementById('btnAtualizar').click()" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
-    </div>
-    <div class="board">
-        <div class="charts">
-            <div class="chart-card glass-panel" id="consumo-chart-card-bloco">
-                <strong>Consumo Estimado (Litros)</strong>
-                <canvas id="chartConsumoBloco"></canvas>
-                <div id="consumo-info-texto" style="margin-top: 15px; font-weight: 700; color: var(--accent); font-size: 1.1rem;"></div>
-            </div>
-            <div class="chart-card glass-panel" id="consumo-chart-card-linha">
-                <strong>Curva de Consumo</strong>
-                <canvas id="chartConsumoLinha"></canvas>
-            </div>
-        </div>
-    </div>
+<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+<header>
+<h1><i class="fas fa-chart-bar" style="color: var(--accent);"></i> Consumo Diário</h1>
+</header>
+<div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
+<input type="date" id="dataEscolhidaConsumo" onchange="document.getElementById('dataEscolhida').value=this.value; document.getElementById('btnAtualizar').click();">
+<button onclick="document.getElementById('btnAtualizar').click()" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
 </div>
-
-
+<div class="board">
+<div class="charts">
+<div class="chart-card glass-panel" id="consumo-chart-card-bloco">
+<strong>Consumo Estimado (Litros)</strong>
+<canvas id="chartConsumoBloco"></canvas>
+<div id="consumo-info-texto" style="margin-top: 15px; font-weight: 700; color: var(--accent); font-size: 1.1rem;"></div>
+</div>
+<div class="chart-card glass-panel" id="consumo-chart-card-linha">
+<strong>Curva de Consumo</strong>
+<canvas id="chartConsumoLinha"></canvas>
+</div>
+</div>
+</div>
+</div>
 <div id="config-view" style="display:none;">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-    <h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
-    <div class="config-board">
-        <div class="config-card glass-panel">
-            <h2>Capacidade (L)</h2>
-            <div class="form-group">
-                <input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000">
-                <button id="btn-salvar-capacidade" class="modern-button"><i class="fas fa-check"></i></button>
-            </div>
-            <div id="status-capacidade" class="small" style="font-weight:bold;"></div>
-        </div>
-        
-        <div class="config-card glass-panel">
-            <h2>Altura (cm)</h2>
-            <div class="form-group">
-                <input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1">
-                <button id="btn-salvar-altura" class="modern-button"><i class="fas fa-check"></i></button>
-            </div>
-            <div id="status-altura" class="small" style="font-weight:bold;"></div>
-        </div>
-
-        <div class="config-card glass-panel">
-            <h2>Novo Contato</h2>
-            <div class="form-group">
-                <input type="text" id="contato-valor" placeholder="Email ou Telegram">
-                <select id="contato-tipo">
-                    <option value="email">Email</option>
-                    <option value="telegram">Telegram</option>
-                </select>
-                 <button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button>
-            </div>
-            <div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
-        </div>
-
-        <div class="config-card glass-panel">
-            <h2>Nível Alerta (%)</h2>
-            <div class="form-group">
-                <input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
-                <button id="btn-salvar-nivel-alerta" class="modern-button"><i class="fas fa-check"></i></button>
-            </div>
-            <div id="status-alerta" class="small" style="font-weight:bold;"></div>
-        </div>
-        
-        <div class="config-card glass-panel" style="grid-column: 1 / -1;">
-            <h2>Contatos Cadastrados</h2>
-            <ul id="lista-contatos"></ul>
-            <div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div>
-        </div>
-
-    </div>
+<img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+<h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
+<div class="config-board">
+<div class="config-card glass-panel">
+<h2>Capacidade (L)</h2>
+<div class="form-group">
+<input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000">
+<button id="btn-salvar-capacidade" class="modern-button"><i class="fas fa-check"></i></button>
 </div>
-
+<div id="status-capacidade" class="small" style="font-weight:bold;"></div>
+</div>
+<div class="config-card glass-panel">
+<h2>Altura (cm)</h2>
+<div class="form-group">
+<input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1">
+<button id="btn-salvar-altura" class="modern-button"><i class="fas fa-check"></i></button>
+</div>
+<div id="status-altura" class="small" style="font-weight:bold;"></div>
+</div>
+<div class="config-card glass-panel">
+<h2>Novo Contato</h2>
+<div class="form-group">
+<input type="text" id="contato-valor" placeholder="Email ou Telegram">
+<select id="contato-tipo">
+<option value="email">Email</option>
+<option value="telegram">Telegram</option>
+</select>
+<button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button>
+</div>
+<div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+</div>
+<div class="config-card glass-panel">
+<h2>Nível Alerta (%)</h2>
+<div class="form-group">
+<input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
+<button id="btn-salvar-nivel-alerta" class="modern-button"><i class="fas fa-check"></i></button>
+</div>
+<div id="status-alerta" class="small" style="font-weight:bold;"></div>
+</div>
+<div class="config-card glass-panel" style="grid-column: 1 / -1;">
+<h2>Contatos Cadastrados</h2>
+<ul id="lista-contatos"></ul>
+<div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+</div>
+</div>
+</div>
 <div id="alert-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <i class="fas fa-exclamation-triangle"></i> ALERTA DE NÍVEL BAIXO
-        </div>
-        <div class="modal-body">
-            Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)
-        </div>
-        <div class="modal-footer">
-            <button id="modal-close-btn" class="modern-button">Entendido</button>
-        </div>
-    </div>
+<div class="modal-content">
+<div class="modal-header">
+<i class="fas fa-exclamation-triangle"></i> ALERTA DE NÍVEL BAIXO
 </div>
-
+<div class="modal-body">
+Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)
+</div>
+<div class="modal-footer">
+<button id="modal-close-btn" class="modern-button">Entendido</button>
+</div>
+</div>
+</div>
 <div class="header-right" id="date-controls" style="display: none;">
-    <div class="view-selector">
-        <button id="btn-view-diario" class="view-btn active" data-view="diario">Hoje</button>
-        <button id="btn-view-semanal" class="view-btn" data-view="semanal" style="display:none;">Semanal</button>
-        <button id="btn-view-mensal" class="view-btn" data-view="mensal">Mês</button>
-        <button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Período</button>
-    </div>
+<div class="view-selector">
+<button id="btn-view-diario" class="view-btn active" data-view="diario">Hoje</button>
+<button id="btn-view-semanal" class="view-btn" data-view="semanal" style="display:none;">Semanal</button>
+<button id="btn-view-mensal" class="view-btn" data-view="mensal">Mês</button>
+<button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Período</button>
 </div>
-
-
+</div>
 <script>
-// --- CONFIGURAÇÃO DE CONTAS EMAIL (ATUALIZADA COM LOCALSTORAGE) ---
-const CONTAS_EMAIL = [
-    { 
-        id: 0, 
-        service: "service_lubx0i8", 
-        template: "template_ll79qy1", 
-        key: "I1HnvhgWehPP7EXxX", 
-        quota_inicial: 200 // Padrão
-    },
-    { 
-        id: 1, 
-        service: "service_n365um4", 
-        template: "template_fjhnurn", 
-        key: "ivGT9BYMpO_IMpcJI", 
-        quota_inicial: 200 // Padrão
-    },
-    { 
-        id: 2, 
-        service: "service_txwft9l", 
-        template: "template_c5l1j8r", 
-        key: "xwk898VhH0VS-PSg9", 
-        quota_inicial: 200 // Padrão
-    }
-];
-
-/* --- SISTEMA DE TEMA ROBUSTO (APP INVENTOR FIX) --- */
+const API_KEY = ""; 
+const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+// VARIAVEIS INJETADAS PELO DASHBOARD
+const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`; 
+const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`; // Base path for config (e.g., /SAU13_config)
+const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; // Base path for historic (e.g., /SAU13_historico)
+const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
+// CONTAS DE EMAIL ROTATIVAS
+const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
 let isDarkMode = false;
-
-function checkAutoTheme() {
-    try {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            isDarkMode = (savedTheme === 'dark');
-            applyTheme();
-            return;
-        }
-    } catch (e) {}
-
-    const hora = new Date().getHours();
-    isDarkMode = (hora >= 18 || hora < 6);
-    applyTheme();
-}
-
-function applyTheme() {
-    const body = document.body;
-    const icon = document.querySelector('#theme-toggle-btn i');
-    
-    if (isDarkMode) {
-        body.setAttribute('data-theme', 'dark');
-        if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
-        try { localStorage.setItem('theme', 'dark'); } catch(e){}
-    } else {
-        body.removeAttribute('data-theme');
-        body.style.display='none'; body.offsetHeight; body.style.display='';
-        if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
-        try { localStorage.setItem('theme', 'light'); } catch(e){}
-    }
-    criarGraficos();
-    if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
-    if(activeTab === 'abastecimento') carregarHistoricoAbastecimento();
-}
-
-function toggleTheme(e) {
-    if(e) { e.preventDefault(); e.stopPropagation(); }
-    isDarkMode = !isDarkMode;
-    applyTheme();
-}
-
-try {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        isDarkMode = true;
-        document.body.setAttribute('data-theme', 'dark');
-    }
-} catch (e) {}
-
+function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
+function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); }
+function toggleTheme(e) { if(e) { e.preventDefault(); e.stopPropagation(); } isDarkMode = !isDarkMode; applyTheme(); }
+try { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
 let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
 let historicoNiveis = [], historicoLabels = [];
-let currentView = 'diario'; 
-let activeTab = 'caixa'; 
-let nivelAtual = 0;
-let nivelAlertaConfigurado = 30; 
-let capacidadeTotal = 7955; // AJUSTADO PARA 88% = 7000L
-let alturaCaixa = 0; 
-let alertaModalMostrado = false; 
-let verificacaoInicialConcluida = false;
-let emailEnviadoNessaSessao = false; 
-let alertaConfirmadoPeloUsuario = false; 
-let ultimoHorarioSalvo = -1; 
-let ultimoTempoSalvo = 0; 
+let currentView = 'diario'; let activeTab = 'caixa'; 
+let nivelAtual = 0; let nivelAlertaConfigurado = 30; let capacidadeTotal = 8000; let alturaCaixa = 0; 
+let alertaModalMostrado = false; let verificacaoInicialConcluida = false;
+let emailEnviadoNessaSessao = false; let alertaConfirmadoPeloUsuario = false; 
+let ultimoHorarioSalvo = -1; let ultimoTempoSalvo = 0; 
 let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
 let snoozeCount = 0, snoozeUntil = 0; 
-const SNOOZE_DURATION_MINUTES = 10; 
-const AUTO_SNOOZE_SECONDS = 30; 
-
-// --- VARIÁVEIS LATCH & FILTRO ---
-let ultimoNivelValidoLatch = null; 
-let timestampLatch = null; 
-let historicoLeiturasValidas = []; 
-let loopInterval = null;
-let lastUpdateTimestamp = 0; 
-let contadorZerosConsecutivos = 0; 
-
-// NOVO: Buffer para Mediana
-let bufferLeituras = []; 
-let contadorLeiturasFantasmas = 0; // Para persistência de pico
-let ultimoNivelExibido = -1; // Para travar o display (Anti-Jitter)
-
-function calcularVolumeLitros(nivelPercentual) {
-    if (nivelPercentual <= 0) return 0;
-    if (nivelPercentual > 100) nivelPercentual = 100;
-    // Arredonda para ficar bonito no display
-    return Math.floor((nivelPercentual / 100) * capacidadeTotal);
-}
-
-function getLocalISODate(dateObj) {
-    const d = dateObj || new Date();
-    const offset = d.getTimezoneOffset() * 60000;
-    const localDate = new Date(d.getTime() - offset);
-    return localDate.toISOString().split('T')[0];
-}
-
-function getNoCacheUrl(url) {
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`;
-}
-
-// --- REDE ROBUSTA (SILENT FAIL) ---
-async function safeFetch(url, options = {}) {
-    const finalOptions = {
-        ...options,
-        cache: 'no-store', 
-    };
-    try {
-        const response = await fetch(getNoCacheUrl(url), finalOptions);
-        if (!response.ok) throw new Error(response.statusText);
-        return response;
-    } catch(e) {
-        console.warn("Fetch falhou (Offline/Bloqueado):", url); // Apenas aviso, não erro
-        return null; // Retorna nulo para indicar falha sem quebrar o loop
-    }
-}
-
-// --- LÓGICA DE E-MAIL (COM LOCALSTORAGE E ROTAÇÃO) ---
-function carregarDadosEmailLocal() {
-    try {
-        const dados = localStorage.getItem('email_usage_data');
-        if (dados) return JSON.parse(dados);
-    } catch(e) {}
-    // Padrão inicial se não houver dados salvos
-    return {
-        conta_ativa_index: 0,
-        cotas_restantes: [200, 200, 200], // Array para as 3 contas
-        datas_inicio_ciclo: [null, null, null] // Array para as 3 contas
-    };
-}
-
-function salvarDadosEmailLocal(dados) {
-    try {
-        localStorage.setItem('email_usage_data', JSON.stringify(dados));
-    } catch(e) {}
-}
-
-async function enviarEmailAlerta(nivel) {
-    const urlTimestamp = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/ultimo_disparo_timestamp.json';
-    
-    if (emailEnviadoNessaSessao) return false;
-
-    // Verifica bloqueio de tempo (12h) no firebase
-    try {
-        const rTime = await safeFetch(urlTimestamp);
-        if (rTime) {
-            const ultimoDisparo = await rTime.json();
-            const agora = Date.now();
-            if (ultimoDisparo) {
-                const diferenca = agora - ultimoDisparo;
-                const horas12 = 12 * 60 * 60 * 1000; 
-                if (diferenca < horas12) return false; 
-            }
-        }
-    } catch (e) {}
-
-    // Carrega contatos
-    let contatos = {};
-    try {
-        const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
-        if (r) contatos = await r.json();
-        if (!contatos) return false; 
-    } catch (e) { return false; }
-
-    const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor);
-    if (emailsParaEnviar.length === 0) return false;
-
-    // --- GESTÃO DE ROTAÇÃO E COTAS ---
-    let emailData = carregarDadosEmailLocal();
-    const agoraTime = Date.now();
-    let contaUsavelIndex = -1;
-
-    // Itera sobre as contas para achar uma válida ou rotacionar
-    // Começa checando a conta ativa salva
-    for (let i = 0; i < CONTAS_EMAIL.length; i++) {
-        // Lógica circular começando da conta ativa salva
-        let idx = (emailData.conta_ativa_index + i) % CONTAS_EMAIL.length;
-        
-        // Verifica Reset de 30 dias para esta conta
-        if (emailData.datas_inicio_ciclo[idx]) {
-            const diasPassados = (agoraTime - emailData.datas_inicio_ciclo[idx]) / (1000 * 60 * 60 * 24);
-            if (diasPassados >= 30) {
-                // Passou 30 dias, reseta cota
-                emailData.cotas_restantes[idx] = 200;
-                emailData.datas_inicio_ciclo[idx] = null; // Vai setar nova data no próximo envio
-            }
-        }
-
-        // Verifica se tem cota suficiente para enviar a lista toda
-        if (emailData.cotas_restantes[idx] >= emailsParaEnviar.length) {
-            contaUsavelIndex = idx;
-            emailData.conta_ativa_index = idx; // Atualiza conta ativa
-            break;
-        }
-    }
-
-    if (contaUsavelIndex === -1) {
-        console.warn("Todas as contas de email estão sem cota.");
-        return false;
-    }
-
-    const credenciais = CONTAS_EMAIL[contaUsavelIndex];
-    let todosEnviadosComSucesso = true;
-
-    // Envia para cada contato
-    for (const email of emailsParaEnviar) {
-        const templateParams = { "%": nivel, "email": email };
-        try { 
-            await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); 
-            // Sucesso: Decrementa cota
-            emailData.cotas_restantes[contaUsavelIndex]--;
-            // Se for o primeiro email do ciclo, marca a data
-            if (!emailData.datas_inicio_ciclo[contaUsavelIndex]) {
-                emailData.datas_inicio_ciclo[contaUsavelIndex] = Date.now();
-            }
-        } catch (err) { 
-            console.error("Erro envio emailjs", err);
-            todosEnviadosComSucesso = false; 
-        }
-    }
-
-    // Salva o estado atualizado das cotas
-    salvarDadosEmailLocal(emailData);
-
-    if (todosEnviadosComSucesso) {
-        emailEnviadoNessaSessao = true;
-        const agoraMs = Date.now();
-        try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {}
-    }
-    return todosEnviadosComSucesso;
-}
-
+const SNOOZE_DURATION_MINUTES = 10; const AUTO_SNOOZE_SECONDS = 30; 
+let ultimoNivelValidoLatch = null; let timestampLatch = null; 
+let historicoLeiturasValidas = []; let loopInterval = null;
+let lastUpdateTimestamp = 0; let contadorZerosConsecutivos = 0; 
+let bufferLeituras = []; let contadorLeiturasFantasmas = 0; let ultimoNivelExibido = -1; 
+function calcularVolumeLitros(nivelPercentual) { if (nivelPercentual <= 0) return 0; if (nivelPercentual > 100) nivelPercentual = 100; return Math.floor((nivelPercentual / 100) * capacidadeTotal); }
+function getLocalISODate(dateObj) { const d = dateObj || new Date(); const offset = d.getTimezoneOffset() * 60000; const localDate = new Date(d.getTime() - offset); return localDate.toISOString().split('T')[0]; }
+function getNoCacheUrl(url) { const separator = url.includes('?') ? '&' : '?'; return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; }
+async function safeFetch(url, options = {}) { const finalOptions = { ...options, cache: 'no-store' }; try { const response = await fetch(getNoCacheUrl(url), finalOptions); if (!response.ok) throw new Error(response.statusText); return response; } catch(e) { console.warn("Fetch falhou:", url); return null; } }
+async function enviarEmailAlerta(nivel) { const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`; if (emailEnviadoNessaSessao) return false; try { const rTime = await safeFetch(urlTimestamp); if (rTime) { const ultimoDisparo = await rTime.json(); const agora = Date.now(); if (ultimoDisparo) { const diferenca = agora - ultimoDisparo; const horas12 = 12 * 60 * 60 * 1000; if (diferenca < horas12) return false; } } } catch (e) {} let contatos = {}; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); if (!contatos) return false; } catch (e) { return false; } const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor); if (emailsParaEnviar.length === 0) return false; let credenciais = null; const hoje = new Date(); for (let conta of CONTAS_EMAIL) { let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio); if (hoje >= dataReinicio && conta.quota_inicial < 200) { conta.quota_inicial = 200; } if (conta.quota_inicial >= emailsParaEnviar.length) { credenciais = conta; break; } } if (!credenciais) { console.warn("Sem cota de email."); return false; } let todosEnviadosComSucesso = true; for (const email of emailsParaEnviar) { const templateParams = { "%": nivel, "email": email }; try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { console.error("Erro envio", err); todosEnviadosComSucesso = false; } } if (todosEnviadosComSucesso) { emailEnviadoNessaSessao = true; const agoraMs = Date.now(); try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {} } return todosEnviadosComSucesso; }
 function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
 function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
 function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
 function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
+function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
+function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
+function atualizarCaixaDOM(nivel) { if (ultimoNivelExibido !== -1 && Math.abs(nivel - ultimoNivelExibido) < 1) { return; } ultimoNivelExibido = nivel; const aguaDiv = document.getElementById('agua'); if(aguaDiv) { aguaDiv.style.height = nivel + '%'; aguaDiv.innerText = nivel + '%'; if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)'; else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)'; else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)'; } const ledVermelho = document.getElementById('led-vermelho'); const ledAmarelo = document.getElementById('led-amarelo'); const ledVerde = document.getElementById('led-verde'); if(ledVermelho && ledAmarelo && ledVerde) { ledVermelho.classList.remove('aceso'); ledAmarelo.classList.remove('aceso'); ledVerde.classList.remove('aceso'); if (nivel > 60) ledVerde.classList.add('aceso'); else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso'); else ledVermelho.classList.add('aceso'); } const txtNivel = document.getElementById('status-level'); if(txtNivel) { txtNivel.innerText = nivel + '%'; if (nivel > 60) txtNivel.style.color = 'var(--level-ok)'; else if (nivel > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)'; else txtNivel.style.color = 'var(--level-danger)'; } if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivel)} <small>L</small>`; if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+function interpolacaoLinear(arr) { let filled = [...arr]; let indices = []; for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); } if(indices.length === 0) return filled; for(let k = 0; k < indices.length - 1; k++) { let startIdx = indices[k]; let endIdx = indices[k+1]; let startVal = filled[startIdx]; let endVal = filled[endIdx]; let steps = endIdx - startIdx; if (endVal > startVal + 30) { for(let j = 1; j < steps; j++) { filled[startIdx + j] = startVal; } } else { for(let j = 1; j < steps; j++) { let val = startVal + (endVal - startVal) * (j / steps); filled[startIdx + j] = Math.round(val); } } } if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; } return filled; }
+function atualizarGraficosHistorico(result) { if (!chartLinha || !chartBlocos) return; if (!result || !result.labels) return; let displayLabels = result.labels || []; let displayNiveis = result.niveis || []; chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update(); chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis; const cores = 'rgba(6, 182, 212, 0.85)'; chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update(); }
+function atualizarGraficosConsumo(result) { if (!chartConsumoBloco || !chartConsumoLinha) return; if (!result || !result.consumo) return; const consumoData = result.consumo || []; const consumoLabels = result.labels || []; const infoTexto = document.getElementById('consumo-info-texto'); if (infoTexto) { let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0); let statusTexto = "Normal"; let corStatus = "var(--accent)"; if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; } else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; } if (currentView === 'diario') { infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`; } else { infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`; } } chartConsumoBloco.data.labels = consumoLabels; chartConsumoBloco.data.datasets[0].data = consumoData; chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; chartConsumoBloco.update(); chartConsumoLinha.data.labels = consumoLabels; chartConsumoLinha.data.datasets[0].data = consumoData; chartConsumoLinha.update(); }
+function criarGraficos() { Chart.register(ChartDataLabels); const isDark = document.body.getAttribute('data-theme') === 'dark'; const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; const textColor = isDark ? '#94a3b8' : '#64748b'; const zoomOptions = { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' } }; const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, maxTicksLimit: 6, color: textColor }, grid: { display: true, color: gridColor } }; if(document.getElementById('chartLinha')) { const ctxL = document.getElementById('chartLinha').getContext('2d'); const gradL = ctxL.createLinearGradient(0, 0, 0, 300); gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)'); gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)'); if(chartLinha) chartLinha.destroy(); chartLinha = new Chart(ctxL, { type: 'line', data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 3, spanGaps: true }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartBlocos')) { const ctxB = document.getElementById('chartBlocos').getContext('2d'); if(chartBlocos) chartBlocos.destroy(); chartBlocos = new Chart(ctxB, { type: 'bar', data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartConsumoBloco')) { const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d'); if(chartConsumoBloco) chartConsumoBloco.destroy(); chartConsumoBloco = new Chart(ctxCB, { type: 'bar', data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round, font: { size: 10 } } }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, suggestedMax: 2000, grid: { color: gridColor } } }, layout: { padding: { top: 20 } } } }); } if(document.getElementById('chartConsumoLinha')) { const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d'); if(chartConsumoLinha) chartConsumoLinha.destroy(); chartConsumoLinha = new Chart(ctxCL, { type: 'line', data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 2 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartAbastecimento')) { const ctxA = document.getElementById('chartAbastecimento').getContext('2d'); if(chartAbastecimento) chartAbastecimento.destroy(); chartAbastecimento = new Chart(ctxA, { type: 'bar', data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, scales: { x: { ticks: { color: textColor }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } } } }); } }
+async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') { if (nivel === null || nivel === undefined) return; if (tipo === 'real' && nivel <= 0) return; const d = new Date(timestamp); const localDate = getLocalISODate(d); const horaKey = String(d.getHours()).padStart(2, '0'); const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} }
+async function carregarHistoricoEConsumo() { if (currentView === 'semanal') return; let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 }; if (currentView === 'diario') { const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result; const data = dataEl.value; if (!data) return result; const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj); url = `${PATH_HISTORICO}/${data}.json`; const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; processData = (dadosHoje, dadosOntem) => { const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; if (dadosOntem) { const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); if (horariosOntem.length > 0) { const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey]; const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null; } } if (dadosHoje) { const keysSorted = Object.keys(dadosHoje).sort((a, b) => { const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number); return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); }); keysSorted.forEach(key => { const horaInt = parseInt(key.split(':')[0]); const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null; if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; } if (val !== null && previousVal !== null) { if (val > previousVal + 5) { detectedRefillIdx = horaInt; } if (previousVal > val) { const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val); const diff = volAnterior - volAtual; if(diff < 800) { const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap; for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; } } } } if (val !== null) { previousVal = val; lastHoraInt = horaInt; } }); if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; const niveisInterpolados = interpolacaoLinear(niveisFixed); for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h]; } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; } return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; }; try { let dadosHoje = null; try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = await rHoje.json(); } catch(e) {} let dadosOntem = null; try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = await rOntem.json(); } catch(e) {} result = processData(dadosHoje, dadosOntem); atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } else { let dataInicio, dataFim; if (currentView === 'mensal') { const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value; if (!mesAno) return result; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-'); const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`; } else if (currentView === 'intervalo') { const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim'); if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value; if (!dataInicio || !dataFim) return result; } url = `${PATH_HISTORICO}.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`; processData = (dados) => { const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort(); for (const dateKey in dados) { const dailyReadings = dados[dateKey]; const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b)); if(times.length === 0) continue; let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null; for (let i = 0; i < times.length; i++) { const tCurrent = times[i]; const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0; const valCurrent = Number(valRaw); if(valCurrent > 0) { somaNiveis += valCurrent; countNiveis++; if (lastValidLevelForDay !== null) { if (lastValidLevelForDay > valCurrent) { const volAnterior = calcularVolumeLitros(lastValidLevelForDay); const volAtual = calcularVolumeLitros(valCurrent); const diff = volAnterior - volAtual; if(diff < 800) consumoDia += diff; } } lastValidLevelForDay = valCurrent; } } dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0; } if (currentView === 'mensal') { const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0]; for (const dateKey in dailyConsumption) { const day = parseInt(dateKey.split('-')[2]); let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3)); weeks[idx] += dailyConsumption[dateKey]; if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; } } const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0); return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks }; } const labels = Object.keys(dailyConsumption).sort(); const consumo = labels.map(key => dailyConsumption[key]); const niveis = labels.map(key => dailyLevels[key]); const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; }); return { labels: displayLabels, niveis: niveis, consumo: consumo }; }; try { let dados = null; try { const r = await safeFetch(url); if (r) dados = await r.json(); } catch(e) {} result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] }; atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } }
+async function removerAbastecimento(id) { try { await fetch(`${PATH_ABASTECIMENTO.replace('.json', '')}/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {} }
+async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); const idsParaLista = ids.slice(0, 5); if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; idsParaLista.forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); let labelsGrafico = []; let dadosGrafico = []; let titulo = "Comparativo Semanal (Litros)"; if (semanaFiltro === 'todas') { titulo = "Comparativo Semanal (Litros)"; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); let idx = 0; if (dia <= 7) idx = 0; else if (dia <= 14) idx = 1; else if (dia <= 21) idx = 2; else idx = 3; totaisSemana[idx] += parseInt(item.litros || 0); } }); labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana']; dadosGrafico = totaisSemana; } else { titulo = `Detalhes: Semana ${semanaFiltro}`; const diasMap = {}; let diaInicio = 1, diaFim = 7; if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; } if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; } if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; } Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); if (dia >= diaInicio && dia <= diaFim) { const labelDia = `Dia ${String(dia).padStart(2, '0')}`; if (!diasMap[labelDia]) diasMap[labelDia] = 0; diasMap[labelDia] += parseInt(item.litros || 0); } } }); labelsGrafico = Object.keys(diasMap).sort(); dadosGrafico = labelsGrafico.map(l => diasMap[l]); if (labelsGrafico.length === 0) { labelsGrafico = ["Sem dados"]; dadosGrafico = [0]; } } if(document.getElementById('tituloGraficoAbastecimento')) { document.getElementById('tituloGraficoAbastecimento').innerText = titulo; } if(chartAbastecimento) { chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = dadosGrafico; chartAbastecimento.update(); } } else if(listaUL) { listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; } } catch (e) { console.error(e); } }
+function animarBotaoSucesso(btnId) { const btn = document.getElementById(btnId); if(!btn) return; const originalHTML = btn.innerHTML; btn.classList.add('btn-success'); btn.innerHTML = '<i class="fas fa-check"></i> Salvo!'; setTimeout(() => { btn.classList.remove('btn-success'); btn.innerHTML = originalHTML; }, 2000); }
+async function salvarAbastecimento(litros) { if (!litros || litros <= 0) return; const agora = new Date(); const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString() }; try { await fetch(PATH_ABASTECIMENTO, { method: 'POST', body: JSON.stringify(dados) }); document.getElementById('litros-abastecidos').value = ''; carregarHistoricoAbastecimento(); animarBotaoSucesso('btn-salvar-abastecimento'); } catch (e) {} }
+async function salvarConfig(endpoint, valor) { try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {} }
+async function salvarCapacidade(valor) { if(!valor || valor <= 0) return; await salvarConfig('capacidade', valor); capacidadeTotal = valor; animarBotaoSucesso('btn-salvar-capacidade'); }
+async function salvarAltura(valor) { if(!valor || valor <= 0) return; await salvarConfig('altura', valor); alturaCaixa = valor; animarBotaoSucesso('btn-salvar-altura'); }
+async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = valor; animarBotaoSucesso('btn-salvar-nivel-alerta'); }
+async function carregarConfiguracoesGerais() { try { let config = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) config = await r.json(); } catch(e) {} if(config) { if (config.nivel_alerta) { document.getElementById('nivel-alerta-valor').value = config.nivel_alerta; nivelAlertaConfigurado = parseInt(config.nivel_alerta); } else if (config.nivel_critico_pct) { document.getElementById('nivel-alerta-valor').value = config.nivel_critico_pct; nivelAlertaConfigurado = parseInt(config.nivel_critico_pct); } if (config.capacidade) { document.getElementById('capacidade-total-valor').value = config.capacidade; capacidadeTotal = parseInt(config.capacidade); } else if (config.capacidade_total_litros) { document.getElementById('capacidade-total-valor').value = config.capacidade_total_litros; capacidadeTotal = parseInt(config.capacidade_total_litros); } if (config.altura) { document.getElementById('altura-caixa-valor').value = config.altura; alturaCaixa = parseInt(config.altura); } else if (config.altura_tanque_cm) { document.getElementById('altura-caixa-valor').value = config.altura_tanque_cm; alturaCaixa = parseInt(config.altura_tanque_cm); } } } catch (e) {} }
+async function adicionarContato(valor, tipo) { if (!valor) return; const novoContato = { valor, tipo }; try { await fetch(`${PATH_CONFIG_BASE}/contatos.json`, { method: 'POST', body: JSON.stringify(novoContato) }); document.getElementById('contato-valor').value = ''; carregarContatos(); animarBotaoSucesso('btn-add-contato'); } catch (e) {} }
+async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
+async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
+function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted[mid]; }
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
+async function loopDeAtualizacao() { const liveIndicator = document.getElementById('live-indicator'); try { if (!verificacaoInicialConcluida) return; lastUpdateTimestamp = Date.now(); let j = {}; let fetchSuccess = false; try { const r = await safeFetch(PATH_TEMPO_REAL); if (r) { j = await r.json(); fetchSuccess = true; } } catch (err) {} if(liveIndicator) { if (fetchSuccess) { liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online'); liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5'); } else { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); liveIndicator.style.opacity = '1'; } } let nivelRecebidoRaw = 0; if (j && j.nivel_pct !== undefined) nivelRecebidoRaw = j.nivel_pct; else if (j && j.percentual_atual !== undefined) nivelRecebidoRaw = j.percentual_atual; let nivelRecebido = Number(nivelRecebidoRaw); let tipoDado = 'real'; let statusSensor = j && j.status_leitura ? j.status_leitura : "OFFLINE"; if (nivelRecebido > 0 && statusSensor !== "ERRO_SENSOR") { if (bufferLeituras.length === 0) { for(let i=0; i<9; i++) bufferLeituras.push(nivelRecebido); } else { bufferLeituras.push(nivelRecebido); if (bufferLeituras.length > 9) bufferLeituras.shift(); } let nivelEstavel = obterMediana(bufferLeituras); if (ultimoNivelValidoLatch !== null && Math.abs(nivelEstavel - ultimoNivelValidoLatch) > 5) { contadorLeiturasFantasmas++; if (contadorLeiturasFantasmas < 5) { nivelEstavel = ultimoNivelValidoLatch; } else { contadorLeiturasFantasmas = 0; } } else { contadorLeiturasFantasmas = 0; } nivelAtual = nivelEstavel; tipoDado = 'real'; ultimoNivelValidoLatch = nivelEstavel; timestampLatch = Date.now(); localStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelEstavel); localStorage.setItem('__STORAGE_KEY_PREFIX___last_time', timestampLatch); document.getElementById('emergency-badge').style.display = 'none'; document.getElementById('simulated-indicator').style.display = 'none'; } else { let backupUsado = false; if (j && j.ultima_valida_pct > 0 && j.ultima_valida_time > 0) { nivelAtual = calcularNivelSimuladoLatch(j.ultima_valida_pct, j.ultima_valida_time); backupUsado = true; } else if (ultimoNivelValidoLatch !== null && timestampLatch !== null) { nivelAtual = calcularNivelSimuladoLatch(ultimoNivelValidoLatch, timestampLatch); backupUsado = true; } else { const savedLvl = localStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); const savedTime = localStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); if(savedLvl && savedTime) { ultimoNivelValidoLatch = Number(savedLvl); timestampLatch = Number(savedTime); nivelAtual = calcularNivelSimuladoLatch(ultimoNivelValidoLatch, timestampLatch); backupUsado = true; } else { nivelAtual = 0; } } document.getElementById('emergency-badge').style.display = 'flex'; if (backupUsado) { document.getElementById('simulated-indicator').style.display = 'flex'; tipoDado = 'estimado'; } else { tipoDado = 'real'; } } const statusDisplay = document.getElementById('status-display'); if(statusDisplay) { statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger'); if (nivelAtual <= nivelAlertaConfigurado) { statusDisplay.classList.add('level-danger'); if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); } else { enviarEmailAlerta(nivelAtual); } } else { if (nivelAtual > 50) { if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; } if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); else statusDisplay.classList.add('level-ok'); if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; } } atualizarCaixaDOM(nivelAtual); const agora = new Date(); const horaAtual = agora.getHours(); const agoraMs = agora.getTime(); if ((horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) && nivelAtual > 0) { await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs, tipoDado); ultimoHorarioSalvo = horaAtual; ultimoTempoSalvo = agoraMs; if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); } } catch(e) { if(liveIndicator) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); } } }
+window.onload = function() { const themeBtn = document.querySelector('.nav-button-icon-only[title="Alternar Tema"]'); if(themeBtn) { themeBtn.addEventListener('click', toggleTheme); themeBtn.addEventListener('touchend', (e) => { e.preventDefault(); toggleTheme(e); }, {passive: false}); } checkAutoTheme(); const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; const dateControls = document.getElementById('date-controls'); const hoje = new Date(); const mesAtual = getLocalISODate(hoje).substring(0, 7); const elMesAbast = document.getElementById('mesAbastecimento'); if(elMesAbast) { elMesAbast.value = mesAtual; } const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; } setupAudio(); function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true }); verificacaoInicialConcluida = true; function switchView(viewName) { activeTab = viewName; for (const key in views) { if(views[key]) views[key].style.display = 'none'; } if (views[viewName]) { views[viewName].style.display = 'flex'; } document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); if (btns[viewName]) { btns[viewName].classList.add('active'); } if(dateControls) dateControls.style.display = 'none'; if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } if (viewName === 'caixa') carregarHistoricoAbastecimento(); else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); } else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); } else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); if(chartAbastecimento) chartAbastecimento.resize(); } else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); } } if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); if(btns.config) btns.config.addEventListener('click', () => switchView('config')); document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta); document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)); document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))); document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))); document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)); document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))); document.getElementById('lista-contatos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); document.getElementById('lista-abastecimentos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } }); criarGraficos(); const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; switchView('caixa'); const btnAt = document.getElementById('btnAtualizar'); if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; carregarConfiguracoesGerais(); carregarHistoricoEConsumo(); loopDeAtualizacao(); loopInterval = setInterval(loopDeAtualizacao, 2500); setInterval(() => { const now = Date.now(); if (now - lastUpdateTimestamp > 10000) { console.log("Watchdog: Reiniciando loop travado..."); loopDeAtualizacao(); } }, 5000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible') { console.log("App visível novamente. Forçando atualização..."); loopDeAtualizacao(); carregarHistoricoEConsumo(); clearInterval(loopInterval); loopInterval = setInterval(loopDeAtualizacao, 2500); } }); document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); }); };
+</script>
+</body>
+</html>
+</textarea>
 
-function setupAudio() {
-    try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        oscillator = audioContext.createOscillator();
-        gainNode = audioContext.createGain();
-        lfo = audioContext.createOscillator();
-        lfoGain = audioContext.createGain();
-        lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime);
-        oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-        lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency);
-        oscillator.connect(gainNode); gainNode.connect(audioContext.destination);
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        lfo.start(); oscillator.start();
-    } catch (e) {}
-}
-function controlarAlarme(play) {
-    if (!audioContext) return; 
-    if (audioContext.state === 'suspended') audioContext.resume();
-    if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } 
-    else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; }
-}
+<!-- ========================================================================= -->
+<!-- SCRIPT DO DASHBOARD PRINCIPAL (E LÓGICA DE ABERTURA DOS APPS)             -->
+<!-- ========================================================================= -->
+<script>
+// --- CONFIGURAÇÃO ---
+const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
-function atualizarCaixaDOM(nivel) {
-    // --- LÓGICA DE TRAVA VISUAL (Anti-Jitter) ---
-    if (ultimoNivelExibido !== -1 && Math.abs(nivel - ultimoNivelExibido) < 1) {
-        return; 
+// Lista de Praças (PP) - Definimos aqui os paths para substituição
+const listPP = [
+    { id: 'pp1', name: 'PP1', active: false },
+    { id: 'pp2', name: 'PP2', active: false },
+    { id: 'pp3', name: 'PP3', active: false },
+    { id: 'pp4', name: 'PP4', active: false },
+    { id: 'pp5', name: 'PP5', active: false },
+    { id: 'pp6', name: 'PP6', active: false },
+    // Ação: Ao clicar, chama abrirApp passando as variaveis de config
+    { 
+        id: 'pp7', 
+        name: 'PP7', 
+        active: true, 
+        firebaseDataPath: '/PP7.json',
+        firebaseConfigPath: '/PP7_config',
+        firebaseHistPath: '/PP7_config/historico', // Caminho antigo do PP7
+        title: 'Praça de pedágio 7 - Capim branco/MG'
     }
-    ultimoNivelExibido = nivel;
+];
 
-    const aguaDiv = document.getElementById('agua');
-    if(aguaDiv) {
-        aguaDiv.style.height = nivel + '%';
-        aguaDiv.innerText = nivel + '%';
-        if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
-        else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
-        else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
-    }
-    const ledVermelho = document.getElementById('led-vermelho');
-    const ledAmarelo = document.getElementById('led-amarelo');
-    const ledVerde = document.getElementById('led-verde');
-    if(ledVermelho && ledAmarelo && ledVerde) {
-        ledVermelho.classList.remove('aceso'); ledAmarelo.classList.remove('aceso'); ledVerde.classList.remove('aceso');
-        if (nivel > 60) ledVerde.classList.add('aceso');
-        else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
-        else ledVermelho.classList.add('aceso');
-    }
+// Lista de SAUs
+const listSAU = [
+    { id: 'sau01', name: 'SAU 01', active: false },
+    { id: 'sau02', name: 'SAU 02', active: false },
+    { id: 'sau03', name: 'SAU 03', active: false },
+    { id: 'sau04', name: 'SAU 04', active: false },
+    { id: 'sau05', name: 'SAU 05', active: false },
+    { id: 'sau06', name: 'SAU 06', active: false },
+    { id: 'sau07', name: 'SAU 07', active: false },
+    { id: 'sau08', name: 'SAU 08', active: false },
+    { id: 'sau09', name: 'SAU 09', active: false },
+    { id: 'sau10', name: 'SAU 10', active: false },
+    { id: 'sau11', name: 'SAU 11', active: false },
+    { id: 'sau12', name: 'SAU 12', active: false },
+    { 
+        id: 'sau13', 
+        name: 'SAU 13', 
+        active: true, 
+        firebaseDataPath: '/SAU13.json',
+        firebaseConfigPath: '/SAU13_config',
+        firebaseHistPath: '/SAU13_historico', // Novo padrão do SAU13
+        title: 'SAU13 - Capim Branco/MG'
+    },
+    { id: 'sau14', name: 'SAU 14', active: false }
+];
+
+// --- RENDERIZAR CARDS NO DASHBOARD ---
+function renderGrid(containerId, list, iconClass) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
     
-    const txtNivel = document.getElementById('status-level');
-    if(txtNivel) {
-        txtNivel.innerText = nivel + '%'; 
-        if (nivel > 60) txtNivel.style.color = 'var(--level-ok)';
-        else if (nivel > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)';
-        else txtNivel.style.color = 'var(--level-danger)';
-    }
-    
-    if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivel)} <small>L</small>`;
-    if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-}
-
-// --- NOVA INTERPOLAÇÃO INTELIGENTE (SEM RAMPA FALSA) ---
-function interpolacaoLinear(arr) {
-    let filled = [...arr];
-    let indices = [];
-    for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); }
-    if(indices.length === 0) return filled;
-    
-    for(let k = 0; k < indices.length - 1; k++) {
-        let startIdx = indices[k]; let endIdx = indices[k+1];
-        let startVal = filled[startIdx]; let endVal = filled[endIdx];
-        let steps = endIdx - startIdx;
+    list.forEach(item => {
+        const cls = item.active ? '' : 'inactive';
+        // Se está ativo, preparamos o clique. Passamos o ID do item.
+        const action = item.active 
+            ? `onclick="prepararAbertura('${item.id}')"` 
+            : '';
         
-        // --- DETECÇÃO DE ABASTECIMENTO (JUMP) ---
-        // Se o valor subiu mais de 30% em um intervalo (ex: abastecimento), 
-        // NÃO faz rampa. Mantém o valor baixo até o final.
-        if (endVal > startVal + 30) {
-             for(let j = 1; j < steps; j++) {
-                filled[startIdx + j] = startVal; // Mantém baixo (ex: 5%)
-             }
-        } else {
-            // Interpolação normal para consumo ou pequenas variações
-            for(let j = 1; j < steps; j++) {
-                let val = startVal + (endVal - startVal) * (j / steps);
-                filled[startIdx + j] = Math.round(val);
-            }
-        }
-    }
-    if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; }
-    return filled;
+        container.innerHTML += `
+            <div class="card ${cls}" id="card-${item.id}" ${action}>
+                <div class="card-water-bg" id="bg-${item.id}"></div>
+                <div class="card-content">
+                    <div class="live-dot"></div>
+                    <div class="simulated-badge" title="Valor Estimado">!</div>
+                    <i class="${iconClass} card-icon"></i>
+                    <div class="card-title">${item.name}</div>
+                    <div class="card-level" id="lvl-${item.id}">--%</div>
+                    <div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div>
+                </div>
+            </div>
+        `;
+    });
 }
 
-function atualizarGraficosHistorico(result) {
-    if (!chartLinha || !chartBlocos) return;
-    if (!result || !result.labels) return;
+// Encontra o item na lista pelo ID
+function findItemById(id) {
+    let item = listPP.find(i => i.id === id);
+    if(!item) item = listSAU.find(i => i.id === id);
+    return item;
+}
+
+// --- LÓGICA DE ABERTURA DE APPS ---
+let dashboardInterval = null;
+
+function prepararAbertura(id) {
+    const item = findItemById(id);
+    if (!item) return;
+
+    // Pega o template GENÉRICO
+    let rawHTML = document.getElementById('app-template').value;
+
+    // SUBSTITUI AS VARIÁVEIS PELOS DADOS ESPECÍFICOS DA CAIXA
+    rawHTML = rawHTML.replace('__APP_TITLE__', item.title);
+    rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
+    rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
+    rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath);
+    // Prefixo para localStorage não conflitar entre abas
+    rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); 
+
+    abrirApp(rawHTML);
+}
+
+function abrirApp(htmlContent) {
+    const overlay = document.getElementById('app-overlay');
+    const iframe = document.getElementById('app-frame');
+    const btnVoltar = document.querySelector('.btn-voltar-app');
     
-    let displayLabels = result.labels || []; let displayNiveis = result.niveis || [];
-    chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update();
-    chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis;
-    const cores = 'rgba(6, 182, 212, 0.85)'; 
-    chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update();
-}
-
-function atualizarGraficosConsumo(result) {
-    if (!chartConsumoBloco || !chartConsumoLinha) return;
-    if (!result || !result.consumo) return;
-
-    const consumoData = result.consumo || []; const consumoLabels = result.labels || [];
-    const infoTexto = document.getElementById('consumo-info-texto');
-    if (infoTexto) {
-        let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
-        let statusTexto = "Normal";
-        let corStatus = "var(--accent)";
-        if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; }
-        else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; }
-        
-        if (currentView === 'diario') {
-             infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`;
-        } else {
-             infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`;
-        }
-    }
-    chartConsumoBloco.data.labels = consumoLabels; chartConsumoBloco.data.datasets[0].data = consumoData;
-    chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; 
-    chartConsumoBloco.update();
-    chartConsumoLinha.data.labels = consumoLabels; chartConsumoLinha.data.datasets[0].data = consumoData; chartConsumoLinha.update();
-}
-
-function criarGraficos() {
-    Chart.register(ChartDataLabels);
-
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-    const textColor = isDark ? '#94a3b8' : '#64748b';
-
-    const zoomOptions = {
-        pan: { enabled: true, mode: 'x' },
-        zoom: { 
-            wheel: { enabled: true, speed: 0.02 }, 
-            pinch: { enabled: true, sensitivity: 0.1 }, 
-            mode: 'x' 
-        }
-    };
-
-    const xAxisConfig = {
-        ticks: { 
-            autoSkip: true, 
-            maxRotation: 0, 
-            minRotation: 0,
-            maxTicksLimit: 6, 
-            color: textColor 
-        }, 
-        grid: { display: true, color: gridColor }
-    };
-
-    if(document.getElementById('chartLinha')) {
-        const ctxL = document.getElementById('chartLinha').getContext('2d');
-        const gradL = ctxL.createLinearGradient(0, 0, 0, 300);
-        gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)');
-        gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)');
-        
-        if(chartLinha) chartLinha.destroy();
-        chartLinha = new Chart(ctxL, {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 3, spanGaps: true }] },
-            options: { 
-                animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
-                scales: { 
-                    x: xAxisConfig, 
-                    y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } 
-                },
-                layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } }
-            }
-        });
-    }
+    // Injeta no iframe
+    iframe.srcdoc = htmlContent;
     
-    if(document.getElementById('chartBlocos')) {
-        const ctxB = document.getElementById('chartBlocos').getContext('2d');
-        if(chartBlocos) chartBlocos.destroy();
-        chartBlocos = new Chart(ctxB, {
-            type: 'bar',
-            data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] },
-            options: { 
-                animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
-                scales: { 
-                    x: xAxisConfig, 
-                    y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } 
-                } 
-            }
-        });
-    }
-
-    if(document.getElementById('chartConsumoBloco')) {
-        const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d');
-        if(chartConsumoBloco) chartConsumoBloco.destroy();
-        chartConsumoBloco = new Chart(ctxCB, {
-            type: 'bar',
-            data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] },
-            options: { 
-                animation: false, maintainAspectRatio: false, 
-                plugins: { 
-                    legend: { display: false }, 
-                    zoom: zoomOptions, 
-                    datalabels: { 
-                        color: textColor, 
-                        anchor: 'end', 
-                        align: 'top', 
-                        formatter: Math.round,
-                        font: { size: 10 } 
-                    } 
-                }, 
-                scales: { 
-                    x: xAxisConfig, 
-                    y: { 
-                        ticks: { color: textColor }, 
-                        min: 0, 
-                        suggestedMax: 2000, 
-                        grid: { color: gridColor } 
-                    } 
-                },
-                layout: { padding: { top: 20 } }
-            }
-        });
-    }
-        
-    if(document.getElementById('chartConsumoLinha')) {
-        const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
-        if(chartConsumoLinha) chartConsumoLinha.destroy();
-        chartConsumoLinha = new Chart(ctxCL, {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 2 }] },
-            options: { 
-                animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, 
-                scales: { 
-                    x: xAxisConfig, 
-                    y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } 
-                },
-                layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } }
-            }
-        });
-    }
-
-    if(document.getElementById('chartAbastecimento')) {
-        const ctxA = document.getElementById('chartAbastecimento').getContext('2d');
-        if(chartAbastecimento) chartAbastecimento.destroy();
-        chartAbastecimento = new Chart(ctxA, {
-            type: 'bar',
-            data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] },
-            options: { 
-                animation: false, maintainAspectRatio: false, 
-                plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, 
-                scales: { 
-                    x: { ticks: { color: textColor }, grid: { display: false } }, 
-                    y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } 
-                } 
-            }
-        });
-    }
-}
-
-// --- FIX: Agora aceita tipo para diferenciar real/estimado e permite salvar 0% ---
-async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
-    if (nivel === null || nivel === undefined) return; 
+    // Mostra overlay
+    overlay.classList.add('active');
+    btnVoltar.classList.add('active');
     
-    // Proteção: Se for real, só salva se > 0 (evita salvar o bug do sensor no histórico)
-    if (tipo === 'real' && nivel <= 0) return; 
+    // Pausa atualização do dashboard
+    if(dashboardInterval) clearInterval(dashboardInterval);
+}
+
+function fecharApp() {
+    const overlay = document.getElementById('app-overlay');
+    const iframe = document.getElementById('app-frame');
+    const btnVoltar = document.querySelector('.btn-voltar-app');
     
-    const d = new Date(timestamp);
-    const localDate = getLocalISODate(d);
-    const horaKey = String(d.getHours()).padStart(2, '0'); 
-    const path = `PP7_config/historico/${localDate}/${horaKey}.json`;
-    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
-    const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; 
-    try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {}
-}
-
-async function carregarHistoricoEConsumo() {
-    if (currentView === 'semanal') return;
-    let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 };
-
-    if (currentView === 'diario') {
-        const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result;
-        const data = dataEl.value; if (!data) return result;
-        const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]);
-        dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj);
-        url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${data}.json`;
-        const urlOntem = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataAnterior}.json`;
-        
-        processData = (dadosHoje, dadosOntem) => {
-            const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); 
-            for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00");
-            let lastHoraInt = -1; let previousVal = null;
-            let detectedRefillIdx = -1;
-
-            if (dadosOntem) {
-                const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b));
-                if (horariosOntem.length > 0) {
-                    const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey];
-                    const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null;
-                }
-            }
-            if (dadosHoje) {
-                const keysSorted = Object.keys(dadosHoje).sort((a, b) => {
-                    const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number);
-                    return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0));
-                });
-                keysSorted.forEach(key => {
-                    const horaInt = parseInt(key.split(':')[0]);
-                    const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null;
-                    
-                    if (horaInt >= 0 && horaInt < 24) { 
-                        if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; 
-                    }
-
-                    if (val !== null && previousVal !== null) {
-                        if (val > previousVal + 5) { 
-                             detectedRefillIdx = horaInt;
-                        }
-
-                        if (previousVal > val) {
-                            const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val);
-                            const diff = volAnterior - volAtual; 
-                            if(diff < 800) {
-                                const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap;
-                                for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; }
-                            }
-                        }
-                    }
-                    if (val !== null) { previousVal = val; lastHoraInt = horaInt; }
-                });
-                if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal;
-                
-                // USANDO A NOVA INTERPOLAÇÃO INTELIGENTE
-                const niveisInterpolados = interpolacaoLinear(niveisFixed);
-                for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h];
-            } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; }
-            return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
-        };
-        try {
-            // FIX: Handle Data Fetch failure
-            let dadosHoje = null;
-            try {
-                const rHoje = await safeFetch(url);
-                if (rHoje) dadosHoje = await rHoje.json();
-            } catch(e) { console.warn("Fetch data failed"); }
-
-            let dadosOntem = null;
-            try {
-                const rOntem = await safeFetch(urlOntem);
-                if (rOntem) dadosOntem = await rOntem.json();
-            } catch(e) { console.warn("Fetch yesterday failed"); }
-
-            result = processData(dadosHoje, dadosOntem);
-            atualizarGraficosHistorico(result); atualizarGraficosConsumo(result);
-        } catch (e) {}
-    } else { 
-        let dataInicio, dataFim;
-        if (currentView === 'mensal') {
-            const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value;
-            if (!mesAno) return result; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-');
-            const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`;
-        } else if (currentView === 'intervalo') {
-            const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim');
-            if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value;
-            if (!dataInicio || !dataFim) return result;
-        }
-        url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
-        processData = (dados) => {
-            const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort();
-            for (const dateKey in dados) {
-                const dailyReadings = dados[dateKey];
-                const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b));
-                if(times.length === 0) continue;
-                let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null;
-                for (let i = 0; i < times.length; i++) {
-                    const tCurrent = times[i];
-                    const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0;
-                    const valCurrent = Number(valRaw);
-                    if(valCurrent > 0) {
-                        somaNiveis += valCurrent; countNiveis++;
-                        if (lastValidLevelForDay !== null) {
-                            if (lastValidLevelForDay > valCurrent) {
-                                const volAnterior = calcularVolumeLitros(lastValidLevelForDay);
-                                const volAtual = calcularVolumeLitros(valCurrent);
-                                const diff = volAnterior - volAtual;
-                                if(diff < 800) consumoDia += diff;
-                            }
-                        }
-                        lastValidLevelForDay = valCurrent;
-                    }
-                }
-                dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0;
-            }
-            if (currentView === 'mensal') {
-                 const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0];
-                 for (const dateKey in dailyConsumption) {
-                     const day = parseInt(dateKey.split('-')[2]);
-                     let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3));
-                     weeks[idx] += dailyConsumption[dateKey];
-                     if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; }
-                 }
-                 const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0);
-                 return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks };
-            }
-            const labels = Object.keys(dailyConsumption).sort(); 
-            const consumo = labels.map(key => dailyConsumption[key]); 
-            const niveis = labels.map(key => dailyLevels[key]); 
-            const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; });
-            return { labels: displayLabels, niveis: niveis, consumo: consumo }; 
-        };
-        try {
-            // FIX: Handle fetch failure gracefully
-            let dados = null;
-            try {
-                const r = await safeFetch(url);
-                if (r) dados = await r.json();
-            } catch(e) { console.warn("Fetch range failed"); }
-            
-            result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] };
-            atualizarGraficosHistorico(result); atualizarGraficosConsumo(result);
-        } catch (e) {}
-    }
-}
-
-async function removerAbastecimento(id) {
-    try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {}
-}
-
-async function carregarHistoricoAbastecimento() {
-    const listaUL = document.getElementById('lista-abastecimentos');
-    const elMes = document.getElementById('mesAbastecimento');
-    const elSemana = document.getElementById('filtroSemana');
+    // Limpa iframe
+    iframe.srcdoc = "";
     
-    const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7);
-    const semanaFiltro = elSemana ? elSemana.value : 'todas';
+    // Esconde overlay
+    overlay.classList.remove('active');
+    btnVoltar.classList.remove('active');
     
-    if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>';
-    
-    try {
-        let dados = null;
-        try {
-            const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=100');
-            if (r) dados = await r.json();
-        } catch(e) { console.warn("Fetch abastecimentos failed"); }
-        
-        if(listaUL) listaUL.innerHTML = ''; 
-        
-        if (dados) {
-            const ids = Object.keys(dados).sort().reverse(); 
-            
-            const idsParaLista = ids.slice(0, 5);
-            if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
-            
-            idsParaLista.forEach(id => {
-                const item = dados[id];
-                const li = document.createElement('li');
-                const d = new Date(item.timestamp);
-                li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`;
-                listaUL.appendChild(li);
-            });
-
-            let labelsGrafico = [];
-            let dadosGrafico = [];
-            let titulo = "Comparativo Semanal (Litros)";
-
-            if (semanaFiltro === 'todas') {
-                titulo = "Comparativo Semanal (Litros)";
-                const totaisSemana = [0, 0, 0, 0]; 
-                
-                Object.keys(dados).forEach(key => {
-                    const item = dados[key];
-                    const d = new Date(item.timestamp);
-                    const itemMesAno = getLocalISODate(d).substring(0, 7);
-                    
-                    if (itemMesAno === mesAno) {
-                        const dia = d.getDate();
-                        let idx = 0;
-                        if (dia <= 7) idx = 0;       
-                        else if (dia <= 14) idx = 1; 
-                        else if (dia <= 21) idx = 2; 
-                        else idx = 3;                
-                        totaisSemana[idx] += parseInt(item.litros || 0);
-                    }
-                });
-                labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'];
-                dadosGrafico = totaisSemana;
-
-            } else {
-                titulo = `Detalhes: Semana ${semanaFiltro}`;
-                const diasMap = {};
-                
-                let diaInicio = 1, diaFim = 7;
-                if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; }
-                if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; }
-                if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; }
-
-                Object.keys(dados).forEach(key => {
-                    const item = dados[key];
-                    const d = new Date(item.timestamp);
-                    const itemMesAno = getLocalISODate(d).substring(0, 7);
-                    
-                    if (itemMesAno === mesAno) {
-                        const dia = d.getDate();
-                        if (dia >= diaInicio && dia <= diaFim) {
-                            const labelDia = `Dia ${String(dia).padStart(2, '0')}`;
-                            if (!diasMap[labelDia]) diasMap[labelDia] = 0;
-                            diasMap[labelDia] += parseInt(item.litros || 0);
-                        }
-                    }
-                });
-
-                labelsGrafico = Object.keys(diasMap).sort();
-                dadosGrafico = labelsGrafico.map(l => diasMap[l]);
-                
-                if (labelsGrafico.length === 0) {
-                    labelsGrafico = ["Sem dados"];
-                    dadosGrafico = [0];
-                }
-            }
-
-            if(document.getElementById('tituloGraficoAbastecimento')) {
-                document.getElementById('tituloGraficoAbastecimento').innerText = titulo;
-            }
-
-            if(chartAbastecimento) {
-                chartAbastecimento.data.labels = labelsGrafico;
-                chartAbastecimento.data.datasets[0].data = dadosGrafico;
-                chartAbastecimento.update();
-            }
-
-        } else if(listaUL) {
-            listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>';
-        }
-    } catch (e) { console.error(e); }
+    // Retoma atualização
+    updateDashboardData();
+    dashboardInterval = setInterval(updateDashboardData, 5000);
 }
 
-function animarBotaoSucesso(btnId) {
-    const btn = document.getElementById(btnId);
-    if(!btn) return;
-    const originalHTML = btn.innerHTML;
-    
-    btn.classList.add('btn-success');
-    btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
-
-    setTimeout(() => {
-        btn.classList.remove('btn-success');
-        btn.innerHTML = originalHTML;
-    }, 2000);
-}
-
-async function salvarAbastecimento(litros) {
-    if (!litros || litros <= 0) return;
-    const agora = new Date();
-    const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString() };
-    try { await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json', { method: 'POST', body: JSON.stringify(dados) }); 
-          document.getElementById('litros-abastecidos').value = ''; 
-          carregarHistoricoAbastecimento();
-          animarBotaoSucesso('btn-salvar-abastecimento'); 
-    } catch (e) {}
-}
-async function salvarConfig(endpoint, valor) {
-     try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {}
-}
-
-async function salvarCapacidade(valor) {
-    if(!valor || valor <= 0) return;
-    await salvarConfig('capacidade', valor);
-    capacidadeTotal = valor;
-    animarBotaoSucesso('btn-salvar-capacidade'); 
-}
-
-async function salvarAltura(valor) {
-    if(!valor || valor <= 0) return;
-    await salvarConfig('altura_cm', valor);
-    alturaCaixa = valor;
-    animarBotaoSucesso('btn-salvar-altura'); 
-}
-
-async function salvarNivelAlerta(valor) {
-    if(!valor || valor <= 0 || valor >= 100) return;
-    await salvarConfig('nivel_alerta', valor);
-    nivelAlertaConfigurado = valor;
-    animarBotaoSucesso('btn-salvar-nivel-alerta'); 
-}
-
-async function carregarConfiguracoesGerais() {
-    try {
-        // FIX: Handle individual failures so one bad config doesn't break everything
-        let rAlerta = null, rCap = null, rAlt = null;
-        try { rAlerta = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json'); } catch(e) {}
-        try { rCap = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json'); } catch(e) {}
-        try { rAlt = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json'); } catch(e) {}
-
-        if(rAlerta) {
-            const nivelSalvo = await rAlerta.json();
-            if (nivelSalvo) { document.getElementById('nivel-alerta-valor').value = nivelSalvo; nivelAlertaConfigurado = parseInt(nivelSalvo); }
-        }
-        if(rCap) {
-            const capSalvo = await rCap.json();
-            if (capSalvo) { document.getElementById('capacidade-total-valor').value = capSalvo; capacidadeTotal = parseInt(capSalvo); }
-        }
-        if(rAlt) {
-            const altSalvo = await rAlt.json();
-            if (altSalvo) { document.getElementById('altura-caixa-valor').value = altSalvo; alturaCaixa = parseInt(altSalvo); }
-        }
-    } catch (e) {}
-}
-async function adicionarContato(valor, tipo) {
-    if (!valor) return;
-    const novoContato = { valor, tipo };
-    try { await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', { method: 'POST', body: JSON.stringify(novoContato) });
-          document.getElementById('contato-valor').value = ''; 
-          carregarContatos(); 
-          animarBotaoSucesso('btn-add-contato'); 
-    } catch (e) {} 
-}
-async function removerContato(id) {
-    try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} 
-}
-async function carregarContatos() {
-    const listaUL = document.getElementById('lista-contatos');
-    if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>';
-    try {
-        let contatos = null;
-        try {
-            const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
-            if (r) contatos = await r.json();
-        } catch(e) { console.warn("Fetch contatos failed"); }
-
-        if(listaUL) listaUL.innerHTML = ''; 
-        if (contatos && listaUL) {
-            Object.keys(contatos).forEach(id => {
-                const c = contatos[id];
-                if (c && c.tipo && c.valor) {
-                    const li = document.createElement('li');
-                    li.className = 'contato-item';
-                    li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`;
-                    listaUL.appendChild(li);
-                }
-            });
-        } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>';
-    } catch (e) {}
-}
-
-// --- FUNÇÃO AUXILIAR: FILTRO DE MEDIANA (ESTATÍSTICO) ---
-function obterMediana(arr) {
-    if(arr.length === 0) return 0;
-    const sorted = [...arr].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted[mid];
-}
-
-// --- FUNÇÃO DE SIMULAÇÃO EXATA (ATUALIZADA 3.39) ---
+// --- CÁLCULO DE NÍVEL DE EMERGÊNCIA (SIMULADO) ---
+// Réplica da lógica do app interno para mostrar no card principal
 function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
     const agora = Date.now();
     let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
-    
     let nivelSimulado = nivelInicial;
-    
-    // Loop de decaimento por blocos de tempo
-    while (horasPassadas > 0 && nivelSimulado > 0) {
-        let duracaoBloco = 0;
-        let queda = 0;
+    let quedasAplicadas = 0;
 
-        // Regra 1: Acima de 30% -> Queda de 5% a cada 6h
-        if (nivelSimulado > 30) {
-            duracaoBloco = 6;
-            queda = 5;
-        } 
-        // Regra 2: Entre 30% e 25% -> Queda de 5% em 4h
-        else if (nivelSimulado > 25) {
-            duracaoBloco = 4;
-            queda = 5;
-        }
-        // Regra 3: Entre 25% e 15% -> Queda de 10% em 2h
-        else if (nivelSimulado > 15) {
-            duracaoBloco = 2;
-            queda = 10;
-        }
-        // Regra 4: Abaixo de 15% -> Queda de 5% em 2h até zerar
-        else {
-            duracaoBloco = 2;
-            queda = 5;
-        }
+    // Lógica de decaimento (igual ao app filho)
+    while (horasPassadas > 0 && nivelSimulado > 0) {
+        let duracaoBloco = 2;
+        quedasAplicadas++;
+        if (quedasAplicadas <= 4) { duracaoBloco = 8; }
+        else if (quedasAplicadas <= 6) { duracaoBloco = 6; }
+        else if (quedasAplicadas <= 8) { duracaoBloco = 4; }
+        else { duracaoBloco = 2; }
 
         if (horasPassadas >= duracaoBloco) {
-            nivelSimulado -= queda;
-            horasPassadas -= duracaoBloco; // Consome o tempo
+            nivelSimulado -= 5;
+            horasPassadas -= duracaoBloco;
         } else {
-            break; // Não passou tempo suficiente para o próximo degrau
+            break;
         }
     }
-    
-    return Math.max(0, nivelSimulado);
+    if (nivelSimulado < 0) nivelSimulado = 0;
+    return nivelSimulado;
 }
 
-async function loopDeAtualizacao() {
-    const liveIndicator = document.getElementById('live-indicator');
-    
+// Função Auxiliar para buscar a última leitura válida do histórico (caso o nó principal esteja zerado)
+async function fetchLastValidFromHistory(histPath) {
     try {
-        if (!verificacaoInicialConcluida) return;
-        
-        lastUpdateTimestamp = Date.now(); 
+        const today = new Date().toISOString().split('T')[0];
+        const r = await fetch(`${DB_BASE}${histPath}/${today}.json?orderBy="$key"&limitToLast=1`);
+        const d = await r.json();
+        if(d) {
+            const keys = Object.keys(d);
+            if(keys.length > 0) {
+                const lastEntry = d[keys[0]];
+                return {
+                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
+                    time: lastEntry.timestamp || 0
+                };
+            }
+        }
+    } catch(e) { console.log('Erro ao buscar historico backup', e); }
+    return null;
+}
 
-        const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
-        const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
-        
-        // --- FIX: FETCH ROBUSTNESS (Silent Fail) ---
-        let j = {};
-        let config = null;
-        let fetchSuccess = false;
-
-        // Fetch de DADOS com try/catch silencioso
+// --- ATUALIZAÇÃO DO DASHBOARD ---
+async function updateDashboardData() {
+    const activeItems = [...listPP, ...listSAU].filter(i => i.active);
+    
+    for (const item of activeItems) {
         try {
-            const r = await safeFetch(dataUrl);
-            if (r) {
-                j = await r.json();
-                fetchSuccess = true;
-            }
-        } catch (err) {
-            console.warn("Falha ao buscar dados (Modo Offline/Simulado ativo)");
-            // j permanece vazio, vai cair no else do if(nivelRecebido > 0)
-        }
+            // Fetch apenas do dado principal
+            const r = await fetch(`${DB_BASE}${item.firebaseDataPath}?nocache=${Date.now()}`);
+            const d = await r.json();
+            
+            let lvl = 0;
+            let isSimulated = false;
+            let rawLvl = 0;
 
-        // Fetch de CONFIG com try/catch silencioso
-        try {
-            const rConfig = await safeFetch(configUrl);
-            if (rConfig) config = await rConfig.json();
-        } catch (err) {
-            // Ignora falha de config, usa padrão
-        }
-        
-        // Indicador Visual de Status
-        if(liveIndicator) { 
-            if (fetchSuccess) {
-                liveIndicator.classList.remove('offline'); 
-                liveIndicator.classList.add('online'); 
-                liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5');
+            if(d) {
+                if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
+                else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
+                else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
+            }
+            
+            // Lógica para decidir o que mostrar
+            if (rawLvl > 0) {
+                lvl = rawLvl;
+                isSimulated = false;
             } else {
-                liveIndicator.classList.remove('online');
-                liveIndicator.classList.add('offline');
-                liveIndicator.style.opacity = '1';
-            }
-        }
-        
-        let nivelRecebidoRaw = j && (j.nivel_pct || j.nivel) ? (j.nivel_pct || j.nivel) : 0;
-        let nivelRecebido = Number(nivelRecebidoRaw);
-        let tipoDado = 'real'; // Default
+                // Se for 0 ou offline, tenta calcular o estimado
+                let lastValidPct = 0;
+                let lastValidTime = 0;
 
-        // --- FILTRO AVANÇADO V.3.41 ---
-        if (nivelRecebido > 0 && nivelRecebido <= 100) {
-            // Adiciona ao buffer
-            bufferLeituras.push(nivelRecebido);
-            if (bufferLeituras.length > 11) bufferLeituras.shift(); // Buffer maior (approx 27s)
-
-            // 1. OBTÉM A MEDIANA (Valor central estatístico)
-            // Isso já elimina picos isolados (ex: 88, 88, 10, 88, 88 -> Mediana é 88)
-            let mediana = obterMediana(bufferLeituras);
-
-            // 2. LÓGICA DE INÉRCIA (Anti-Pico Inteligente)
-            // Se ainda não temos um valor travado, aceitamos a mediana inicial
-            if (ultimoNivelValidoLatch === null) {
-                ultimoNivelValidoLatch = mediana;
-                nivelAtual = mediana;
-            } else {
-                const diferenca = mediana - ultimoNivelValidoLatch;
-                
-                // Cenário A: SUBIDA BRUSCA (Abastecimento)
-                // Aceita mais rápido, mas ainda exige confirmação
-                if (diferenca > 3) {
-                    contadorLeiturasFantasmas++;
-                    if (contadorLeiturasFantasmas >= 3) { // ~7 segundos confirmando subida
-                        ultimoNivelValidoLatch = mediana; // Aceita novo nível
-                        contadorLeiturasFantasmas = 0;
-                    }
-                }
-                // Cenário B: QUEDA BRUSCA (Ruído ou "Fantasma")
-                // Água não desce rápido (exceto vazamento grave). Bloqueia agressivamente.
-                else if (diferenca < -2) {
-                    contadorLeiturasFantasmas++;
-                    if (contadorLeiturasFantasmas >= 12) { // ~30 segundos confirmando descida forte
-                         ultimoNivelValidoLatch = mediana;
-                         contadorLeiturasFantasmas = 0;
-                    }
-                    // Se não confirmou, MANTÉM O VALOR ANTIGO (Ignora o fantasma)
-                    // Visualmente o nível não mexe.
-                }
-                // Cenário C: VARIAÇÃO NORMAL (Pequena oscilação natural)
-                else {
-                    contadorLeiturasFantasmas = 0;
-                    ultimoNivelValidoLatch = mediana; // Atualiza suavemente
-                }
-            }
-            
-            nivelAtual = ultimoNivelValidoLatch; // O nível oficial é o travado
-            tipoDado = 'real';
-            timestampLatch = Date.now();
-            
-            document.getElementById('emergency-badge').style.display = 'none';
-            document.getElementById('simulated-indicator').style.display = 'none';
-        } else {
-            // SINAL INVÁLIDO (0 ou Null)
-            document.getElementById('emergency-badge').style.display = 'flex';
-            
-            // Se temos um latch gravado, usamos ele como base para a SIMULAÇÃO
-            if (ultimoNivelValidoLatch !== null && timestampLatch !== null) {
-                nivelAtual = calcularNivelSimuladoLatch(ultimoNivelValidoLatch, timestampLatch);
-                document.getElementById('simulated-indicator').style.display = 'flex';
-                tipoDado = 'estimado';
-            } else {
-                // Se o sistema iniciou já sem sinal, assume 0
-                nivelAtual = 0;
-                tipoDado = 'estimado'; // Ou real 0, mas assumimos estimado/erro
-            }
-        }
-
-        if (config) nivelAlertaConfigurado = parseInt(config) || 30; 
-        
-        const statusDisplay = document.getElementById('status-display');
-        if(statusDisplay) {
-            statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
-            
-            // --- VERIFICAÇÃO DE ALERTA ---
-            if (nivelAtual <= nivelAlertaConfigurado) {
-                statusDisplay.classList.add('level-danger');
-                
-                // Dispara o som (Se não estiver em soneca e não estiver confirmado)
-                if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) {
-                     controlarAlarme(true); 
-                }
-
-                // Dispara o Email e Modal (apenas se modal nao foi mostrado)
-                if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) {
-                    enviarEmailAlerta(nivelAtual); 
-                    mostrarAlertaModal(); 
-                    alertaModalMostrado = true; 
-                    setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000);
+                if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
+                     lastValidPct = d.ultima_valida_pct;
+                     lastValidTime = d.ultima_valida_time;
                 } else {
-                    // Tenta enviar email mesmo se estiver em soneca, caso a sessao tenha resetado
-                    enviarEmailAlerta(nivelAtual);
+                    // Tenta buscar do histórico se o nó principal não tiver info (Fallback Dashboard Inteligente)
+                    // Nota: Fazemos isso apenas se o dado principal for 0 para evitar requests excessivos
+                    const histData = await fetchLastValidFromHistory(item.firebaseHistPath);
+                    if(histData) {
+                        lastValidPct = histData.pct;
+                        lastValidTime = histData.time;
+                    }
                 }
 
-            } else { 
-                if (nivelAtual > 50) { if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; }
-                if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); else statusDisplay.classList.add('level-ok');
-                if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0;
+                if (lastValidPct > 0) {
+                    lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime);
+                    isSimulated = true;
+                } else {
+                    lvl = 0; 
+                }
             }
-        }
-        atualizarCaixaDOM(nivelAtual);
-        
-        const agora = new Date(); const horaAtual = agora.getHours(); const agoraMs = agora.getTime();
-        
-        // --- FIX DE SALVAMENTO: Grava mesmo se for 0 ou estimado ---
-        if (horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) { 
-            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs, tipoDado);
-            ultimoHorarioSalvo = horaAtual; ultimoTempoSalvo = agoraMs;
-            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo();
-        }
-    } catch(e) {
-        console.error("Erro fatal no loop (Contatando suporte...):", e);
-        if(liveIndicator) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); }
+            
+            // Atualiza UI
+            const card = document.getElementById(`card-${item.id}`);
+            const elLvl = document.getElementById(`lvl-${item.id}`);
+            const elBg = document.getElementById(`bg-${item.id}`);
+            
+            if(card && elLvl) {
+                elLvl.innerText = `${lvl}%`;
+                
+                // Fundo de água
+                if(elBg) elBg.style.height = `${lvl}%`;
+
+                // Indicador de Online/Offline
+                const dot = card.querySelector('.live-dot');
+                const badge = card.querySelector('.simulated-badge');
+                
+                if (rawLvl > 0) {
+                    dot.style.display = 'block';
+                    badge.style.display = 'none'; // Esconde badge de estimado
+                } else {
+                    dot.style.display = 'none'; // Offline
+                    if (isSimulated && lvl > 0) badge.style.display = 'flex'; // Mostra exclamação apenas se tiver valor estimado > 0
+                    else badge.style.display = 'none';
+                }
+                
+                // Cores do Card
+                card.removeAttribute('data-status');
+                
+                if (isSimulated && lvl > 0) {
+                    // Status especial para Simulado
+                    card.setAttribute('data-status', 'simulated');
+                    elLvl.style.color = '#d97706'; // Laranja escuro
+                } else {
+                    if(lvl > 60) {
+                        card.setAttribute('data-status', 'ok');
+                        elLvl.style.color = 'var(--level-ok)';
+                    } else if (lvl > 30) {
+                        card.setAttribute('data-status', 'warn');
+                        elLvl.style.color = 'var(--level-warn)';
+                    } else {
+                        card.setAttribute('data-status', 'danger');
+                        elLvl.style.color = 'var(--level-danger)';
+                    }
+                }
+            }
+        } catch(e) { console.log(e); }
     }
 }
 
-window.onload = function() {
-    const themeBtn = document.getElementById('theme-toggle-btn');
-    if(themeBtn) {
-        themeBtn.addEventListener('click', toggleTheme);
-        themeBtn.addEventListener('touchend', (e) => {
-            e.preventDefault(); 
-            toggleTheme(e);
-        }, {passive: false});
+// --- TEMA DO DASHBOARD ---
+let isDark = false;
+function toggleTheme() {
+    isDark = !isDark;
+    if(isDark) {
+        document.body.setAttribute('data-theme', 'dark');
+        document.querySelector('.theme-toggle i').classList.replace('fa-moon', 'fa-sun');
+    } else {
+        document.body.removeAttribute('data-theme');
+        document.querySelector('.theme-toggle i').classList.replace('fa-sun', 'fa-moon');
     }
+}
 
-    checkAutoTheme(); 
-    const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') };
-    const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') };
-    const dateControls = document.getElementById('date-controls');
+// INICIALIZAÇÃO
+window.onload = () => {
+    renderGrid('grid-pp', listPP, 'fas fa-road'); 
+    renderGrid('grid-sau', listSAU, 'fas fa-home'); 
     
-    const hoje = new Date(); 
-    const mesAtual = getLocalISODate(hoje).substring(0, 7);
-    
-    const elMesAbast = document.getElementById('mesAbastecimento');
-    if(elMesAbast) {
-        elMesAbast.value = mesAtual;
-    }
-    const btnAtAbast = document.getElementById('btnAtualizarAbastecimento');
-    if(btnAtAbast) {
-        btnAtAbast.onclick = carregarHistoricoAbastecimento;
-    }
-
-    setupAudio();
-    function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); }
-    document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true });
-
-    verificacaoInicialConcluida = true;
-
-    function switchView(viewName) {
-        activeTab = viewName; 
-        for (const key in views) { if(views[key]) views[key].style.display = 'none'; }
-        if (views[viewName]) { views[viewName].style.display = 'flex'; }
-        document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
-        if (btns[viewName]) { btns[viewName].classList.add('active'); }
-        if(dateControls) dateControls.style.display = 'none'; 
-        if (viewName === 'grafico' || viewName === 'consumo') {
-            carregarHistoricoEConsumo();
-        } 
-        if (viewName === 'caixa') carregarHistoricoAbastecimento();
-        else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); }
-        else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); }
-        else if (viewName === 'abastecimento') {
-             carregarHistoricoAbastecimento();
-             if(chartAbastecimento) chartAbastecimento.resize();
-        }
-        else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); }
-    }
-      
-    if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa'));
-    if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico'));
-    if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento'));
-    if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo'));
-    if(btns.config) btns.config.addEventListener('click', () => switchView('config'));
-
-    document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta);
-
-    document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value));
-    document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value)));
-    document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value)));
-    document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value));
-    document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value)));
-
-    document.getElementById('lista-contatos').addEventListener('click', (e) => {
-        if (e.target.closest('button')) {
-            const btn = e.target.closest('button'); const id = btn.dataset.id;
-            if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; }
-            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); }
-        }
-    });
-
-    document.getElementById('lista-abastecimentos').addEventListener('click', (e) => {
-        if (e.target.closest('button')) {
-            const btn = e.target.closest('button'); const id = btn.dataset.id;
-            if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; }
-            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); }
-        }
-    });
-
-    criarGraficos();
-    const dataFim = getLocalISODate(hoje);
-    const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje);
-    
-    const elDataEsc = document.getElementById('dataEscolhida');
-    if(elDataEsc) elDataEsc.value = dataFim;
-    const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo');
-    if(elDataEscConsumo) elDataEscConsumo.value = dataFim;
-
-    const elMesEsc = document.getElementById('mesEscolhido');
-    if(elMesEsc) elMesEsc.value = mesFim;
-    const elDataIni = document.getElementById('dataInicio');
-    if(elDataIni) elDataIni.value = dataIni;
-    const elDataFim = document.getElementById('dataFim');
-    if(elDataFim) elDataFim.value = dataFim;
-    
-    switchView('caixa'); 
-    const btnAt = document.getElementById('btnAtualizar');
-    if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); };
-      
-    carregarConfiguracoesGerais();
-    carregarHistoricoEConsumo();
-    loopDeAtualizacao(); 
-    loopInterval = setInterval(loopDeAtualizacao, 2500);
-    
-    setInterval(() => {
-        const now = Date.now();
-        if (now - lastUpdateTimestamp > 10000) { 
-            console.log("Watchdog: Reiniciando loop travado...");
-            loopDeAtualizacao();
-        }
-    }, 5000);
-    
-    document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === 'visible') {
-            console.log("App visível novamente. Forçando atualização...");
-            loopDeAtualizacao(); 
-            carregarHistoricoEConsumo(); 
-            clearInterval(loopInterval);
-            loopInterval = setInterval(loopDeAtualizacao, 2500);
-        }
-    });
-
-    document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            if (e.target.dataset.view) {
-                currentView = e.target.dataset.view; 
-                const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' };
-                for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none';
-                if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex';
-                if(btnAt) btnAt.click();
-            }
-        });
-    });
+    updateDashboardData();
+    dashboardInterval = setInterval(updateDashboardData, 5000); 
 };
 </script>
 </body>
