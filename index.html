@@ -563,25 +563,21 @@ window.toggleTheme = function(e) {
     applyTheme(); 
 };
 
-window.executarAtualizacao = async function() {
+window.executarAtualizacao = function() {
     // Adiciona animação de loading no botão para feedback visual
     const btnIcon = document.querySelector('button[title="Atualizar"] i');
     if(btnIcon) btnIcon.classList.add('fa-spin');
 
-    // Executa o loop principal de dados
-    await loopDeAtualizacao();
-    
-    // Força atualização dos gráficos ou históricos se estiver na aba
-    if(activeTab === 'grafico' || activeTab === 'consumo') {
-        await carregarHistoricoEConsumo();
-    } else if (activeTab === 'abastecimento') {
-        await carregarHistoricoAbastecimento();
+    // Se estiver rodando dentro do iframe do dashboard (modo produção)
+    if (window.parent && window.parent.recarregarAppAtual) {
+        setTimeout(() => {
+            // Solicita ao painel principal para recarregar o iframe do zero
+            window.parent.recarregarAppAtual();
+        }, 500); // Pequeno delay para a animação ser visível
+    } else {
+        // Fallback para caso esteja rodando como arquivo solto
+        window.location.reload();
     }
-
-    // Remove a animação após um breve delay
-    setTimeout(() => {
-        if(btnIcon) btnIcon.classList.remove('fa-spin');
-    }, 1000);
 };
 
 // SAFE STORAGE WRAPPER
@@ -900,10 +896,13 @@ function findItemById(id) {
 
 // --- LÓGICA DE ABERTURA DE APPS ---
 let dashboardInterval = null;
+let currentAppId = null; // Armazena qual app está aberto para poder recarregar
 
 function prepararAbertura(id) {
     const item = findItemById(id);
     if (!item) return;
+
+    currentAppId = id; // Salva o ID atual
 
     // Pega o template GENÉRICO
     let rawHTML = document.getElementById('app-template').value;
@@ -948,6 +947,7 @@ function fecharApp() {
     
     // Limpa iframe
     iframe.src = "";
+    currentAppId = null;
     
     // Esconde overlay
     overlay.classList.remove('active');
@@ -956,6 +956,13 @@ function fecharApp() {
     updateDashboardData();
     dashboardInterval = setInterval(updateDashboardData, 5000);
 }
+
+// Função exposta para o iframe chamar e pedir recarregamento
+window.recarregarAppAtual = function() {
+    if (currentAppId) {
+        prepararAbertura(currentAppId);
+    }
+};
 
 // --- CÁLCULO DE NÍVEL DE EMERGÊNCIA (SIMULADO) ---
 // Réplica da lógica do app interno para mostrar no card principal
