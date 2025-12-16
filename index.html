@@ -639,7 +639,41 @@ async function adicionarContato(valor, tipo) { if (!valor) return; const novoCon
 async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
 async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
 function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted[mid]; }
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { 
+    // Lógica específica para PP7 (se offline)
+    // FIXO EM 70%, decaindo 1% a cada 30 min
+    if (APP_ID === 'pp7') {
+        const agora = Date.now();
+        // Fallback: se timestampInicial for invalido (ex: 0), usa agora (70%) para não mostrar 0
+        const tInicial = timestampInicial > 0 ? timestampInicial : agora; 
+        const minutosPassados = (agora - tInicial) / (1000 * 60);
+        // Cada 30 minutos = 1% a menos
+        const quedas = Math.floor(minutosPassados / 30);
+        let nivelSimulado = 70 - quedas;
+        if (nivelSimulado < 0) nivelSimulado = 0;
+        return nivelSimulado;
+    }
+
+    // Lógica padrão para as outras caixas
+    const agora = Date.now(); 
+    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); 
+    let nivelSimulado = nivelInicial; 
+    let quedasAplicadas = 0; 
+    while (horasPassadas > 0 && nivelSimulado > 0) { 
+        let duracaoBloco = 2; 
+        quedasAplicadas++; 
+        if (quedasAplicadas <= 4) { duracaoBloco = 8; } 
+        else if (quedasAplicadas <= 6) { duracaoBloco = 6; } 
+        else if (quedasAplicadas <= 8) { duracaoBloco = 4; } 
+        else { duracaoBloco = 2; } 
+        if (horasPassadas >= duracaoBloco) { 
+            nivelSimulado -= 5; 
+            horasPassadas -= duracaoBloco; 
+        } else { break; } 
+    } 
+    if (nivelSimulado < 0) nivelSimulado = 0; 
+    return nivelSimulado; 
+}
 
 // Nova Função para buscar dados históricos caso o realtime esteja 0/offline
 async function buscarBackupHistorico() {
@@ -661,6 +695,8 @@ async function buscarBackupHistorico() {
     } catch(e) { console.log('Erro ao buscar backup historico', e); }
     return null;
 }
+
+const APP_ID = '__STORAGE_KEY_PREFIX__'; // Identifica qual app está rodando (substituido pelo dashboard)
 
 async function loopDeAtualizacao() { 
     const liveIndicator = document.getElementById('live-indicator'); 
@@ -746,7 +782,9 @@ async function loopDeAtualizacao() {
                 }
             } 
 
-            if (pctBackup > 0) {
+            // Se for PP7, aceita entrar na simulação mesmo se pctBackup for 0, pois o inicial é fixo em 70
+            if (pctBackup > 0 || (APP_ID === 'pp7')) {
+                // Passa timeBackup mesmo se for 0, a função lidará com fallback
                 nivelAtual = calcularNivelSimuladoLatch(pctBackup, timeBackup);
                 backupUsado = true;
             } else {
@@ -966,13 +1004,25 @@ window.recarregarAppAtual = function() {
 
 // --- CÁLCULO DE NÍVEL DE EMERGÊNCIA (SIMULADO) ---
 // Réplica da lógica do app interno para mostrar no card principal
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial, id) {
+    // Lógica específica para PP7 no Dashboard
+    if (id === 'pp7') {
+        const agora = Date.now();
+        // Se timestampInicial for 0, usa agora (para começar a decair de 70% a partir do load)
+        const tInicial = timestampInicial > 0 ? timestampInicial : agora; 
+        const minutosPassados = (agora - tInicial) / (1000 * 60);
+        const quedas = Math.floor(minutosPassados / 30);
+        let nivelSimulado = 70 - quedas; // Começa em 70% fixo
+        if (nivelSimulado < 0) nivelSimulado = 0;
+        return nivelSimulado;
+    }
+
     const agora = Date.now();
     let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
     let nivelSimulado = nivelInicial;
     let quedasAplicadas = 0;
 
-    // Lógica de decaimento (igual ao app filho)
+    // Lógica de decaimento padrão
     while (horasPassadas > 0 && nivelSimulado > 0) {
         let duracaoBloco = 2;
         quedasAplicadas++;
@@ -1054,8 +1104,10 @@ async function updateDashboardData() {
                     }
                 }
 
-                if (lastValidPct > 0) {
-                    lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime);
+                // Permite entrar na simulação da PP7 mesmo sem pct valido anterior
+                if (lastValidPct > 0 || (item.id === 'pp7')) {
+                    // Passamos o ID para a lógica específica da PP7
+                    lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime, item.id);
                     isSimulated = true;
                 } else {
                     lvl = 0; 
