@@ -143,9 +143,48 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 #app-overlay.active { display: block; }
 #app-frame { width: 100%; height: 100%; border: none; }
 
+/* --- ESTILO ADICIONADO: POPUP DE MANUTENÇÃO --- */
+#maintenance-popup {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; z-index: 30000;
+}
+.m-box {
+    background: var(--card-bg); border: 4px solid #d4af37; border-radius: 24px;
+    padding: 40px 30px; max-width: 500px; width: 90%; text-align: center;
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.4); animation: m-fade-in 0.5s ease;
+}
+@keyframes m-fade-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+.m-icon-anim {
+    font-size: 4rem; color: #d4af37; margin-bottom: 20px;
+    display: inline-block; animation: m-gear 3s infinite linear;
+}
+@keyframes m-gear { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.m-title { font-weight: 700; font-size: 1.5rem; margin-bottom: 15px; color: var(--text-main); }
+.m-desc { color: var(--text-sec); line-height: 1.6; margin-bottom: 20px; font-size: 1.05rem; }
+.m-warning { color: var(--text-main); font-size: 0.95rem; border-top: 1px solid rgba(212, 175, 55, 0.3); padding-top: 15px; }
+.m-btn {
+    margin-top: 25px; background: #d4af37; color: #fff; border: none;
+    padding: 12px 40px; border-radius: 50px; font-weight: 700; cursor: pointer;
+    transition: all 0.3s; font-family: 'Poppins', sans-serif;
+}
+.m-btn:hover { background: #b8952e; transform: translateY(-2px); }
 </style>
 </head>
 <body>
+
+<!-- POP-UP DE MANUTENÇÃO -->
+<div id="maintenance-popup">
+    <div class="m-box">
+        <div class="m-icon-anim"><i class="fas fa-cog"></i></div>
+        <div class="m-title">Aplicativo em manutenção</div>
+        <p class="m-desc">Estamos implantando as demais caixas d'água para melhorar nosso monitoramento.</p>
+        <div class="m-warning">
+            <strong>FAVOR DESCONSIDERAR POSSÍVEIS ALARMES E ENVIOS DE EMAILS COM 0%.</strong>
+        </div>
+        <button class="m-btn" onclick="document.getElementById('maintenance-popup').style.display='none'">Entendido</button>
+    </div>
+</div>
 
 <!-- DASHBOARD VISÍVEL INICIALMENTE -->
 <div id="dashboard-container">
