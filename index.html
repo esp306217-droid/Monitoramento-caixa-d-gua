@@ -143,46 +143,49 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 #app-overlay.active { display: block; }
 #app-frame { width: 100%; height: 100%; border: none; }
 
-/* --- ESTILO ADICIONADO: POPUP DE MANUTENÇÃO --- */
-#maintenance-popup {
+/* --- POP-UP DE MANUTENÇÃO (ESTILO DOURADO) --- */
+#maintenance-popup-main {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center; z-index: 30000;
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center; z-index: 100000;
 }
-.m-box {
-    background: var(--card-bg); border: 4px solid #d4af37; border-radius: 24px;
-    padding: 40px 30px; max-width: 500px; width: 90%; text-align: center;
-    box-shadow: 0 0 30px rgba(212, 175, 55, 0.4); animation: m-fade-in 0.5s ease;
+.m-gold-box {
+    background: var(--card-bg); border: 5px solid #d4af37; border-radius: 28px;
+    padding: 40px 30px; max-width: 500px; width: 92%; text-align: center;
+    box-shadow: 0 0 50px rgba(212, 175, 55, 0.5); animation: m-scale-up 0.5s ease;
 }
-@keyframes m-fade-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-.m-icon-anim {
-    font-size: 4rem; color: #d4af37; margin-bottom: 20px;
-    display: inline-block; animation: m-gear 3s infinite linear;
+@keyframes m-scale-up { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+.m-gold-icon {
+    font-size: 5rem; color: #d4af37; margin-bottom: 25px;
+    display: inline-block; animation: m-spin-gear 4s infinite linear;
 }
-@keyframes m-gear { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.m-title { font-weight: 700; font-size: 1.5rem; margin-bottom: 15px; color: var(--text-main); }
-.m-desc { color: var(--text-sec); line-height: 1.6; margin-bottom: 20px; font-size: 1.05rem; }
-.m-warning { color: var(--text-main); font-size: 0.95rem; border-top: 1px solid rgba(212, 175, 55, 0.3); padding-top: 15px; }
-.m-btn {
-    margin-top: 25px; background: #d4af37; color: #fff; border: none;
-    padding: 12px 40px; border-radius: 50px; font-weight: 700; cursor: pointer;
-    transition: all 0.3s; font-family: 'Poppins', sans-serif;
+@keyframes m-spin-gear { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.m-gold-title { font-weight: 700; font-size: 1.6rem; margin-bottom: 15px; color: #d4af37; }
+.m-gold-desc { color: var(--text-sec); line-height: 1.6; margin-bottom: 25px; font-size: 1.1rem; }
+.m-gold-warning { 
+    color: var(--text-main); font-size: 0.95rem; background: rgba(212, 175, 55, 0.1); 
+    padding: 15px; border-radius: 15px; border-left: 5px solid #d4af37;
 }
-.m-btn:hover { background: #b8952e; transform: translateY(-2px); }
+.m-gold-btn {
+    margin-top: 30px; background: #d4af37; color: #fff; border: none;
+    padding: 14px 50px; border-radius: 50px; font-weight: 700; cursor: pointer;
+    transition: all 0.3s; font-family: 'Poppins', sans-serif; font-size: 1.1rem;
+}
+.m-gold-btn:active { transform: scale(0.95); }
 </style>
 </head>
 <body>
 
-<!-- POP-UP DE MANUTENÇÃO -->
-<div id="maintenance-popup">
-    <div class="m-box">
-        <div class="m-icon-anim"><i class="fas fa-cog"></i></div>
-        <div class="m-title">Aplicativo em manutenção</div>
-        <p class="m-desc">Estamos implantando as demais caixas d'água para melhorar nosso monitoramento.</p>
-        <div class="m-warning">
+<!-- POP-UP DE MANUTENÇÃO DOURADO -->
+<div id="maintenance-popup-main">
+    <div class="m-gold-box">
+        <div class="m-gold-icon"><i class="fas fa-tools"></i></div>
+        <div class="m-gold-title">Aplicativo em manutenção</div>
+        <p class="m-gold-desc">Estamos implantando as demais caixas d'água para melhorar nosso monitoramento.</p>
+        <div class="m-gold-warning">
             <strong>FAVOR DESCONSIDERAR POSSÍVEIS ALARMES E ENVIOS DE EMAILS COM 0%.</strong>
         </div>
-        <button class="m-btn" onclick="document.getElementById('maintenance-popup').style.display='none'">Entendido</button>
+        <button class="m-gold-btn" onclick="document.getElementById('maintenance-popup-main').style.display='none'">Entendido</button>
     </div>
 </div>
 
@@ -793,7 +796,7 @@ const listPP = [
         active: true, 
         firebaseDataPath: '/PP7.json',
         firebaseConfigPath: '/PP7_config',
-        firebaseHistPath: '/PP7_config/historico', // Mantido para compatibilidade do PP7
+        firebaseHistPath: '/PP7_config/historico', 
         title: 'Praça de Pedágio 07 - Capim Branco/MG'
     }
 ];
@@ -917,109 +920,115 @@ function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
     return nivelSimulado;
 }
 
-async function fetchLastValidFromHistory(histPath) {
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const r = await fetch(`${DB_BASE}${histPath}/${today}.json?orderBy="$key"&limitToLast=1`);
-        const d = await r.json();
-        if(d) {
-            const keys = Object.keys(d);
-            if(keys.length > 0) {
-                const lastEntry = d[keys[0]];
-                return {
-                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
-                    time: lastEntry.timestamp || 0
-                };
+function fetchLastValidFromHistory(histPath) {
+    const today = new Date().toISOString().split('T')[0];
+    const url = `${DB_BASE}${histPath}/${today}.json?orderBy="$key"&limitToLast=1`;
+    
+    return fetch(url)
+        .then(response => response.json())
+        .then(d => {
+            if(d) {
+                const keys = Object.keys(d);
+                if(keys.length > 0) {
+                    const lastEntry = d[keys[0]];
+                    return {
+                        pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
+                        time: lastEntry.timestamp || 0
+                    };
+                }
             }
-        }
-    } catch(e) { console.log('Erro ao buscar historico backup', e); }
-    return null;
+            return null;
+        })
+        .catch(err => {
+            console.log('Erro ao buscar historico backup', err);
+            return null;
+        });
 }
 
-async function updateDashboardData() {
+function updateDashboardData() {
     const activeItems = [...listPP, ...listSAU].filter(i => i.active);
     
-    for (const item of activeItems) {
-        try {
-            const r = await fetch(`${DB_BASE}${item.firebaseDataPath}?nocache=${Date.now()}`);
-            const d = await r.json();
-            
-            let lvl = 0;
-            let isSimulated = false;
-            let rawLvl = 0;
+    activeItems.forEach(item => {
+        fetch(`${DB_BASE}${item.firebaseDataPath}?nocache=${Date.now()}`)
+            .then(response => response.json())
+            .then(async d => {
+                let lvl = 0;
+                let isSimulated = false;
+                let rawLvl = 0;
 
-            if(d) {
-                if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
-                else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
-                else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
-            }
-            
-            if (rawLvl > 0) {
-                lvl = rawLvl;
-                isSimulated = false;
-            } else {
-                let lastValidPct = 0;
-                let lastValidTime = 0;
-
-                if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
-                     lastValidPct = d.ultima_valida_pct;
-                     lastValidTime = d.ultima_valida_time;
-                } else {
-                    const histData = await fetchLastValidFromHistory(item.firebaseHistPath);
-                    if(histData) {
-                        lastValidPct = histData.pct;
-                        lastValidTime = histData.time;
-                    }
+                if(d) {
+                    if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
+                    else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
+                    else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
                 }
-
-                if (lastValidPct > 0) {
-                    lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime);
-                    isSimulated = true;
-                } else {
-                    lvl = 0; 
-                }
-            }
-            
-            const card = document.getElementById(`card-${item.id}`);
-            const elLvl = document.getElementById(`lvl-${item.id}`);
-            const elBg = document.getElementById(`bg-${item.id}`);
-            
-            if(card && elLvl) {
-                elLvl.innerText = `${lvl}%`;
-                if(elBg) elBg.style.height = `${lvl}%`;
-
-                const dot = card.querySelector('.live-dot');
-                const badge = card.querySelector('.simulated-badge');
                 
                 if (rawLvl > 0) {
-                    dot.style.display = 'block';
-                    badge.style.display = 'none';
+                    lvl = rawLvl;
+                    isSimulated = false;
                 } else {
-                    dot.style.display = 'none';
-                    if (isSimulated && lvl > 0) badge.style.display = 'flex';
-                    else badge.style.display = 'none';
-                }
-                
-                card.removeAttribute('data-status');
-                
-                if (isSimulated && lvl > 0) {
-                    card.setAttribute('data-status', 'simulated');
-                    elLvl.style.color = '#d97706';
-                } else {
-                    if(lvl > 60) {
-                        card.setAttribute('data-status', 'ok');
-                        elLvl.style.color = 'var(--level-ok)';
-                    } else if (lvl > 30) {
-                        card.setAttribute('data-status', 'warn');
-                        elLvl.style.color = 'var(--level-warn)';
+                    let lastValidPct = 0;
+                    let lastValidTime = 0;
+
+                    if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
+                         lastValidPct = d.ultima_valida_pct;
+                         lastValidTime = d.ultima_valida_time;
                     } else {
-                        card.setAttribute('data-status', 'danger');
-                        elLvl.style.color = 'var(--level-danger)';
+                        const histData = await fetchLastValidFromHistory(item.firebaseHistPath);
+                        if(histData) {
+                            lastValidPct = histData.pct;
+                            lastValidTime = histData.time;
+                        }
+                    }
+
+                    if (lastValidPct > 0) {
+                        lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime);
+                        isSimulated = true;
+                    } else {
+                        lvl = 0; 
                     }
                 }
-            }
-        } catch(e) { console.log(e); }
-    }
+                
+                const card = document.getElementById(`card-${item.id}`);
+                const elLvl = document.getElementById(`lvl-${item.id}`);
+                const elBg = document.getElementById(`bg-${item.id}`);
+                
+                if(card && elLvl) {
+                    elLvl.innerText = `${lvl}%`;
+                    if(elBg) elBg.style.height = `${lvl}%`;
+
+                    const dot = card.querySelector('.live-dot');
+                    const badge = card.querySelector('.simulated-badge');
+                    
+                    if (rawLvl > 0) {
+                        dot.style.display = 'block';
+                        badge.style.display = 'none';
+                    } else {
+                        dot.style.display = 'none';
+                        if (isSimulated && lvl > 0) badge.style.display = 'flex';
+                        else badge.style.display = 'none';
+                    }
+                    
+                    card.removeAttribute('data-status');
+                    
+                    if (isSimulated && lvl > 0) {
+                        card.setAttribute('data-status', 'simulated');
+                        elLvl.style.color = '#d97706';
+                    } else {
+                        if(lvl > 60) {
+                            card.setAttribute('data-status', 'ok');
+                            elLvl.style.color = 'var(--level-ok)';
+                        } else if (lvl > 30) {
+                            card.setAttribute('data-status', 'warn');
+                            elLvl.style.color = 'var(--level-warn)';
+                        } else {
+                            card.setAttribute('data-status', 'danger');
+                            elLvl.style.color = 'var(--level-danger)';
+                        }
+                    }
+                }
+            })
+            .catch(e => console.log('Erro de rede:', e));
+    });
 }
 
 let isDark = false;
@@ -1038,6 +1047,7 @@ window.onload = () => {
     renderGrid('grid-pp', listPP, 'fas fa-road'); 
     renderGrid('grid-sau', listSAU, 'fas fa-home'); 
     updateDashboardData();
+    if(dashboardInterval) clearInterval(dashboardInterval);
     dashboardInterval = setInterval(updateDashboardData, 5000); 
 };
 </script>
