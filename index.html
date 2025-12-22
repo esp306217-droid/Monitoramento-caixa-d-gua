@@ -327,10 +327,10 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
 <!-- Botão Voltar (Movido para cá) -->
-<button class="nav-button-icon-only" onclick="try{window.location.href='__DASHBOARD_URL__';}catch(e){try{history.back();}catch(_e){}}" title="Voltar"><i class="fas fa-arrow-left"></i></button>
+<button class="nav-button-icon-only" onclick="window.goBackDashboard()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
 <!-- Botões de Tema e Atualizar -->
 <button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
-<button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
+<button class="nav-button-icon-only" onclick="window.forceRefreshNow()" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
 <!-- Botões de Navegação -->
 <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
 <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
@@ -546,6 +546,27 @@ const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`;
 const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`; // Base path for config (e.g., /SAU13_config)
 const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; // Base path for historic (e.g., /SAU13_historico)
 const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
+
+
+// ===== Navegação / Refresh compatível com MIT App Inventor (WebView) =====
+window.goBackDashboard = function () {
+  try {
+    const base = (window.location.href || '').split('?')[0];
+    window.location.href = base;
+  } catch (e) {
+    try { history.back(); } catch (_e) {}
+  }
+};
+
+window.forceRefreshNow = function () {
+  // Evita reload completo (no MIT pode "sumir" dados e atrasar vários minutos)
+  try {
+    if (typeof loopDeAtualizacao === 'function') loopDeAtualizacao();
+    // Atualiza gráficos apenas se a aba correspondente estiver ativa
+    if (typeof carregarHistoricoEConsumo === 'function' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo();
+    if (typeof carregarHistoricoAbastecimento === 'function' && activeTab === 'abastecimento') carregarHistoricoAbastecimento();
+  } catch (e) {}
+};
 // CONTAS DE EMAIL ROTATIVAS
 const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
 let isDarkMode = false;
