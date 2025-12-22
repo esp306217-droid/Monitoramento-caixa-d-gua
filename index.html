@@ -781,7 +781,7 @@ function fecharAlertaModal() { document.getElementById('alert-modal').style.disp
 function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
 function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
 function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
-\1
+
 
 function forcarAlertaNaAberturaSeNecessario(nivelExibido) {
     try {
