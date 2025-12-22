@@ -377,15 +377,18 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
 <stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/>
 </linearGradient>
+<linearGradient id="grad-agua" x1="0%" y1="0%" x2="0%" y2="100%">
+  <stop offset="0%" stop-color="#3b82f6"/>
+  <stop offset="100%" stop-color="#06b6d4"/>
+</linearGradient>
 <clipPath id="mascara-agua">
 <path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
 </clipPath>
 </defs>
-<foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
-<div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
-<div class="agua" id="agua">0%</div>
-</div>
-</foreignObject>
+<g clip-path="url(#mascara-agua)">
+<rect id="agua-rect" x="105" y="500" width="190" height="0" fill="url(#grad-agua)"></rect>
+<text id="agua-text" x="200" y="360" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="Poppins, sans-serif" font-weight="800" font-size="42" style="paint-order:stroke;stroke:rgba(0,0,0,0.25);stroke-width:6;">0%</text>
+</g>
 <g id="estrutura-reservatorio">
 <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
 <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
@@ -585,7 +588,70 @@ function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alerta
 function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
 function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
 function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
-function atualizarCaixaDOM(nivel) { if (ultimoNivelExibido !== -1 && Math.abs(nivel - ultimoNivelExibido) < 1) { return; } ultimoNivelExibido = nivel; const aguaDiv = document.getElementById('agua'); if(aguaDiv) { aguaDiv.style.height = nivel + '%'; aguaDiv.innerText = nivel + '%'; if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)'; else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)'; else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)'; } const ledVermelho = document.getElementById('led-vermelho'); const ledAmarelo = document.getElementById('led-amarelo'); const ledVerde = document.getElementById('led-verde'); if(ledVermelho && ledAmarelo && ledVerde) { ledVermelho.classList.remove('aceso'); ledAmarelo.classList.remove('aceso'); ledVerde.classList.remove('aceso'); if (nivel > 60) ledVerde.classList.add('aceso'); else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso'); else ledVermelho.classList.add('aceso'); } const txtNivel = document.getElementById('status-level'); if(txtNivel) { txtNivel.innerText = nivel + '%'; if (nivel > 60) txtNivel.style.color = 'var(--level-ok)'; else if (nivel > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)'; else txtNivel.style.color = 'var(--level-danger)'; } if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivel)} <small>L</small>`; if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+function atualizarCaixaDOM(nivel, simulated=false) {
+    // MIT App Inventor (WebView) costuma ter problemas com SVG <foreignObject>.
+    // Por isso, usamos elementos SVG puros (rect/text) quando disponíveis.
+    const pct = Math.max(0, Math.min(100, Math.round(nivel || 0)));
+
+    // Atualiza "água" no SVG (preferencial)
+    const rect = document.getElementById('agua-rect');
+    const txt = document.getElementById('agua-text');
+
+    if (rect) {
+        const maxH = 280;              // altura da área útil (y 220..500)
+        const baseY = 220 + maxH;      // 500
+        const h = Math.round((pct / 100) * maxH);
+        rect.setAttribute('height', String(h));
+        rect.setAttribute('y', String(baseY - h));
+    }
+
+    if (txt) {
+        txt.textContent = pct + '%';
+    }
+
+    // Fallback (se ainda existir o DIV antigo)
+    const aguaDiv = document.getElementById('agua');
+    if (aguaDiv) {
+        aguaDiv.style.height = pct + '%';
+        aguaDiv.innerText = pct + '%';
+    }
+
+    // LEDs e status
+    const ledVermelho = document.getElementById('led-vermelho');
+    const ledAmarelo = document.getElementById('led-amarelo');
+    const ledVerde = document.getElementById('led-verde');
+
+    if (ledVermelho && ledAmarelo && ledVerde) {
+        ledVermelho.classList.remove('aceso');
+        ledAmarelo.classList.remove('aceso');
+        ledVerde.classList.remove('aceso');
+
+        if (pct > 60) ledVerde.classList.add('aceso');
+        else if (pct > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
+        else ledVermelho.classList.add('aceso');
+    }
+
+    const txtNivel = document.getElementById('status-level');
+    if (txtNivel) {
+        txtNivel.innerText = pct + '%';
+        if (pct > 60) txtNivel.style.color = 'var(--level-ok)';
+        else if (pct > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)';
+        else txtNivel.style.color = 'var(--level-danger)';
+    }
+
+    const simIndicator = document.getElementById('simulated-indicator');
+    if (simIndicator) simIndicator.style.display = simulated ? 'inline-flex' : 'none';
+
+    const litrosEl = document.getElementById('status-litros');
+    if (litrosEl) litrosEl.innerHTML = `${calcularVolumeLitros(pct)} <small>L</small>`;
+
+    const timeEl = document.getElementById('status-time');
+    if (timeEl) timeEl.innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    ultimoNivelExibido = pct;
+}
+
+
 function interpolacaoLinear(arr) { let filled = [...arr]; let indices = []; for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); } if(indices.length === 0) return filled; for(let k = 0; k < indices.length - 1; k++) { let startIdx = indices[k]; let endIdx = indices[k+1]; let startVal = filled[startIdx]; let endVal = filled[endIdx]; let steps = endIdx - startIdx; if (endVal > startVal + 30) { for(let j = 1; j < steps; j++) { filled[startIdx + j] = startVal; } } else { for(let j = 1; j < steps; j++) { let val = startVal + (endVal - startVal) * (j / steps); filled[startIdx + j] = Math.round(val); } } } if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; } return filled; }
 function atualizarGraficosHistorico(result) { if (!chartLinha || !chartBlocos) return; if (!result || !result.labels) return; let displayLabels = result.labels || []; let displayNiveis = result.niveis || []; chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update(); chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis; const cores = 'rgba(6, 182, 212, 0.85)'; chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update(); }
 function atualizarGraficosConsumo(result) { if (!chartConsumoBloco || !chartConsumoLinha) return; if (!result || !result.consumo) return; const consumoData = result.consumo || []; const consumoLabels = result.labels || []; const infoTexto = document.getElementById('consumo-info-texto'); if (infoTexto) { let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0); let statusTexto = "Normal"; let corStatus = "var(--accent)"; if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; } else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; } if (currentView === 'diario') { infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`; } else { infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`; } } chartConsumoBloco.data.labels = consumoLabels; chartConsumoBloco.data.datasets[0].data = consumoData; chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; chartConsumoBloco.update(); chartConsumoLinha.data.labels = consumoLabels; chartConsumoLinha.data.datasets[0].data = consumoData; chartConsumoLinha.update(); }
