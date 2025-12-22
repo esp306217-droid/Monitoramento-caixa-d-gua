@@ -557,7 +557,7 @@ window.toggleTheme = function(e) {
     applyTheme(); 
 };
 function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
-function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); }
+function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } try { criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); } catch(e){} }
 
 try { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
 let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
@@ -572,67 +572,74 @@ let snoozeCount = 0, snoozeUntil = 0;
 const SNOOZE_DURATION_MINUTES = 10; const AUTO_SNOOZE_SECONDS = 30; 
 let ultimoNivelValidoLatch = null; let timestampLatch = null; 
 let historicoLeiturasValidas = []; let loopInterval = null;
+let watchdogInterval = null;
+let ultimoUpdateEmMs = 0;
+const UPDATE_MS = 2500;
 let lastUpdateTimestamp = 0; let contadorZerosConsecutivos = 0; 
 let bufferLeituras = []; let contadorLeiturasFantasmas = 0; let ultimoNivelExibido = -1; 
 function calcularVolumeLitros(nivelPercentual) { if (nivelPercentual <= 0) return 0; if (nivelPercentual > 100) nivelPercentual = 100; return Math.floor((nivelPercentual / 100) * capacidadeTotal); }
 function getLocalISODate(dateObj) { const d = dateObj || new Date(); const offset = d.getTimezoneOffset() * 60000; const localDate = new Date(d.getTime() - offset); return localDate.toISOString().split('T')[0]; }
-function getNoCacheUrl(url) { const separator = url.includes('?') ? '&' : '?'; return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; }
+function getNoCacheUrl(url) { 
+    let cleanUrl = url.trim();
+    if(cleanUrl.endsWith('/') && cleanUrl.includes('.json')) {
+        cleanUrl = cleanUrl.slice(0, -1);
+    }
+    const separator = cleanUrl.includes('?') ? '&' : '?'; 
+    return `${cleanUrl}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; 
+}
 
-// --- FETCH OTIMIZADO COM TIMEOUT E SUPORTE A NAVEGADORES ANTIGOS ---
-async function safeFetch(url, options = {}) {
-    let signal = null;
-    let id = null;
+// --- FETCH ROBUSTO (Compatível com Android antigo e Lento) ---
+async function safeFetch(url, timeoutMs = 8000) {
     let controller = null;
-    
-    // Verificação de compatibilidade para WebView antigo do App Inventor
+    let signal = null;
+    let t = null;
+
     if (typeof AbortController !== 'undefined') {
         controller = new AbortController();
-        id = setTimeout(() => controller.abort(), 8000); // Aumentado para 8s para conexões lentas
         signal = controller.signal;
+        t = setTimeout(() => controller.abort(), timeoutMs);
     }
 
-    const finalOptions = { ...options, cache: 'no-store' };
-    if (signal) finalOptions.signal = signal;
+    const options = { cache: 'no-store' };
+    if (signal) options.signal = signal;
     
     try {
-        const response = await fetch(getNoCacheUrl(url), finalOptions);
-        if (id) clearTimeout(id);
+        const response = await fetch(getNoCacheUrl(url), options);
+        if (t) clearTimeout(t);
         if (!response.ok) throw new Error(response.statusText);
-        return response;
+        return await response.json();
     } catch(e) {
-        if (id) clearTimeout(id);
-        // Ignora erros de aborto para não poluir o console, mas retorna null
-        if (e.name !== 'AbortError') console.warn("Fetch falhou:", url);
+        if (t) clearTimeout(t);
         return null;
     }
 }
 
-async function enviarEmailAlerta(nivel) { const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`; if (emailEnviadoNessaSessao) return false; try { const rTime = await safeFetch(urlTimestamp); if (rTime) { const ultimoDisparo = await rTime.json(); const agora = Date.now(); if (ultimoDisparo) { const diferenca = agora - ultimoDisparo; const horas12 = 12 * 60 * 60 * 1000; if (diferenca < horas12) return false; } } } catch (e) {} let contatos = {}; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); if (!contatos) return false; } catch (e) { return false; } const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor); if (emailsParaEnviar.length === 0) return false; let credenciais = null; const hoje = new Date(); for (let conta of CONTAS_EMAIL) { let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio); if (hoje >= dataReinicio && conta.quota_inicial < 200) { conta.quota_inicial = 200; } if (conta.quota_inicial >= emailsParaEnviar.length) { credenciais = conta; break; } } if (!credenciais) { console.warn("Sem cota de email."); return false; } let todosEnviadosComSucesso = true; for (const email of emailsParaEnviar) { const templateParams = { "%": nivel, "email": email }; try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { console.error("Erro envio", err); todosEnviadosComSucesso = false; } } if (todosEnviadosComSucesso) { emailEnviadoNessaSessao = true; const agoraMs = Date.now(); try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {} } return todosEnviadosComSucesso; }
+async function enviarEmailAlerta(nivel) { const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`; if (emailEnviadoNessaSessao) return false; try { const rTime = await safeFetch(urlTimestamp); if (rTime) { const ultimoDisparo = rTime; const agora = Date.now(); if (ultimoDisparo) { const diferenca = agora - ultimoDisparo; const horas12 = 12 * 60 * 60 * 1000; if (diferenca < horas12) return false; } } } catch (e) {} let contatos = {}; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = r; if (!contatos) return false; } catch (e) { return false; } const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor); if (emailsParaEnviar.length === 0) return false; let credenciais = null; const hoje = new Date(); for (let conta of CONTAS_EMAIL) { let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio); if (hoje >= dataReinicio && conta.quota_inicial < 200) { conta.quota_inicial = 200; } if (conta.quota_inicial >= emailsParaEnviar.length) { credenciais = conta; break; } } if (!credenciais) { console.warn("Sem cota de email."); return false; } let todosEnviadosComSucesso = true; for (const email of emailsParaEnviar) { const templateParams = { "%": nivel, "email": email }; try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { console.error("Erro envio", err); todosEnviadosComSucesso = false; } } if (todosEnviadosComSucesso) { emailEnviadoNessaSessao = true; const agoraMs = Date.now(); try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {} } return todosEnviadosComSucesso; }
 function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
 function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
 function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
 function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
 function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
 function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
-function atualizarCaixaDOM(nivel) { if (ultimoNivelExibido !== -1 && Math.abs(nivel - ultimoNivelExibido) < 1) { return; } ultimoNivelExibido = nivel; const aguaDiv = document.getElementById('agua'); if(aguaDiv) { aguaDiv.style.height = nivel + '%'; aguaDiv.innerText = nivel + '%'; if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)'; else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)'; else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)'; } const ledVermelho = document.getElementById('led-vermelho'); const ledAmarelo = document.getElementById('led-amarelo'); const ledVerde = document.getElementById('led-verde'); if(ledVermelho && ledAmarelo && ledVerde) { ledVermelho.classList.remove('aceso'); ledAmarelo.classList.remove('aceso'); ledVerde.classList.remove('aceso'); if (nivel > 60) ledVerde.classList.add('aceso'); else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso'); else ledVermelho.classList.add('aceso'); } const txtNivel = document.getElementById('status-level'); if(txtNivel) { txtNivel.innerText = nivel + '%'; if (nivel > 60) txtNivel.style.color = 'var(--level-ok)'; else if (nivel > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)'; else txtNivel.style.color = 'var(--level-danger)'; } if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivel)} <small>L</small>`; if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+
 function interpolacaoLinear(arr) { let filled = [...arr]; let indices = []; for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); } if(indices.length === 0) return filled; for(let k = 0; k < indices.length - 1; k++) { let startIdx = indices[k]; let endIdx = indices[k+1]; let startVal = filled[startIdx]; let endVal = filled[endIdx]; let steps = endIdx - startIdx; if (endVal > startVal + 30) { for(let j = 1; j < steps; j++) { filled[startIdx + j] = startVal; } } else { for(let j = 1; j < steps; j++) { let val = startVal + (endVal - startVal) * (j / steps); filled[startIdx + j] = Math.round(val); } } } if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; } return filled; }
 function atualizarGraficosHistorico(result) { if (!chartLinha || !chartBlocos) return; if (!result || !result.labels) return; let displayLabels = result.labels || []; let displayNiveis = result.niveis || []; chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update(); chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis; const cores = 'rgba(6, 182, 212, 0.85)'; chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update(); }
 function atualizarGraficosConsumo(result) { if (!chartConsumoBloco || !chartConsumoLinha) return; if (!result || !result.consumo) return; const consumoData = result.consumo || []; const consumoLabels = result.labels || []; const infoTexto = document.getElementById('consumo-info-texto'); if (infoTexto) { let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0); let statusTexto = "Normal"; let corStatus = "var(--accent)"; if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; } else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; } if (currentView === 'diario') { infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`; } else { infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`; } } chartConsumoBloco.data.labels = consumoLabels; chartConsumoBloco.data.datasets[0].data = consumoData; chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; chartConsumoBloco.update(); chartConsumoLinha.data.labels = consumoLabels; chartConsumoLinha.data.datasets[0].data = consumoData; chartConsumoLinha.update(); }
 function criarGraficos() { Chart.register(ChartDataLabels); const isDark = document.body.getAttribute('data-theme') === 'dark'; const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; const textColor = isDark ? '#94a3b8' : '#64748b'; const zoomOptions = { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' } }; const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, maxTicksLimit: 6, color: textColor }, grid: { display: true, color: gridColor } }; if(document.getElementById('chartLinha')) { const ctxL = document.getElementById('chartLinha').getContext('2d'); const gradL = ctxL.createLinearGradient(0, 0, 0, 300); gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)'); gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)'); if(chartLinha) chartLinha.destroy(); chartLinha = new Chart(ctxL, { type: 'line', data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 3, spanGaps: true }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartBlocos')) { const ctxB = document.getElementById('chartBlocos').getContext('2d'); if(chartBlocos) chartBlocos.destroy(); chartBlocos = new Chart(ctxB, { type: 'bar', data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartConsumoBloco')) { const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d'); if(chartConsumoBloco) chartConsumoBloco.destroy(); chartConsumoBloco = new Chart(ctxCB, { type: 'bar', data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round, font: { size: 10 } } }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, suggestedMax: 2000, grid: { color: gridColor } } }, layout: { padding: { top: 20 } } } }); } if(document.getElementById('chartConsumoLinha')) { const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d'); if(chartConsumoLinha) chartConsumoLinha.destroy(); chartConsumoLinha = new Chart(ctxCL, { type: 'line', data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 2 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartAbastecimento')) { const ctxA = document.getElementById('chartAbastecimento').getContext('2d'); if(chartAbastecimento) chartAbastecimento.destroy(); chartAbastecimento = new Chart(ctxA, { type: 'bar', data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, scales: { x: { ticks: { color: textColor }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } } } }); } }
 async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') { if (nivel === null || nivel === undefined) return; if (tipo === 'real' && nivel <= 0) return; const d = new Date(timestamp); const localDate = getLocalISODate(d); const horaKey = String(d.getHours()).padStart(2, '0'); const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} }
-async function carregarHistoricoEConsumo() { if (currentView === 'semanal') return; let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 }; if (currentView === 'diario') { const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result; const data = dataEl.value; if (!data) return result; const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj); url = `${PATH_HISTORICO}/${data}.json`; const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; processData = (dadosHoje, dadosOntem) => { const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; if (dadosOntem) { const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); if (horariosOntem.length > 0) { const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey]; const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null; } } if (dadosHoje) { const keysSorted = Object.keys(dadosHoje).sort((a, b) => { const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number); return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); }); keysSorted.forEach(key => { const horaInt = parseInt(key.split(':')[0]); const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null; if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; } if (val !== null && previousVal !== null) { if (val > previousVal + 5) { detectedRefillIdx = horaInt; } if (previousVal > val) { const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val); const diff = volAnterior - volAtual; if(diff < 800) { const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap; for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; } } } } if (val !== null) { previousVal = val; lastHoraInt = horaInt; } }); if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; const niveisInterpolados = interpolacaoLinear(niveisFixed); for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h]; } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; } return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; }; try { let dadosHoje = null; try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = await rHoje.json(); } catch(e) {} let dadosOntem = null; try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = await rOntem.json(); } catch(e) {} result = processData(dadosHoje, dadosOntem); atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } else { let dataInicio, dataFim; if (currentView === 'mensal') { const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value; if (!mesAno) return result; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-'); const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`; } else if (currentView === 'intervalo') { const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim'); if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value; if (!dataInicio || !dataFim) return result; } url = `${PATH_HISTORICO}.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`; processData = (dados) => { const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort(); for (const dateKey in dados) { const dailyReadings = dados[dateKey]; const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b)); if(times.length === 0) continue; let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null; for (let i = 0; i < times.length; i++) { const tCurrent = times[i]; const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0; const valCurrent = Number(valRaw); if(valCurrent > 0) { somaNiveis += valCurrent; countNiveis++; if (lastValidLevelForDay !== null) { if (lastValidLevelForDay > valCurrent) { const volAnterior = calcularVolumeLitros(lastValidLevelForDay); const volAtual = calcularVolumeLitros(valCurrent); const diff = volAnterior - volAtual; if(diff < 800) consumoDia += diff; } } lastValidLevelForDay = valCurrent; } } dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0; } if (currentView === 'mensal') { const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0]; for (const dateKey in dailyConsumption) { const day = parseInt(dateKey.split('-')[2]); let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3)); weeks[idx] += dailyConsumption[dateKey]; if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; } } const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0); return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks }; } const labels = Object.keys(dailyConsumption).sort(); const consumo = labels.map(key => dailyConsumption[key]); const niveis = labels.map(key => dailyLevels[key]); const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; }); return { labels: displayLabels, niveis: niveis, consumo: consumo }; }; try { let dados = null; try { const r = await safeFetch(url); if (r) dados = await r.json(); } catch(e) {} result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] }; atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } }
+async function carregarHistoricoEConsumo() { if (currentView === 'semanal') return; let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 }; if (currentView === 'diario') { const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result; const data = dataEl.value; if (!data) return result; const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj); url = `${PATH_HISTORICO}/${data}.json`; const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; processData = (dadosHoje, dadosOntem) => { const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; if (dadosOntem) { const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); if (horariosOntem.length > 0) { const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey]; const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null; } } if (dadosHoje) { const keysSorted = Object.keys(dadosHoje).sort((a, b) => { const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number); return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); }); keysSorted.forEach(key => { const horaInt = parseInt(key.split(':')[0]); const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null; if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; } if (val !== null && previousVal !== null) { if (val > previousVal + 5) { detectedRefillIdx = horaInt; } if (previousVal > val) { const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val); const diff = volAnterior - volAtual; if(diff < 800) { const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap; for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; } } } } if (val !== null) { previousVal = val; lastHoraInt = horaInt; } }); if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; const niveisInterpolados = interpolacaoLinear(niveisFixed); for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h]; } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; } return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; }; try { let dadosHoje = null; try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = rHoje; } catch(e) {} let dadosOntem = null; try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = rOntem; } catch(e) {} result = processData(dadosHoje, dadosOntem); atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } else { let dataInicio, dataFim; if (currentView === 'mensal') { const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value; if (!mesAno) return result; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-'); const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`; } else if (currentView === 'intervalo') { const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim'); if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value; if (!dataInicio || !dataFim) return result; } url = `${PATH_HISTORICO}.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`; processData = (dados) => { const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort(); for (const dateKey in dados) { const dailyReadings = dados[dateKey]; const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b)); if(times.length === 0) continue; let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null; for (let i = 0; i < times.length; i++) { const tCurrent = times[i]; const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0; const valCurrent = Number(valRaw); if(valCurrent > 0) { somaNiveis += valCurrent; countNiveis++; if (lastValidLevelForDay !== null) { if (lastValidLevelForDay > valCurrent) { const volAnterior = calcularVolumeLitros(lastValidLevelForDay); const volAtual = calcularVolumeLitros(valCurrent); const diff = volAnterior - volAtual; if(diff < 800) consumoDia += diff; } } lastValidLevelForDay = valCurrent; } } dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0; } if (currentView === 'mensal') { const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0]; for (const dateKey in dailyConsumption) { const day = parseInt(dateKey.split('-')[2]); let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3)); weeks[idx] += dailyConsumption[dateKey]; if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; } } const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0); return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks }; } const labels = Object.keys(dailyConsumption).sort(); const consumo = labels.map(key => dailyConsumption[key]); const niveis = labels.map(key => dailyLevels[key]); const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; }); return { labels: displayLabels, niveis: niveis, consumo: consumo }; }; try { let dados = null; try { const r = await safeFetch(url); if (r) dados = r; } catch(e) {} result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] }; atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } }
 async function removerAbastecimento(id) { try { await fetch(`${PATH_ABASTECIMENTO.replace('.json', '')}/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {} }
-async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); const idsParaLista = ids.slice(0, 5); if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; idsParaLista.forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); let labelsGrafico = []; let dadosGrafico = []; let titulo = "Comparativo Semanal (Litros)"; if (semanaFiltro === 'todas') { titulo = "Comparativo Semanal (Litros)"; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); let idx = 0; if (dia <= 7) idx = 0; else if (dia <= 14) idx = 1; else if (dia <= 21) idx = 2; else idx = 3; totaisSemana[idx] += parseInt(item.litros || 0); } }); labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana']; dadosGrafico = totaisSemana; } else { titulo = `Detalhes: Semana ${semanaFiltro}`; const diasMap = {}; let diaInicio = 1, diaFim = 7; if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; } if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; } if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; } Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); if (dia >= diaInicio && dia <= diaFim) { const labelDia = `Dia ${String(dia).padStart(2, '0')}`; if (!diasMap[labelDia]) diasMap[labelDia] = 0; diasMap[labelDia] += parseInt(item.litros || 0); } } }); labelsGrafico = Object.keys(diasMap).sort(); dadosGrafico = labelsGrafico.map(l => diasMap[l]); if (labelsGrafico.length === 0) { labelsGrafico = ["Sem dados"]; dadosGrafico = [0]; } } if(document.getElementById('tituloGraficoAbastecimento')) { document.getElementById('tituloGraficoAbastecimento').innerText = titulo; } if(chartAbastecimento) { chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = dadosGrafico; chartAbastecimento.update(); } } else if(listaUL) { listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; } } catch (e) { console.error(e); } }
+async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = r; } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); const idsParaLista = ids.slice(0, 5); if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; idsParaLista.forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); let labelsGrafico = []; let dadosGrafico = []; let titulo = "Comparativo Semanal (Litros)"; if (semanaFiltro === 'todas') { titulo = "Comparativo Semanal (Litros)"; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); let idx = 0; if (dia <= 7) idx = 0; else if (dia <= 14) idx = 1; else if (dia <= 21) idx = 2; else idx = 3; totaisSemana[idx] += parseInt(item.litros || 0); } }); labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana']; dadosGrafico = totaisSemana; } else { titulo = `Detalhes: Semana ${semanaFiltro}`; const diasMap = {}; let diaInicio = 1, diaFim = 7; if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; } if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; } if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; } Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); if (dia >= diaInicio && dia <= diaFim) { const labelDia = `Dia ${String(dia).padStart(2, '0')}`; if (!diasMap[labelDia]) diasMap[labelDia] = 0; diasMap[labelDia] += parseInt(item.litros || 0); } } }); labelsGrafico = Object.keys(diasMap).sort(); dadosGrafico = labelsGrafico.map(l => diasMap[l]); if (labelsGrafico.length === 0) { labelsGrafico = ["Sem dados"]; dadosGrafico = [0]; } } if(document.getElementById('tituloGraficoAbastecimento')) { document.getElementById('tituloGraficoAbastecimento').innerText = titulo; } if(chartAbastecimento) { chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = dadosGrafico; chartAbastecimento.update(); } } else if(listaUL) { listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; } } catch (e) { console.error(e); } }
 function animarBotaoSucesso(btnId) { const btn = document.getElementById(btnId); if(!btn) return; const originalHTML = btn.innerHTML; btn.classList.add('btn-success'); btn.innerHTML = '<i class="fas fa-check"></i> Salvo!'; setTimeout(() => { btn.classList.remove('btn-success'); btn.innerHTML = originalHTML; }, 2000); }
 async function salvarAbastecimento(litros) { if (!litros || litros <= 0) return; const agora = new Date(); const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString() }; try { await fetch(PATH_ABASTECIMENTO, { method: 'POST', body: JSON.stringify(dados) }); document.getElementById('litros-abastecidos').value = ''; carregarHistoricoAbastecimento(); animarBotaoSucesso('btn-salvar-abastecimento'); } catch (e) {} }
 async function salvarConfig(endpoint, valor) { try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {} }
 async function salvarCapacidade(valor) { if(!valor || valor <= 0) return; await salvarConfig('capacidade', valor); capacidadeTotal = valor; animarBotaoSucesso('btn-salvar-capacidade'); }
 async function salvarAltura(valor) { if(!valor || valor <= 0) return; await salvarConfig('altura', valor); alturaCaixa = valor; animarBotaoSucesso('btn-salvar-altura'); }
 async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = valor; animarBotaoSucesso('btn-salvar-nivel-alerta'); }
-async function carregarConfiguracoesGerais() { try { let config = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) config = await r.json(); } catch(e) {} if(config) { if (config.nivel_alerta) { document.getElementById('nivel-alerta-valor').value = config.nivel_alerta; nivelAlertaConfigurado = parseInt(config.nivel_alerta); } else if (config.nivel_critico_pct) { document.getElementById('nivel-alerta-valor').value = config.nivel_critico_pct; nivelAlertaConfigurado = parseInt(config.nivel_critico_pct); } if (config.capacidade) { document.getElementById('capacidade-total-valor').value = config.capacidade; capacidadeTotal = parseInt(config.capacidade); } else if (config.capacidade_total_litros) { document.getElementById('capacidade-total-valor').value = config.capacidade_total_litros; capacidadeTotal = parseInt(config.capacidade_total_litros); } if (config.altura) { document.getElementById('altura-caixa-valor').value = config.altura; alturaCaixa = parseInt(config.altura); } else if (config.altura_tanque_cm) { document.getElementById('altura-caixa-valor').value = config.altura_tanque_cm; alturaCaixa = parseInt(config.altura_tanque_cm); } } } catch (e) {} }
+async function carregarConfiguracoesGerais() { try { let config = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) config = r; } catch(e) {} if(config) { if (config.nivel_alerta) { document.getElementById('nivel-alerta-valor').value = config.nivel_alerta; nivelAlertaConfigurado = parseInt(config.nivel_alerta); } else if (config.nivel_critico_pct) { document.getElementById('nivel-alerta-valor').value = config.nivel_critico_pct; nivelAlertaConfigurado = parseInt(config.nivel_critico_pct); } if (config.capacidade) { document.getElementById('capacidade-total-valor').value = config.capacidade; capacidadeTotal = parseInt(config.capacidade); } else if (config.capacidade_total_litros) { document.getElementById('capacidade-total-valor').value = config.capacidade_total_litros; capacidadeTotal = parseInt(config.capacidade_total_litros); } if (config.altura) { document.getElementById('altura-caixa-valor').value = config.altura; alturaCaixa = parseInt(config.altura); } else if (config.altura_tanque_cm) { document.getElementById('altura-caixa-valor').value = config.altura_tanque_cm; alturaCaixa = parseInt(config.altura_tanque_cm); } } } catch (e) {} }
 async function adicionarContato(valor, tipo) { if (!valor) return; const novoContato = { valor, tipo }; try { await fetch(`${PATH_CONFIG_BASE}/contatos.json`, { method: 'POST', body: JSON.stringify(novoContato) }); document.getElementById('contato-valor').value = ''; carregarContatos(); animarBotaoSucesso('btn-add-contato'); } catch (e) {} }
 async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
-async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
+async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = r; } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
 function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted[mid]; }
 function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
 
@@ -657,159 +664,299 @@ async function buscarBackupHistorico() {
     return null;
 }
 
-// --- LOOP OTIMIZADO: USA TIMEOUT RECURSIVO EM VEZ DE INTERVAL PARA NÃO EMPILHAR ---
-async function loopDeAtualizacao() { 
-    const liveIndicator = document.getElementById('live-indicator'); 
-    try { 
-        if (!verificacaoInicialConcluida) {
-            // Se ainda não iniciou, tenta de novo em 1s
-            setTimeout(loopDeAtualizacao, 1000);
-            return; 
+function extrairNivelPct(dados) {
+  let v = null;
+  // Removido ?. para compatibilidade total com Android antigo
+  if (dados && typeof dados.nivel_pct !== "undefined") v = dados.nivel_pct;
+  else if (dados && typeof dados.nivel !== "undefined") v = dados.nivel;
+  else if (dados && typeof dados.percentual_atual !== "undefined") v = dados.percentual_atual;
+  else if (dados && dados.ultimo_valor_valido && typeof dados.ultimo_valor_valido.nivel_pct !== "undefined") v = dados.ultimo_valor_valido.nivel_pct;
+
+  v = Number(v);
+  if (!Number.isFinite(v)) return null;
+  return Math.max(0, Math.min(100, v));
+}
+
+// Renderiza o nível na DOM existente do template
+function renderNivel(nivelPct) {
+    nivelAtual = nivelPct; // Atualiza variável global
+
+    // 1. Texto do Nível
+    const elTexto = document.getElementById("status-level");
+    if (elTexto) {
+        elTexto.innerText = `${Math.round(nivelPct)}%`;
+        if (nivelPct > 60) elTexto.style.color = 'var(--level-ok)';
+        else if (nivelPct > nivelAlertaConfigurado) elTexto.style.color = 'var(--level-warn)';
+        else elTexto.style.color = 'var(--level-danger)';
+    }
+
+    // 2. Barra de Água (SVG)
+    const elBarra = document.getElementById("agua");
+    if (elBarra) {
+        elBarra.style.height = `${nivelPct}%`;
+        elBarra.innerText = `${Math.round(nivelPct)}%`;
+        if (nivelPct > 60) elBarra.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
+        else if (nivelPct > nivelAlertaConfigurado) elBarra.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+        else elBarra.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+    }
+
+    // 3. Status Container
+    const statusDisplay = document.getElementById('status-display');
+    if (statusDisplay) {
+        statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
+        if (nivelPct > 60) statusDisplay.classList.add('level-ok');
+        else if (nivelPct > nivelAlertaConfigurado) statusDisplay.classList.add('level-warn');
+        else statusDisplay.classList.add('level-danger');
+    }
+
+    // 4. LEDs
+    const ledVermelho = document.getElementById('led-vermelho');
+    const ledAmarelo = document.getElementById('led-amarelo');
+    const ledVerde = document.getElementById('led-verde');
+    if(ledVermelho && ledAmarelo && ledVerde) {
+        ledVermelho.classList.remove('aceso');
+        ledAmarelo.classList.remove('aceso');
+        ledVerde.classList.remove('aceso');
+        if (nivelPct > 60) ledVerde.classList.add('aceso');
+        else if (nivelPct > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
+        else ledVermelho.classList.add('aceso');
+    }
+
+    // 5. Litros e Hora
+    if(document.getElementById('status-litros')) {
+        document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivelPct)} <small>L</small>`;
+    }
+    if(document.getElementById('status-time')) {
+        document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // 6. Indicador Live e Esconder Alertas Falsos
+    const liveIndicator = document.getElementById('live-indicator');
+    if (liveIndicator) {
+        liveIndicator.classList.remove('offline');
+        liveIndicator.classList.add('online');
+    }
+    document.getElementById('emergency-badge').style.display = 'none'; 
+    document.getElementById('simulated-indicator').style.display = 'none';
+
+    // Checagem de Alarme
+    if (nivelPct <= nivelAlertaConfigurado) { 
+        if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } 
+        if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { 
+            enviarEmailAlerta(nivelPct); mostrarAlertaModal(); alertaModalMostrado = true; 
+            setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); 
+        } else { enviarEmailAlerta(nivelPct); } 
+    } else { 
+        if (nivelPct > 50) { 
+            if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; 
+            if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; 
         }
-        lastUpdateTimestamp = Date.now(); 
-        let j = {}; 
-        let fetchSuccess = false; 
-        try { 
-            const r = await safeFetch(PATH_TEMPO_REAL); 
-            if (r) { j = await r.json(); fetchSuccess = true; } 
-        } catch (err) {} 
-        
-        if(liveIndicator) { 
-            if (fetchSuccess) { 
-                liveIndicator.classList.remove('offline'); 
-                liveIndicator.classList.add('online'); 
-                liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5'); 
-            } else { 
-                liveIndicator.classList.remove('online'); 
-                liveIndicator.classList.add('offline'); 
-                liveIndicator.style.opacity = '1'; 
-            } 
-        } 
-        
-        let nivelRecebidoRaw = 0; 
-        if (j && j.nivel_pct !== undefined) nivelRecebidoRaw = j.nivel_pct; 
-        else if (j && j.percentual_atual !== undefined) nivelRecebidoRaw = j.percentual_atual; 
-        let nivelRecebido = Number(nivelRecebidoRaw); 
-        let tipoDado = 'real'; 
-        let statusSensor = j && j.status_leitura ? j.status_leitura : "OFFLINE"; 
-        
-        if (nivelRecebido > 0 && statusSensor !== "ERRO_SENSOR") { 
-            if (bufferLeituras.length === 0) { for(let i=0; i<9; i++) bufferLeituras.push(nivelRecebido); } 
-            else { bufferLeituras.push(nivelRecebido); if (bufferLeituras.length > 9) bufferLeituras.shift(); } 
-            let nivelEstavel = obterMediana(bufferLeituras); 
-            if (ultimoNivelValidoLatch !== null && Math.abs(nivelEstavel - ultimoNivelValidoLatch) > 5) { 
-                contadorLeiturasFantasmas++; 
-                if (contadorLeiturasFantasmas < 5) { nivelEstavel = ultimoNivelValidoLatch; } 
-                else { contadorLeiturasFantasmas = 0; } 
-            } else { contadorLeiturasFantasmas = 0; } 
-            
-            nivelAtual = nivelEstavel; 
-            tipoDado = 'real'; 
-            ultimoNivelValidoLatch = nivelEstavel; 
-            timestampLatch = Date.now(); 
-            localStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelEstavel); 
-            localStorage.setItem('__STORAGE_KEY_PREFIX___last_time', timestampLatch); 
-            document.getElementById('emergency-badge').style.display = 'none'; 
-            document.getElementById('simulated-indicator').style.display = 'none'; 
-        } else { 
-            let backupUsado = false; 
-            let pctBackup = 0;
-            let timeBackup = 0;
-
-            // Prioridade 1: Dados do JSON em tempo real (se tiver ultima valida)
-            if (j && j.ultima_valida_pct > 0 && j.ultima_valida_time > 0) { 
-                pctBackup = j.ultima_valida_pct;
-                timeBackup = j.ultima_valida_time;
-            } 
-            // Prioridade 2: Memória Local (Latch)
-            else if (ultimoNivelValidoLatch !== null && timestampLatch !== null) { 
-                pctBackup = ultimoNivelValidoLatch;
-                timeBackup = timestampLatch;
-            } 
-            // Prioridade 3: LocalStorage persistente
-            else { 
-                const savedLvl = localStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); 
-                const savedTime = localStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); 
-                if(savedLvl && savedTime) { 
-                    pctBackup = Number(savedLvl);
-                    timeBackup = Number(savedTime);
-                } else {
-                    // Prioridade 4: Busca forçada no histórico (última chance antes de mostrar 0%)
-                    const histData = await buscarBackupHistorico();
-                    if (histData) {
-                        pctBackup = histData.pct;
-                        timeBackup = histData.time;
-                        // Salva para o próximo ciclo não precisar buscar
-                        ultimoNivelValidoLatch = pctBackup;
-                        timestampLatch = timeBackup;
-                    }
-                }
-            } 
-
-            if (pctBackup > 0) {
-                nivelAtual = calcularNivelSimuladoLatch(pctBackup, timeBackup);
-                backupUsado = true;
-            } else {
-                nivelAtual = 0;
-            }
-
-            document.getElementById('emergency-badge').style.display = 'flex'; 
-            if (backupUsado) { 
-                document.getElementById('simulated-indicator').style.display = 'flex'; 
-                tipoDado = 'estimado'; 
-            } else { 
-                tipoDado = 'real'; 
-            } 
-        } 
-        
-        const statusDisplay = document.getElementById('status-display'); 
-        if(statusDisplay) { 
-            statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger'); 
-            if (nivelAtual <= nivelAlertaConfigurado) { 
-                statusDisplay.classList.add('level-danger'); 
-                if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } 
-                if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { 
-                    enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; 
-                    setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); 
-                } else { enviarEmailAlerta(nivelAtual); } 
-            } else { 
-                if (nivelAtual > 50) { 
-                    if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; 
-                    if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; 
-                } 
-                if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); 
-                else statusDisplay.classList.add('level-ok'); 
-                if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } 
-                controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; 
-            } 
-        } 
-        atualizarCaixaDOM(nivelAtual); 
-        const agora = new Date(); 
-        const horaAtual = agora.getHours(); 
-        const agoraMs = agora.getTime(); 
-        if ((horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) && nivelAtual > 0) { 
-            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs, tipoDado); 
-            ultimoHorarioSalvo = horaAtual; 
-            ultimoTempoSalvo = agoraMs; 
-            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
-        } 
-    } catch(e) { 
-        if(liveIndicator) { 
-            liveIndicator.classList.remove('online'); 
-            liveIndicator.classList.add('offline'); 
-        } 
-    } finally {
-        // RECURSÃO SEGURA: Só chama o próximo quando este terminar
-        setTimeout(loopDeAtualizacao, 2500);
+        if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } 
+        controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; 
     }
 }
 
-window.onload = function() { checkAutoTheme(); const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; const dateControls = document.getElementById('date-controls'); const hoje = new Date(); const mesAtual = getLocalISODate(hoje).substring(0, 7); const elMesAbast = document.getElementById('mesAbastecimento'); if(elMesAbast) { elMesAbast.value = mesAtual; } const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; } setupAudio(); function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true }); verificacaoInicialConcluida = true; function switchView(viewName) { activeTab = viewName; for (const key in views) { if(views[key]) views[key].style.display = 'none'; } if (views[viewName]) { views[viewName].style.display = 'flex'; } document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); if (btns[viewName]) { btns[viewName].classList.add('active'); } if(dateControls) dateControls.style.display = 'none'; if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } if (viewName === 'caixa') carregarHistoricoAbastecimento(); else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); } else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); } else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); if(chartAbastecimento) chartAbastecimento.resize(); } else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); } } if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); if(btns.config) btns.config.addEventListener('click', () => switchView('config')); document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta); document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)); document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))); document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))); document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)); document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))); document.getElementById('lista-contatos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); document.getElementById('lista-abastecimentos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } }); criarGraficos(); const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; switchView('caixa'); const btnAt = document.getElementById('btnAtualizar'); if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; carregarConfiguracoesGerais(); carregarHistoricoEConsumo(); 
+// LOOP PRINCIPAL (Watchdog style do seu snippet)
+async function loopDeAtualizacao() {
+  try {
+    // safeFetch aqui retorna JSON diretamente (modificado)
+    const dados = await safeFetch(PATH_TEMPO_REAL);
     
-    // INICIA O LOOP DE FORMA SEGURA
-    loopDeAtualizacao(); 
+    if(dados) {
+        const nivelPct = extrairNivelPct(dados);
+
+        if (nivelPct !== null) {
+            renderNivel(nivelPct);
+            ultimoUpdateEmMs = Date.now();
+            
+            // Salvar histórico a cada hora ou 5 min
+            const agora = new Date(); 
+            const horaAtual = agora.getHours(); 
+            const agoraMs = agora.getTime(); 
+            if ((horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) && nivelPct > 0) { 
+                await salvarLeituraNoFirebase(Number(nivelPct), agoraMs, 'real'); 
+                ultimoHorarioSalvo = horaAtual; 
+                ultimoTempoSalvo = agoraMs; 
+                if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
+            }
+        }
+    }
+  } catch (e) {
+    // Falha silenciosa, watchdog cuida
+  }
+}
+
+function iniciarWatchdog() {
+  if (watchdogInterval) clearInterval(watchdogInterval);
+  watchdogInterval = setInterval(() => {
+    // se ficou > 10s sem atualizar, força nova tentativa
+    if (Date.now() - ultimoUpdateEmMs > 10000) {
+      loopDeAtualizacao();
+    }
+  }, 5000);
+}
+
+function iniciarAtualizacao() {
+  loopDeAtualizacao(); // imediato
+  if (loopInterval) clearInterval(loopInterval);
+  loopInterval = setInterval(loopDeAtualizacao, UPDATE_MS);
+  iniciarWatchdog();
+}
+
+// ===== INICIALIZAÇÃO ROBUSTA (Página 2) =====
+window.addEventListener('load', function() {
+    // === 1. CONFIGURAÇÃO DE VIEW E BOTÕES (PRIORIDADE ALTA) ===
+    // Configura botões imediatamente para navegação funcionar mesmo se gráficos falharem
+    const views = { 
+        caixa: document.getElementById('caixa-view'), 
+        grafico: document.getElementById('grafico-container'), 
+        abastecimento: document.getElementById('abastecimento-view'), 
+        consumo: document.getElementById('consumo-view'), 
+        config: document.getElementById('config-view') 
+    }; 
+    const btns = { 
+        caixa: document.getElementById('btn-view-caixa'), 
+        grafico: document.getElementById('btn-view-grafico'), 
+        abastecimento: document.getElementById('btn-view-abastecimento'), 
+        consumo: document.getElementById('btn-view-consumo'), 
+        config: document.getElementById('btn-view-config') 
+    }; 
+    const dateControls = document.getElementById('date-controls'); 
+    const btnAt = document.getElementById('btnAtualizar');
+
+    function switchView(viewName) { 
+        activeTab = viewName; 
+        for (const key in views) { if(views[key]) views[key].style.display = 'none'; } 
+        if (views[viewName]) { views[viewName].style.display = 'flex'; } 
+        
+        document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); 
+        if (btns[viewName]) { btns[viewName].classList.add('active'); } 
+        
+        if(dateControls) dateControls.style.display = 'none'; 
+        
+        // Carrega dados específicos da view com proteção
+        try {
+            if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } 
+            else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); } 
+            else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); }
+            
+            // Redimensiona gráficos se existirem
+            if (viewName === 'grafico' && typeof chartLinha !== 'undefined') { chartLinha.resize(); chartBlocos.resize(); }
+            else if (viewName === 'consumo' && typeof chartConsumoBloco !== 'undefined') { chartConsumoBloco.resize(); chartConsumoLinha.resize(); }
+            else if (viewName === 'abastecimento' && typeof chartAbastecimento !== 'undefined') { chartAbastecimento.resize(); }
+        } catch(e) { console.log('Erro ao carregar dados da view', e); }
+    } 
+
+    // Vincula Event Listeners dos Botões
+    if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); 
+    if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); 
+    if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); 
+    if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); 
+    if(btns.config) btns.config.addEventListener('click', () => switchView('config')); 
     
-    document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible') { console.log("App visível novamente. Forçando atualização..."); loopDeAtualizacao(); carregarHistoricoEConsumo(); } }); document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); }); };
+    // Outros listeners de UI
+    document.querySelectorAll('.view-selector .view-btn').forEach(btn => { 
+        btn.addEventListener('click', (e) => { 
+            const parent = e.target.parentElement; 
+            parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); 
+            e.target.classList.add('active'); 
+            if (e.target.dataset.view) { 
+                currentView = e.target.dataset.view; 
+                const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; 
+                for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; 
+                if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; 
+                if(btnAt) btnAt.click(); 
+            } 
+        }); 
+    });
+    
+    // === 2. INICIALIZAÇÕES SECUNDÁRIAS (COM PROTEÇÃO) ===
+    try { checkAutoTheme(); } catch(e){}
+    try { setupAudio(); } catch(e){}
+    
+    // Setup de data
+    const hoje = new Date(); 
+    const mesAtual = getLocalISODate(hoje).substring(0, 7); 
+    const elMesAbast = document.getElementById('mesAbastecimento'); 
+    if(elMesAbast) { elMesAbast.value = mesAtual; } 
+    
+    const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); 
+    if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; }
+    
+    if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; 
+    
+    // Listeners de Modal e Configuração
+    const modalBtn = document.getElementById('modal-close-btn'); if(modalBtn) modalBtn.addEventListener('click', confirmarAlerta);
+    
+    const idsBotoes = [
+        ['btn-salvar-abastecimento', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)],
+        ['btn-salvar-capacidade', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))],
+        ['btn-salvar-altura', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))],
+        ['btn-add-contato', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)],
+        ['btn-salvar-nivel-alerta', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))]
+    ];
+    idsBotoes.forEach(pair => {
+        const b = document.getElementById(pair[0]);
+        if(b) b.addEventListener('click', pair[1]);
+    });
+
+    const lstContatos = document.getElementById('lista-contatos');
+    if(lstContatos) lstContatos.addEventListener('click', (e) => { 
+        if (e.target.closest('button')) { 
+            const btn = e.target.closest('button'); 
+            const id = btn.dataset.id; 
+            if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } 
+            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } 
+        } 
+    }); 
+    const lstAbast = document.getElementById('lista-abastecimentos');
+    if(lstAbast) lstAbast.addEventListener('click', (e) => { 
+        if (e.target.closest('button')) { 
+            const btn = e.target.closest('button'); 
+            const id = btn.dataset.id; 
+            if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } 
+            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } 
+        } 
+    });
+
+    function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } 
+    document.body.addEventListener('click', despertarAudio, { once: true }); 
+    document.body.addEventListener('touchstart', despertarAudio, { once: true }); 
+    verificacaoInicialConcluida = true; 
+
+    // === 3. CARREGAMENTO DE GRÁFICOS (RISCO MÉDIO) ===
+    try {
+        criarGraficos(); 
+    } catch(e) { console.log('Erro ao criar graficos', e); }
+
+    // === 4. INICIALIZAÇÃO DE DADOS (DADOS MOCADOS OU VAZIOS SE FALHAR) ===
+    const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); 
+    hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); 
+    
+    const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; 
+    const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; 
+    const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; 
+    const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; 
+    const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; 
+    
+    // Inicia na aba Caixa
+    switchView('caixa'); 
+    
+    try { carregarConfiguracoesGerais(); } catch(e){}
+    try { carregarHistoricoEConsumo(); } catch(e){}
+    
+    // === 5. INICIAR LOOP DE ATUALIZAÇÃO (CRÍTICO) ===
+    // Aqui usamos a lógica do seu snippet para atualizar o nível
+    iniciarAtualizacao();
+    
+    // VISIBILITY CHANGE (MIT costuma pausar timers)
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        iniciarAtualizacao(); // ao voltar a ficar visível, força atualização
+        try { carregarHistoricoEConsumo(); } catch(e){}
+      }
+    });
+});
 </script>
 </body>
 </html>
@@ -923,6 +1070,7 @@ function abrirApp(htmlContent) {
     const iframe = document.getElementById('app-frame');
     iframe.srcdoc = htmlContent;
     overlay.classList.add('active');
+    // Para a atualização do dashboard para economizar recursos
     if(dashboardInterval) clearInterval(dashboardInterval);
 }
 
@@ -932,8 +1080,8 @@ function fecharApp() {
     iframe.srcdoc = "";
     overlay.classList.remove('active');
     updateDashboardData();
-    // Reativa o loop do dashboard, mas usa a lógica otimizada
-    dashboardInterval = setInterval(updateDashboardData, 5000);
+    // Reativa o loop do dashboard
+    dashboardInterval = setInterval(updateDashboardData, 10000); // 10s para não saturar
 }
 
 function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
@@ -961,16 +1109,27 @@ function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
     return nivelSimulado;
 }
 
-// --- FETCH OTIMIZADO COM COMPATIBILIDADE PARA O DASHBOARD ---
+// --- FETCH OTIMIZADO PARA DASHBOARD (SEQUENCIAL) ---
+// Função auxiliar para limpar URLs e garantir barra correta
+function cleanFirebaseUrl(baseUrl, path) {
+    let cleanBase = baseUrl.trim();
+    if(cleanBase.endsWith('/')) cleanBase = cleanBase.slice(0, -1);
+    
+    let cleanPath = path.trim();
+    if(!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+    
+    // Adiciona nocache para evitar dados velhos
+    return `${cleanBase}${cleanPath}?nocache=${Date.now()}`;
+}
+
 async function safeFetchDashboard(url) {
+    let controller = null;
     let signal = null;
     let id = null;
-    let controller = null;
-    
-    // Verificação para compatibilidade com WebViews antigos
+
     if (typeof AbortController !== 'undefined') {
         controller = new AbortController();
-        id = setTimeout(() => controller.abort(), 5000); 
+        id = setTimeout(() => controller.abort(), 4000); 
         signal = controller.signal;
     }
 
@@ -978,7 +1137,7 @@ async function safeFetchDashboard(url) {
     if (signal) options.signal = signal;
 
     try {
-        const response = await fetch(`${url}?nocache=${Date.now()}`, options);
+        const response = await fetch(url, options);
         if(id) clearTimeout(id);
         if(!response.ok) return null;
         return response.json();
@@ -991,7 +1150,8 @@ async function safeFetchDashboard(url) {
 async function fetchLastValidFromHistory(histPath) {
     try {
         const today = new Date().toISOString().split('T')[0];
-        const r = await safeFetchDashboard(`${DB_BASE}${histPath}/${today}.json?orderBy="$key"&limitToLast=1`);
+        const url = cleanFirebaseUrl(DB_BASE, `${histPath}/${today}.json`) + `&orderBy="$key"&limitToLast=1`;
+        const r = await safeFetchDashboard(url);
         if(r) {
             const keys = Object.keys(r);
             if(keys.length > 0) {
@@ -1006,15 +1166,15 @@ async function fetchLastValidFromHistory(histPath) {
     return null;
 }
 
-// --- UPDATE DASHBOARD PARALELIZADO ---
-// Isso carrega todos os cards de uma vez (Promise.all) em vez de um por um
+// --- UPDATE DASHBOARD SEQUENCIAL (ANTI-TRAVAMENTO) ---
 async function updateDashboardData() {
     const activeItems = [...listPP, ...listSAU].filter(i => i.active);
     
-    // Cria um array de promessas para buscar tudo ao mesmo tempo
-    const promises = activeItems.map(async (item) => {
+    // Loop sequencial em vez de Promise.all para não saturar a rede do App Inventor
+    for (const item of activeItems) {
         try {
-            const d = await safeFetchDashboard(`${DB_BASE}${item.firebaseDataPath}`);
+            const url = cleanFirebaseUrl(DB_BASE, item.firebaseDataPath);
+            const d = await safeFetchDashboard(url);
             
             let lvl = 0;
             let isSimulated = false;
@@ -1037,11 +1197,7 @@ async function updateDashboardData() {
                      lastValidPct = d.ultima_valida_pct;
                      lastValidTime = d.ultima_valida_time;
                 } else {
-                    const histData = await fetchLastValidFromHistory(item.firebaseHistPath);
-                    if(histData) {
-                        lastValidPct = histData.pct;
-                        lastValidTime = histData.time;
-                    }
+                    // Histórico desativado no loop rápido para não pesar
                 }
 
                 if (lastValidPct > 0) {
@@ -1052,60 +1208,49 @@ async function updateDashboardData() {
                 }
             }
             
-            // Retorna dados para atualizar a DOM
-            return { item, lvl, isSimulated, rawLvl };
-        } catch(e) {
-            return null;
-        }
-    });
-
-    // Aguarda todos os dados voltarem (muito mais rápido)
-    const results = await Promise.all(promises);
-
-    // Atualiza a DOM
-    results.forEach(res => {
-        if(!res) return;
-        const { item, lvl, isSimulated, rawLvl } = res;
-        
-        const card = document.getElementById(`card-${item.id}`);
-        const elLvl = document.getElementById(`lvl-${item.id}`);
-        const elBg = document.getElementById(`bg-${item.id}`);
-        
-        if(card && elLvl) {
-            elLvl.innerText = `${lvl}%`;
-            if(elBg) elBg.style.height = `${lvl}%`;
-
-            const dot = card.querySelector('.live-dot');
-            const badge = card.querySelector('.simulated-badge');
+            // Atualiza DOM imediatamente
+            const card = document.getElementById(`card-${item.id}`);
+            const elLvl = document.getElementById(`lvl-${item.id}`);
+            const elBg = document.getElementById(`bg-${item.id}`);
             
-            if (rawLvl > 0) {
-                dot.style.display = 'block';
-                badge.style.display = 'none';
-            } else {
-                dot.style.display = 'none';
-                if (isSimulated && lvl > 0) badge.style.display = 'flex';
-                else badge.style.display = 'none';
-            }
-            
-            card.removeAttribute('data-status');
-            
-            if (isSimulated && lvl > 0) {
-                card.setAttribute('data-status', 'simulated');
-                elLvl.style.color = '#d97706';
-            } else {
-                if(lvl > 60) {
-                    card.setAttribute('data-status', 'ok');
-                    elLvl.style.color = 'var(--level-ok)';
-                } else if (lvl > 30) {
-                    card.setAttribute('data-status', 'warn');
-                    elLvl.style.color = 'var(--level-warn)';
+            if(card && elLvl) {
+                elLvl.innerText = `${lvl}%`;
+                if(elBg) elBg.style.height = `${lvl}%`;
+
+                const dot = card.querySelector('.live-dot');
+                const badge = card.querySelector('.simulated-badge');
+                
+                if (rawLvl > 0) {
+                    dot.style.display = 'block';
+                    badge.style.display = 'none';
                 } else {
-                    card.setAttribute('data-status', 'danger');
-                    elLvl.style.color = 'var(--level-danger)';
+                    dot.style.display = 'none';
+                    if (isSimulated && lvl > 0) badge.style.display = 'flex';
+                    else badge.style.display = 'none';
+                }
+                
+                card.removeAttribute('data-status');
+                
+                if (isSimulated && lvl > 0) {
+                    card.setAttribute('data-status', 'simulated');
+                    elLvl.style.color = '#d97706';
+                } else {
+                    if(lvl > 60) {
+                        card.setAttribute('data-status', 'ok');
+                        elLvl.style.color = 'var(--level-ok)';
+                    } else if (lvl > 30) {
+                        card.setAttribute('data-status', 'warn');
+                        elLvl.style.color = 'var(--level-warn)';
+                    } else {
+                        card.setAttribute('data-status', 'danger');
+                        elLvl.style.color = 'var(--level-danger)';
+                    }
                 }
             }
+        } catch(e) {
+            console.log("Erro ao atualizar card " + item.id);
         }
-    });
+    }
 }
 
 let isDark = false;
@@ -1124,7 +1269,8 @@ window.onload = () => {
     renderGrid('grid-pp', listPP, 'fas fa-road'); 
     renderGrid('grid-sau', listSAU, 'fas fa-home'); 
     updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 5000); 
+    // Intervalo mais longo (10s) para evitar travamento
+    dashboardInterval = setInterval(updateDashboardData, 10000); 
 };
 </script>
 </body>
