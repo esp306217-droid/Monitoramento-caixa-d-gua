@@ -737,6 +737,61 @@ Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)
 <script>
 const API_KEY = ""; 
 const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
+// ===== MIT/App Inventor WebView: Fetch via XHR (mais compatível) =====
+function __xhrFetch(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      const method = (options.method || 'GET').toUpperCase();
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, url, true);
+      xhr.responseType = 'text';
+
+      // headers
+      const headers = options.headers || {};
+      let hasCT = false;
+      for (const k in headers) {
+        if (Object.prototype.hasOwnProperty.call(headers, k)) {
+          xhr.setRequestHeader(k, headers[k]);
+          if (String(k).toLowerCase() === 'content-type') hasCT = true
+        }
+      }
+      if (!hasCT && options.body !== undefined) {
+        xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+      }
+      // cache bust
+      try { xhr.setRequestHeader('Cache-Control', 'no-cache'); } catch(e) {}
+      xhr.setRequestHeader('Pragma', 'no-cache');
+
+      xhr.onload = () => {
+        const status = xhr.status || 0;
+        const text = xhr.responseText || '';
+        const resp = {
+          ok: status >= 200 && status < 300,
+          status,
+          statusText: xhr.statusText || '',
+          url,
+          text: async () => text,
+          json: async () => {
+            try { return text ? JSON.parse(text) : null; } catch(e) { return null; }
+          }
+        };
+        resolve(resp);
+      };
+      xhr.onerror = () => reject(new Error('XHR network error'));
+      xhr.ontimeout = () => reject(new Error('XHR timeout'));
+      xhr.timeout = options.timeout || 15000;
+
+      xhr.send(options.body !== undefined ? options.body : null);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+// Força uso de XHR no WebView
+try { if (/wv|Android/i.test(navigator.userAgent)) { window.fetch = __xhrFetch; } } catch(e) {}
+
 // Fallback: se este APP estiver aberto como página principal (WebView), precisamos de um fecharApp local
 function fecharApp(){
   try{ window.location.href = ('__DASHBOARD_URL__' || (window.location.href||'').split('?')[0]); }
@@ -1033,6 +1088,61 @@ const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com"
 
 // ===== WEBVIEW (MIT APP INVENTOR) =====
 const IS_WEBVIEW = /wv|Android/i.test(navigator.userAgent);
+
+
+// ===== MIT/App Inventor WebView: Fetch via XHR (mais compatível) =====
+function __xhrFetch(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      const method = (options.method || 'GET').toUpperCase();
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, url, true);
+      xhr.responseType = 'text';
+
+      // headers
+      const headers = options.headers || {};
+      let hasCT = false;
+      for (const k in headers) {
+        if (Object.prototype.hasOwnProperty.call(headers, k)) {
+          xhr.setRequestHeader(k, headers[k]);
+          if (String(k).toLowerCase() === 'content-type') hasCT = true
+        }
+      }
+      if (!hasCT && options.body !== undefined) {
+        xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+      }
+      // cache bust
+      try { xhr.setRequestHeader('Cache-Control', 'no-cache'); } catch(e) {}
+      xhr.setRequestHeader('Pragma', 'no-cache');
+
+      xhr.onload = () => {
+        const status = xhr.status || 0;
+        const text = xhr.responseText || '';
+        const resp = {
+          ok: status >= 200 && status < 300,
+          status,
+          statusText: xhr.statusText || '',
+          url,
+          text: async () => text,
+          json: async () => {
+            try { return text ? JSON.parse(text) : null; } catch(e) { return null; }
+          }
+        };
+        resolve(resp);
+      };
+      xhr.onerror = () => reject(new Error('XHR network error'));
+      xhr.ontimeout = () => reject(new Error('XHR timeout'));
+      xhr.timeout = options.timeout || 15000;
+
+      xhr.send(options.body !== undefined ? options.body : null);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+// Força uso de XHR no WebView
+if (IS_WEBVIEW) { try { window.fetch = __xhrFetch; } catch(e) {} }
 function getQueryParam(name){ try{return new URLSearchParams(window.location.search).get(name);}catch(e){return null;} }
 
 
