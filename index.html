@@ -208,7 +208,6 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 
 <!-- ========================================================================= -->
 <!-- TEMPLATE UNIVERSAL ÚNICO (Para TODAS as Caixas)                            -->
-<!-- Este código é injetado no iframe, substituindo as variáveis __VARS__       -->
 <!-- ========================================================================= -->
 <textarea id="app-template" style="display:none;">
 <!DOCTYPE html>
@@ -222,13 +221,217 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js">
+/* ===============================
+   AJUSTES GLOBAIS – SINCRONIZAÇÃO REAL x EMERGÊNCIA
+   Aplicado a TODOS os cards
+   =============================== */
+
+const FIREBASE_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
+async function salvarEstadoAtual(cardId, nivel, tipo) {
+    const payload = {
+        nivel_pct: nivel,
+        tipo: tipo,
+        timestamp: Date.now()
+    };
+
+    try {
+        await fetch(`${FIREBASE_BASE}/${cardId}.json`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch(e) {
+        console.warn("Falha ao salvar estado:", e);
+    }
+}
+
+const isWebView = /wv|Android/i.test(navigator.userAgent);
+
+async function atualizarImediato(cardId) {
+    await loopDeAtualizacao(cardId);
+}
+
+function iniciarLoop(cardId) {
+    atualizarImediato(cardId);
+    setInterval(() => loopDeAtualizacao(cardId), isWebView ? 1200 : 2500);
+}
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js">
+/* ===============================
+   AJUSTES GLOBAIS – SINCRONIZAÇÃO REAL x EMERGÊNCIA
+   Aplicado a TODOS os cards
+   =============================== */
+
+const FIREBASE_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
+async function salvarEstadoAtual(cardId, nivel, tipo) {
+    const payload = {
+        nivel_pct: nivel,
+        tipo: tipo,
+        timestamp: Date.now()
+    };
+
+    try {
+        await fetch(`${FIREBASE_BASE}/${cardId}.json`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch(e) {
+        console.warn("Falha ao salvar estado:", e);
+    }
+}
+
+const isWebView = /wv|Android/i.test(navigator.userAgent);
+
+async function atualizarImediato(cardId) {
+    await loopDeAtualizacao(cardId);
+}
+
+function iniciarLoop(cardId) {
+    atualizarImediato(cardId);
+    setInterval(() => loopDeAtualizacao(cardId), isWebView ? 1200 : 2500);
+}
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js">
+/* ===============================
+   AJUSTES GLOBAIS – SINCRONIZAÇÃO REAL x EMERGÊNCIA
+   Aplicado a TODOS os cards
+   =============================== */
+
+const FIREBASE_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
+async function salvarEstadoAtual(cardId, nivel, tipo) {
+    const payload = {
+        nivel_pct: nivel,
+        tipo: tipo,
+        timestamp: Date.now()
+    };
+
+    try {
+        await fetch(`${FIREBASE_BASE}/${cardId}.json`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch(e) {
+        console.warn("Falha ao salvar estado:", e);
+    }
+}
+
+const isWebView = /wv|Android/i.test(navigator.userAgent);
+
+async function atualizarImediato(cardId) {
+    await loopDeAtualizacao(cardId);
+}
+
+function iniciarLoop(cardId) {
+    atualizarImediato(cardId);
+    setInterval(() => loopDeAtualizacao(cardId), isWebView ? 1200 : 2500);
+}
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js">
+/* ===============================
+   AJUSTES GLOBAIS – SINCRONIZAÇÃO REAL x EMERGÊNCIA
+   Aplicado a TODOS os cards
+   =============================== */
+
+const FIREBASE_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
+async function salvarEstadoAtual(cardId, nivel, tipo) {
+    const payload = {
+        nivel_pct: nivel,
+        tipo: tipo,
+        timestamp: Date.now()
+    };
+
+    try {
+        await fetch(`${FIREBASE_BASE}/${cardId}.json`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch(e) {
+        console.warn("Falha ao salvar estado:", e);
+    }
+}
+
+const isWebView = /wv|Android/i.test(navigator.userAgent);
+
+async function atualizarImediato(cardId) {
+    await loopDeAtualizacao(cardId);
+}
+
+function iniciarLoop(cardId) {
+    atualizarImediato(cardId);
+    setInterval(() => loopDeAtualizacao(cardId), isWebView ? 1200 : 2500);
+}
+
+</script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js">
+/* ===============================
+   AJUSTES GLOBAIS – SINCRONIZAÇÃO REAL x EMERGÊNCIA
+   Aplicado a TODOS os cards
+   =============================== */
+
+const FIREBASE_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
+async function salvarEstadoAtual(cardId, nivel, tipo) {
+    const payload = {
+        nivel_pct: nivel,
+        tipo: tipo,
+        timestamp: Date.now()
+    };
+
+    try {
+        await fetch(`${FIREBASE_BASE}/${cardId}.json`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch(e) {
+        console.warn("Falha ao salvar estado:", e);
+    }
+}
+
+const isWebView = /wv|Android/i.test(navigator.userAgent);
+
+async function atualizarImediato(cardId) {
+    await loopDeAtualizacao(cardId);
+}
+
+function iniciarLoop(cardId) {
+    atualizarImediato(cardId);
+    setInterval(() => loopDeAtualizacao(cardId), isWebView ? 1200 : 2500);
+}
+
+</script>
 <style>
-/* CSS do App Interno */
 :root { --bg-body: #f0f2f5; --text-main: #1e293b; --text-sec: #64748b; --card-bg: rgba(255, 255, 255, 0.95); --card-border: rgba(226, 232, 240, 0.8); --header-bg: rgba(255, 255, 255, 0.98); --accent: #06b6d4; --accent-hover: #0891b2; --input-bg: #f8fafc; --input-border: #cbd5e1; --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --level-ok: #10b981; --level-warn: #f59e0b; --level-danger: #ef4444; }
 [data-theme="dark"] { --bg-body: #0f172a; --text-main: #f1f5f9; --text-sec: #94a3b8; --card-bg: rgba(30, 41, 59, 0.85); --card-border: rgba(255, 255, 255, 0.1); --header-bg: rgba(15, 23, 42, 0.95); --accent: #22d3ee; --accent-hover: #67e8f9; --input-bg: #1e293b; --input-border: #334155; --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -237,28 +440,20 @@ body { font-family: 'Poppins', sans-serif; text-align: center; background: var(-
 ::-webkit-scrollbar { display: none; }
 * { -ms-overflow-style: none; scrollbar-width: none; }
 .glass-panel { background: var(--card-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--card-border); box-shadow: var(--shadow-card); border-radius: 16px; }
-
-/* Botões da Barra de Tarefas (Nav Group) SEM Sombra */
 .nav-button-icon-only { width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-sec); cursor: pointer; transition: all 0.2s; box-shadow: none; }
 .nav-button-icon-only:active { background: var(--accent); color: white; transform: translateY(2px); }
-
-/* Ajuste da Barra de Tarefas para o Topo (Sem margem) */
 .main-header { width: 100%; padding: 10px 5px; background-color: var(--header-bg); backdrop-filter: blur(10px); box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); display: flex; justify-content: center; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; flex-wrap: wrap; gap: 8px; padding-left: 0; margin-top: 0; } 
 .nav-group { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 0; justify-content: center; align-items: center; }
-
-/* Indicador Live no Quadro Branco */
 .status-indicator-box { position: absolute; top: 10px; right: 10px; }
 .live-indicator { width: 10px; height: 10px; border-radius: 50%; background-color: #64748b; transition: background-color 0.3s; display: inline-block; }
 .live-indicator.online { background-color: var(--level-ok); box-shadow: 0 0 8px var(--level-ok); animation: pulse-green 2s infinite; }
 .live-indicator.offline { background-color: var(--level-danger); }
 @keyframes pulse-green { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1.0); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
-
 #caixa-view, #grafico-container, #config-view, #abastecimento-view, #consumo-view { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 0.5rem; overflow-y: auto; min-height: calc(100vh - 70px); }
 .logo { width: 140px; margin-bottom: 5px; opacity: 0.95; display: block; margin-left: auto; margin-right: auto; mix-blend-mode: multiply; transition: all 0.3s ease; }
 [data-theme="dark"] .logo { filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2); mix-blend-mode: screen; opacity: 1; margin-bottom: 10px; }
 #emergency-badge { position: fixed; top: 80px; right: 20px; width: 50px; height: 50px; background-color: var(--level-danger); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.6); z-index: 1500; animation: pulse-red 1.5s infinite; cursor: help; }
 @keyframes pulse-red { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-
 #status-display { width: 100%; max-width: 360px; padding: 15px; margin: 0 auto 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; position: relative; z-index: 10; margin-top: 10px; }
 .status-item { display: flex; flex-direction: column; text-align: center; }
 .status-item.item-time { grid-column: 1 / 3; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 5px; margin-top: 2px; }
@@ -330,12 +525,9 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
-<!-- Botão Voltar (Movido para cá) -->
 <button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
-<!-- Botões de Tema e Atualizar -->
 <button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
 <button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
-<!-- Botões de Navegação -->
 <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
 <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
 <button id="btn-view-abastecimento" class="nav-button"><i class="fas fa-truck-droplet"></i> <span>Abastecimento</span></button>
@@ -343,48 +535,40 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <button id="btn-view-config" class="nav-button"><i class="fas fa-cog"></i> <span>Config</span></button>
 </div>
 </div>
+
 <div id="caixa-view">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-
-<!-- Título Específico da Caixa -->
 <h2 style="font-size: 1rem; color: var(--text-sec); margin: 5px 0 10px 0; font-weight: 600; text-align: center;">__APP_TITLE__</h2>
 
 <div id="status-display" class="glass-panel">
-<!-- Indicador LED dentro do quadro branco -->
-<div class="status-indicator-box">
-<div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
-</div>
-
+<div class="status-indicator-box"><div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div></div>
 <div class="status-item item-level">
 <span class="status-label">Nível Atual</span>
 <div style="display:flex; justify-content:center; align-items:center;">
-<span class="status-value skeleton-text" id="status-level">--%</span>
+<span class="status-value" id="status-level">--%</span>
 <span id="simulated-indicator" style="display:none; background:#f59e0b; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; cursor:help; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Leitura Estimada (Sem Sinal)">?</span>
 </div>
 </div>
 <div class="status-item item-litros">
 <span class="status-label">Volume</span>
-<span class="status-value skeleton-text" id="status-litros">---- <small>L</small></span>
+<span class="status-value" id="status-litros">---- <small>L</small></span>
 </div>
 <div class="status-item item-time">
 <span class="status-label">Hora</span>
-<span class="status-value skeleton-text" id="status-time" style="font-size: 1.2rem;">--:--</span>
+<span class="status-value" id="status-time" style="font-size: 1.2rem;">--:--</span>
 </div>
 </div>
+
 <div class="reservatorio-wrapper" id="caixa-container">
 <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
 <defs>
 <linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
 <stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/>
 </linearGradient>
-<clipPath id="mascara-agua">
-<path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
-</clipPath>
+<clipPath id="mascara-agua"><path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/></clipPath>
 </defs>
 <foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
-<div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
-<div class="agua" id="agua">0%</div>
-</div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper"><div class="agua" id="agua">0%</div></div>
 </foreignObject>
 <g id="estrutura-reservatorio">
 <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
@@ -395,29 +579,25 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </svg>
 </div>
 </div>
+
 <div id="grafico-container" style="display:none;">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-<header>
-<h1><i class="fas fa-chart-line" style="color: var(--accent);"></i> Histórico de Nível</h1>
-</header>
+<header><h1><i class="fas fa-chart-line" style="color: var(--accent);"></i> Histórico de Nível</h1></header>
 <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
 <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
 <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
 <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
 <button id="btnAtualizar" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
 </div>
-<div class="board">
-<div class="charts">
+<div class="board"><div class="charts">
 <div class="chart-card glass-panel"><strong>Variação de Nível (%)</strong><canvas id="chartLinha"></canvas></div>
 <div class="chart-card glass-panel"><strong>Nível Médio por Hora (%)</strong><canvas id="chartBlocos"></canvas></div>
+</div></div>
 </div>
-</div>
-</div>
+
 <div id="abastecimento-view" style="display:none;">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-<header>
-<h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1>
-</header>
+<header><h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1></header>
 <div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
 <div id="abastecimento-form" class="config-card glass-panel" style="margin: 0; width: 100%; max-width: 500px;">
 <h2>Registrar Entrada</h2>
@@ -448,17 +628,15 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </div>
 </div>
 </div>
+
 <div id="consumo-view" style="display:none;">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-<header>
-<h1><i class="fas fa-chart-bar" style="color: var(--accent);"></i> Consumo Diário</h1>
-</header>
+<header><h1><i class="fas fa-chart-bar" style="color: var(--accent);"></i> Consumo</h1></header>
 <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
 <input type="date" id="dataEscolhidaConsumo" onchange="document.getElementById('dataEscolhida').value=this.value; document.getElementById('btnAtualizar').click();">
 <button onclick="document.getElementById('btnAtualizar').click()" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
 </div>
-<div class="board">
-<div class="charts">
+<div class="board"><div class="charts">
 <div class="chart-card glass-panel" id="consumo-chart-card-bloco">
 <strong>Consumo Estimado (Litros)</strong>
 <canvas id="chartConsumoBloco"></canvas>
@@ -468,69 +646,23 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <strong>Curva de Consumo</strong>
 <canvas id="chartConsumoLinha"></canvas>
 </div>
+</div></div>
 </div>
-</div>
-</div>
+
 <div id="config-view" style="display:none;">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
 <h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
 <div class="config-board">
-<div class="config-card glass-panel">
-<h2>Capacidade (L)</h2>
-<div class="form-group">
-<input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000">
-<button id="btn-salvar-capacidade" class="modern-button"><i class="fas fa-check"></i></button>
-</div>
-<div id="status-capacidade" class="small" style="font-weight:bold;"></div>
-</div>
-<div class="config-card glass-panel">
-<h2>Altura (cm)</h2>
-<div class="form-group">
-<input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1">
-<button id="btn-salvar-altura" class="modern-button"><i class="fas fa-check"></i></button>
-</div>
-<div id="status-altura" class="small" style="font-weight:bold;"></div>
-</div>
-<div class="config-card glass-panel">
-<h2>Novo Contato</h2>
-<div class="form-group">
-<input type="text" id="contato-valor" placeholder="Email ou Telegram">
-<select id="contato-tipo">
-<option value="email">Email</option>
-<option value="telegram">Telegram</option>
-</select>
-<button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button>
-</div>
-<div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
-</div>
-<div class="config-card glass-panel">
-<h2>Nível Alerta (%)</h2>
-<div class="form-group">
-<input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
-<button id="btn-salvar-nivel-alerta" class="modern-button"><i class="fas fa-check"></i></button>
-</div>
-<div id="status-alerta" class="small" style="font-weight:bold;"></div>
-</div>
-<div class="config-card glass-panel" style="grid-column: 1 / -1;">
-<h2>Contatos Cadastrados</h2>
-<ul id="lista-contatos"></ul>
-<div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+<div class="config-card glass-panel"><h2>Capacidade (L)</h2><div class="form-group"><input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000"><button id="btn-salvar-capacidade" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-capacidade" class="small" style="font-weight:bold;"></div></div>
+<div class="config-card glass-panel"><h2>Altura (cm)</h2><div class="form-group"><input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1"><button id="btn-salvar-altura" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-altura" class="small" style="font-weight:bold;"></div></div>
+<div class="config-card glass-panel"><h2>Novo Contato</h2><div class="form-group"><input type="text" id="contato-valor" placeholder="Email ou Telegram"><select id="contato-tipo"><option value="email">Email</option><option value="telegram">Telegram</option></select><button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button></div><div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div></div>
+<div class="config-card glass-panel"><h2>Nível Alerta (%)</h2><div class="form-group"><input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99"><button id="btn-salvar-nivel-alerta" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-alerta" class="small" style="font-weight:bold;"></div></div>
+<div class="config-card glass-panel" style="grid-column: 1 / -1;"><h2>Contatos Cadastrados</h2><ul id="lista-contatos"></ul><div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div></div>
 </div>
 </div>
-</div>
-<div id="alert-modal">
-<div class="modal-content">
-<div class="modal-header">
-<i class="fas fa-exclamation-triangle"></i> ALERTA DE NÍVEL BAIXO
-</div>
-<div class="modal-body">
-Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)
-</div>
-<div class="modal-footer">
-<button id="modal-close-btn" class="modern-button">Entendido</button>
-</div>
-</div>
-</div>
+
+<div id="alert-modal"><div class="modal-content"><div class="modal-header"><i class="fas fa-exclamation-triangle"></i> ALERTA DE NÍVEL BAIXO</div><div class="modal-body">Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)</div><div class="modal-footer"><button id="modal-close-btn" class="modern-button">Entendido</button></div></div></div>
+
 <div class="header-right" id="date-controls" style="display: none;">
 <div class="view-selector">
 <button id="btn-view-diario" class="view-btn active" data-view="diario">Hoje</button>
@@ -539,316 +671,1204 @@ Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)
 <button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Período</button>
 </div>
 </div>
+
 <script>
-const API_KEY = ""; 
 const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
 // VARIAVEIS INJETADAS PELO DASHBOARD
-const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`; 
-const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`; // Base path for config (e.g., /SAU13_config)
-const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; // Base path for historic (e.g., /SAU13_historico)
+const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`;
+const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`;
+const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`;
 const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
+const PATH_EMERGENCIA = `${PATH_CONFIG_BASE}/emergencia.json`;
+const FORCE_LEVEL = __FORCE_LEVEL__; // -1 quando não usado
 
-// Mantém sempre no Firebase as 3 últimas leituras válidas (>0) vindas do sensor
-const PATH_ULTIMAS_VALIDAS = `${PATH_CONFIG_BASE}/ultimas_validas.json`;
-const FORCE_FIXED_LEVEL = __FORCE_FIXED_LEVEL__;
-
-let ultimasValidas = [];
-
-async function carregarUltimasValidasFirebase() {
-  try {
-    const r = await safeFetch(PATH_ULTIMAS_VALIDAS);
-    if (!r) return;
-    const dados = await r.json();
-    if (Array.isArray(dados)) {
-      ultimasValidas = dados
-        .filter(x => x && typeof x.nivel === 'number' && x.nivel > 0 && typeof x.timestamp === 'number')
-        .slice(-3);
-      if (ultimasValidas.length) {
-        const last = ultimasValidas[ultimasValidas.length - 1];
-        ultimoNivelValidoLatch = Math.round(last.nivel);
-        timestampLatch = last.timestamp;
-      }
-    }
-  } catch (e) {}
-}
-
-async function salvarUltimasValidasFirebase(nivel, timestamp) {
-  if (!(typeof nivel === 'number') || nivel <= 0) return;
-  if (!(typeof timestamp === 'number')) return;
-
-  const last = ultimasValidas.length ? ultimasValidas[ultimasValidas.length - 1] : null;
-  if (last && last.timestamp === timestamp && Math.round(last.nivel) === Math.round(nivel)) return;
-
-  ultimasValidas.push({ nivel: Math.round(nivel), timestamp });
-  ultimasValidas = ultimasValidas.filter(x => x && x.nivel > 0).slice(-3);
-
-  try { await fetch(PATH_ULTIMAS_VALIDAS, { method: 'PUT', body: JSON.stringify(ultimasValidas) }); } catch (e) {}
-}
 // CONTAS DE EMAIL ROTATIVAS
-const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
-let isDarkMode = false;
-// TORNAR GLOBAL PARA SER ACESSADA PELO ONCLICK
-window.toggleTheme = function(e) { 
-    if(e) { e.preventDefault(); e.stopPropagation(); } 
-    isDarkMode = !isDarkMode; 
-    applyTheme(); 
-};
-function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
-function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); }
+const CONTAS_EMAIL = [
+  { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 },
+  { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 },
+  { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 }
+];
 
-try { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
-let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
-let historicoNiveis = [], historicoLabels = [];
-let currentView = 'diario'; let activeTab = 'caixa'; 
-let nivelAtual = 0; let nivelAlertaConfigurado = 30; let capacidadeTotal = 8000; let alturaCaixa = 0; 
-let alertaModalMostrado = false; let verificacaoInicialConcluida = false;
-let emailEnviadoNessaSessao = false; let alertaConfirmadoPeloUsuario = false; 
-let ultimoHorarioSalvo = -1; let ultimoTempoSalvo = 0; 
-let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
-let snoozeCount = 0, snoozeUntil = 0; 
-const SNOOZE_DURATION_MINUTES = 10; const AUTO_SNOOZE_SECONDS = 30; 
-let ultimoNivelValidoLatch = null; let timestampLatch = null; 
-let historicoLeiturasValidas = []; let loopInterval = null;
-let lastUpdateTimestamp = 0; let contadorZerosConsecutivos = 0; 
-let bufferLeituras = []; let contadorLeiturasFantasmas = 0; let ultimoNivelExibido = -1; 
-function calcularVolumeLitros(nivelPercentual) { if (nivelPercentual <= 0) return 0; if (nivelPercentual > 100) nivelPercentual = 100; return Math.floor((nivelPercentual / 100) * capacidadeTotal); }
-function getLocalISODate(dateObj) { const d = dateObj || new Date(); const offset = d.getTimezoneOffset() * 60000; const localDate = new Date(d.getTime() - offset); return localDate.toISOString().split('T')[0]; }
-function getNoCacheUrl(url) { const separator = url.includes('?') ? '&' : '?'; return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; }
-async function safeFetch(url, options = {}) { const finalOptions = { ...options, cache: 'no-store' }; try { const response = await fetch(getNoCacheUrl(url), finalOptions); if (!response.ok) throw new Error(response.statusText); return response; } catch(e) { console.warn("Fetch falhou:", url); return null; } }
-async function enviarEmailAlerta(nivel) { const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`; if (emailEnviadoNessaSessao) return false; try { const rTime = await safeFetch(urlTimestamp); if (rTime) { const ultimoDisparo = await rTime.json(); const agora = Date.now(); if (ultimoDisparo) { const diferenca = agora - ultimoDisparo; const horas12 = 12 * 60 * 60 * 1000; if (diferenca < horas12) return false; } } } catch (e) {} let contatos = {}; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); if (!contatos) return false; } catch (e) { return false; } const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor); if (emailsParaEnviar.length === 0) return false; let credenciais = null; const hoje = new Date(); for (let conta of CONTAS_EMAIL) { let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio); if (hoje >= dataReinicio && conta.quota_inicial < 200) { conta.quota_inicial = 200; } if (conta.quota_inicial >= emailsParaEnviar.length) { credenciais = conta; break; } } if (!credenciais) { console.warn("Sem cota de email."); return false; } let todosEnviadosComSucesso = true; for (const email of emailsParaEnviar) { const templateParams = { "%": nivel, "email": email }; try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { console.error("Erro envio", err); todosEnviadosComSucesso = false; } } if (todosEnviadosComSucesso) { emailEnviadoNessaSessao = true; const agoraMs = Date.now(); try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {} } return todosEnviadosComSucesso; }
+let isDarkMode = false;
+window.toggleTheme = function(e) { if(e) { e.preventDefault(); e.stopPropagation(); } isDarkMode = !isDarkMode; applyTheme(); };
+
+function checkAutoTheme() {
+    try {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            isDarkMode = (savedTheme === 'dark');
+            applyTheme();
+            return;
+        }
+    } catch (e) {}
+    const hora = new Date().getHours();
+    isDarkMode = (hora >= 18 || hora < 6);
+    applyTheme();
+}
+
+function applyTheme() {
+    const body = document.body;
+    const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i');
+    if (isDarkMode) {
+        body.setAttribute('data-theme', 'dark');
+        if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
+        try { localStorage.setItem('theme', 'dark'); } catch(e){}
+    } else {
+        body.removeAttribute('data-theme');
+        body.style.display='none'; body.offsetHeight; body.style.display='';
+        if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+        try { localStorage.setItem('theme', 'light'); } catch(e){}
+    }
+    criarGraficos();
+    if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
+    if(activeTab === 'abastecimento') carregarHistoricoAbastecimento();
+}
+
+try {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); }
+} catch (e) {}
+
+let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento;
+let currentView = 'diario';
+let activeTab = 'caixa';
+let nivelAtual = 0;
+let nivelAlertaConfigurado = 30;
+let capacidadeTotal = 8000;
+let alturaCaixa = 0;
+let alertaModalMostrado = false;
+let emailEnviadoNessaSessao = false;
+let alertaConfirmadoPeloUsuario = false;
+let ultimoHorarioSalvo = -1;
+let ultimoTempoSalvo = 0;
+let audioContext, oscillator, gainNode, lfo, lfoGain;
+let isAlarmPlaying = false;
+let snoozeCount = 0, snoozeUntil = 0;
+const SNOOZE_DURATION_MINUTES = 10;
+const AUTO_SNOOZE_SECONDS = 30;
+let lastUpdateTimestamp = 0;
+let contadorZerosConsecutivos = 0;
+let ultimasLeiturasValidas = []; // [{nivel,timestamp}] - sempre 3 últimas
+let ultimaLeituraPersistidaTs = 0;
+
+function calcularVolumeLitros(nivelPercentual) {
+    if (nivelPercentual <= 0) return 0;
+    if (nivelPercentual > 100) nivelPercentual = 100;
+    return Math.floor((nivelPercentual / 100) * capacidadeTotal);
+}
+
+function getLocalISODate(dateObj) {
+    const d = dateObj || new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    const localDate = new Date(d.getTime() - offset);
+    return localDate.toISOString().split('T')[0];
+}
+
+function getNoCacheUrl(url) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`;
+}
+
+async function safeFetch(url, options = {}) {
+    const finalOptions = { ...options, cache: 'no-store' };
+    try {
+        const response = await fetch(getNoCacheUrl(url), finalOptions);
+        if (!response.ok) throw new Error(response.statusText);
+        return response;
+    } catch(e) {
+        console.warn("Fetch falhou:", url);
+        return null;
+    }
+}
+
+// ============================
+// EMERGÊNCIA: 3 ÚLTIMAS LEITURAS + ESTIMATIVA
+// ============================
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+
+function calcularNivelEstimado(nivelBase, tsBase, agoraTs) {
+    // Regra solicitada:
+    // - acima de 30%: desce 5% a cada 6 horas até 30%
+    // - de 30% até 20%: desce 5% a cada 4 horas
+    // - abaixo de 20%: desce 1% a cada 2 horas até 1%
+    if (!nivelBase || nivelBase <= 0 || !tsBase || !agoraTs) return null;
+
+    let nivel = nivelBase;
+    let t = tsBase;
+
+    const step = (pctDrop, hours) => {
+        const stepMs = hours * 60 * 60 * 1000;
+        const elapsed = agoraTs - t;
+        if (elapsed <= 0) return 0;
+        const k = Math.floor(elapsed / stepMs);
+        if (k <= 0) return 0;
+        nivel -= k * pctDrop;
+        t += k * stepMs;
+        return k;
+    };
+
+    // Faixa 1: até 30
+    if (nivel > 30) {
+        // quantos steps de 5/6h cabem sem cruzar muito? vamos aplicar e depois "travar" em >=30.
+        step(5, 6);
+        if (nivel < 30) nivel = 30;
+    }
+
+    // Faixa 2: 30..20
+    if (nivel > 20) {
+        step(5, 4);
+        if (nivel < 20) nivel = 20;
+    }
+
+    // Faixa 3: <20..1
+    if (nivel > 1) {
+        step(1, 2);
+        if (nivel < 1) nivel = 1;
+    }
+
+    nivel = clamp(Math.round(nivel), 1, 100);
+    return nivel;
+}
+
+async function carregarUltimasLeiturasValidas() {
+    const r = await safeFetch(PATH_EMERGENCIA);
+    if (!r) return;
+    const data = await r.json();
+    if (!data) return;
+    if (Array.isArray(data.ultimas_validas)) {
+        ultimasLeiturasValidas = data.ultimas_validas
+            .filter(x => x && typeof x.nivel === 'number' && typeof x.timestamp === 'number')
+            .sort((a,b) => a.timestamp - b.timestamp)
+            .slice(-3);
+    }
+}
+
+async function salvarUltimasLeiturasValidasFirebase() {
+    try {
+        const payload = {
+            ultimas_validas: ultimasLeiturasValidas.slice(-3),
+            updated_at: Date.now()
+        };
+        await fetch(PATH_EMERGENCIA, { method: 'PATCH', body: JSON.stringify(payload) });
+    } catch (e) {}
+}
+
+async function registrarLeituraValida(nivel, ts) {
+    if (!(typeof nivel === 'number') || nivel <= 0) return;
+    if (!(typeof ts === 'number')) ts = Date.now();
+
+    // evita escrita excessiva: só persiste se timestamp novo e pelo menos 30s da última persistência
+    if (ts <= ultimaLeituraPersistidaTs) return;
+
+    ultimasLeiturasValidas.push({ nivel: Math.round(nivel), timestamp: ts });
+    ultimasLeiturasValidas = ultimasLeiturasValidas
+        .filter(x => x && typeof x.nivel === 'number' && x.nivel > 0 && typeof x.timestamp === 'number')
+        .sort((a,b) => a.timestamp - b.timestamp)
+        .slice(-3);
+
+    ultimaLeituraPersistidaTs = ts;
+    // persistir (sempre mantendo 3)
+    await salvarUltimasLeiturasValidasFirebase();
+}
+
+function obterBaseValida() {
+    if (!ultimasLeiturasValidas || ultimasLeiturasValidas.length === 0) return null;
+    const last = ultimasLeiturasValidas[ultimasLeiturasValidas.length - 1];
+    if (!last || typeof last.nivel !== 'number' || typeof last.timestamp !== 'number') return null;
+    return last;
+}
+
+// ============================
+// EMAIL ALERTA (mantido)
+// ============================
+async function enviarEmailAlerta(nivel) {
+    const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`;
+    if (emailEnviadoNessaSessao) return false;
+
+    try {
+        const rTime = await safeFetch(urlTimestamp);
+        if (rTime) {
+            const ultimoDisparo = await rTime.json();
+            const agora = Date.now();
+            if (ultimoDisparo) {
+                const diferenca = agora - ultimoDisparo;
+                const horas12 = 12 * 60 * 60 * 1000;
+                if (diferenca < horas12) return false;
+            }
+        }
+    } catch (e) {}
+
+    let contatos = {};
+    try {
+        const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`);
+        if (r) contatos = await r.json();
+        if (!contatos) return false;
+    } catch (e) { return false; }
+
+    const emailsParaEnviar = Object.values(contatos)
+        .filter(c => c.tipo === 'email' && c.valor)
+        .map(c => c.valor);
+
+    if (emailsParaEnviar.length === 0) return false;
+
+    let credenciais = null;
+    const hoje = new Date();
+
+    for (let conta of CONTAS_EMAIL) {
+        let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio);
+        if (hoje >= dataReinicio && conta.quota_inicial < 200) {
+            conta.quota_inicial = 200;
+        }
+        if (conta.quota_inicial >= emailsParaEnviar.length) {
+            credenciais = conta;
+            break;
+        }
+    }
+
+    if (!credenciais) return false;
+
+    let todosEnviadosComSucesso = true;
+
+    for (const email of emailsParaEnviar) {
+        const templateParams = { "%": nivel, "email": email };
+        try {
+            await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key);
+        } catch (err) {
+            todosEnviadosComSucesso = false;
+        }
+    }
+
+    if (todosEnviadosComSucesso) {
+        emailEnviadoNessaSessao = true;
+        const agoraMs = Date.now();
+        try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {}
+    }
+
+    return todosEnviadosComSucesso;
+}
+
 function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
 function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
 function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
 function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
-function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
-function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
-function atualizarCaixaDOM(nivel) { if (ultimoNivelExibido !== -1 && Math.abs(nivel - ultimoNivelExibido) < 1) { return; } ultimoNivelExibido = nivel; const aguaDiv = document.getElementById('agua'); if(aguaDiv) { aguaDiv.style.height = nivel + '%'; aguaDiv.innerText = nivel + '%'; if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)'; else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)'; else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)'; } const ledVermelho = document.getElementById('led-vermelho'); const ledAmarelo = document.getElementById('led-amarelo'); const ledVerde = document.getElementById('led-verde'); if(ledVermelho && ledAmarelo && ledVerde) { ledVermelho.classList.remove('aceso'); ledAmarelo.classList.remove('aceso'); ledVerde.classList.remove('aceso'); if (nivel > 60) ledVerde.classList.add('aceso'); else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso'); else ledVermelho.classList.add('aceso'); } const txtNivel = document.getElementById('status-level'); if(txtNivel) { txtNivel.innerText = nivel + '%'; if (nivel > 60) txtNivel.style.color = 'var(--level-ok)'; else if (nivel > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)'; else txtNivel.style.color = 'var(--level-danger)'; } if(document.getElementById('status-litros')) document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivel)} <small>L</small>`; if(document.getElementById('status-time')) document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
-function interpolacaoLinear(arr) { let filled = [...arr]; let indices = []; for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); } if(indices.length === 0) return filled; for(let k = 0; k < indices.length - 1; k++) { let startIdx = indices[k]; let endIdx = indices[k+1]; let startVal = filled[startIdx]; let endVal = filled[endIdx]; let steps = endIdx - startIdx; if (endVal > startVal + 30) { for(let j = 1; j < steps; j++) { filled[startIdx + j] = startVal; } } else { for(let j = 1; j < steps; j++) { let val = startVal + (endVal - startVal) * (j / steps); filled[startIdx + j] = Math.round(val); } } } if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; } return filled; }
-function atualizarGraficosHistorico(result) { if (!chartLinha || !chartBlocos) return; if (!result || !result.labels) return; let displayLabels = result.labels || []; let displayNiveis = result.niveis || []; chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update(); chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis; const cores = 'rgba(6, 182, 212, 0.85)'; chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update(); }
-function atualizarGraficosConsumo(result) { if (!chartConsumoBloco || !chartConsumoLinha) return; if (!result || !result.consumo) return; const consumoData = result.consumo || []; const consumoLabels = result.labels || []; const infoTexto = document.getElementById('consumo-info-texto'); if (infoTexto) { let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0); let statusTexto = "Normal"; let corStatus = "var(--accent)"; if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; } else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; } if (currentView === 'diario') { infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`; } else { infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`; } } chartConsumoBloco.data.labels = consumoLabels; chartConsumoBloco.data.datasets[0].data = consumoData; chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; chartConsumoBloco.update(); chartConsumoLinha.data.labels = consumoLabels; chartConsumoLinha.data.datasets[0].data = consumoData; chartConsumoLinha.update(); }
-function criarGraficos() { Chart.register(ChartDataLabels); const isDark = document.body.getAttribute('data-theme') === 'dark'; const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; const textColor = isDark ? '#94a3b8' : '#64748b'; const zoomOptions = { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' } }; const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, maxTicksLimit: 6, color: textColor }, grid: { display: true, color: gridColor } }; if(document.getElementById('chartLinha')) { const ctxL = document.getElementById('chartLinha').getContext('2d'); const gradL = ctxL.createLinearGradient(0, 0, 0, 300); gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)'); gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)'); if(chartLinha) chartLinha.destroy(); chartLinha = new Chart(ctxL, { type: 'line', data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 3, spanGaps: true }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartBlocos')) { const ctxB = document.getElementById('chartBlocos').getContext('2d'); if(chartBlocos) chartBlocos.destroy(); chartBlocos = new Chart(ctxB, { type: 'bar', data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartConsumoBloco')) { const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d'); if(chartConsumoBloco) chartConsumoBloco.destroy(); chartConsumoBloco = new Chart(ctxCB, { type: 'bar', data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round, font: { size: 10 } } }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, suggestedMax: 2000, grid: { color: gridColor } } }, layout: { padding: { top: 20 } } } }); } if(document.getElementById('chartConsumoLinha')) { const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d'); if(chartConsumoLinha) chartConsumoLinha.destroy(); chartConsumoLinha = new Chart(ctxCL, { type: 'line', data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 2 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartAbastecimento')) { const ctxA = document.getElementById('chartAbastecimento').getContext('2d'); if(chartAbastecimento) chartAbastecimento.destroy(); chartAbastecimento = new Chart(ctxA, { type: 'bar', data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, scales: { x: { ticks: { color: textColor }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } } } }); } }
-async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') { if (nivel === null || nivel === undefined) return; if (tipo === 'real' && nivel <= 0) return; const d = new Date(timestamp); const localDate = getLocalISODate(d); const horaKey = String(d.getHours()).padStart(2, '0'); const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} }
-async function carregarHistoricoEConsumo() { if (currentView === 'semanal') return; let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 }; if (currentView === 'diario') { const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result; const data = dataEl.value; if (!data) return result; const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj); url = `${PATH_HISTORICO}/${data}.json`; const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; processData = (dadosHoje, dadosOntem) => { const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; if (dadosOntem) { const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); if (horariosOntem.length > 0) { const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey]; const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null; } } if (dadosHoje) { const keysSorted = Object.keys(dadosHoje).sort((a, b) => { const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number); return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); }); keysSorted.forEach(key => { const horaInt = parseInt(key.split(':')[0]); const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null; if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; } if (val !== null && previousVal !== null) { if (val > previousVal + 5) { detectedRefillIdx = horaInt; } if (previousVal > val) { const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val); const diff = volAnterior - volAtual; if(diff < 800) { const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap; for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; } } } } if (val !== null) { previousVal = val; lastHoraInt = horaInt; } }); if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; const niveisInterpolados = interpolacaoLinear(niveisFixed); for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h]; } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; } return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; }; try { let dadosHoje = null; try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = await rHoje.json(); } catch(e) {} let dadosOntem = null; try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = await rOntem.json(); } catch(e) {} result = processData(dadosHoje, dadosOntem); atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } else { let dataInicio, dataFim; if (currentView === 'mensal') { const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value; if (!mesAno) return result; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-'); const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`; } else if (currentView === 'intervalo') { const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim'); if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value; if (!dataInicio || !dataFim) return result; } url = `${PATH_HISTORICO}.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`; processData = (dados) => { const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort(); for (const dateKey in dados) { const dailyReadings = dados[dateKey]; const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b)); if(times.length === 0) continue; let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null; for (let i = 0; i < times.length; i++) { const tCurrent = times[i]; const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0; const valCurrent = Number(valRaw); if(valCurrent > 0) { somaNiveis += valCurrent; countNiveis++; if (lastValidLevelForDay !== null) { if (lastValidLevelForDay > valCurrent) { const volAnterior = calcularVolumeLitros(lastValidLevelForDay); const volAtual = calcularVolumeLitros(valCurrent); const diff = volAnterior - volAtual; if(diff < 800) consumoDia += diff; } } lastValidLevelForDay = valCurrent; } } dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0; } if (currentView === 'mensal') { const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0]; for (const dateKey in dailyConsumption) { const day = parseInt(dateKey.split('-')[2]); let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3)); weeks[idx] += dailyConsumption[dateKey]; if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; } } const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0); return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks }; } const labels = Object.keys(dailyConsumption).sort(); const consumo = labels.map(key => dailyConsumption[key]); const niveis = labels.map(key => dailyLevels[key]); const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; }); return { labels: displayLabels, niveis: niveis, consumo: consumo }; }; try { let dados = null; try { const r = await safeFetch(url); if (r) dados = await r.json(); } catch(e) {} result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] }; atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } }
-async function removerAbastecimento(id) { try { await fetch(`${PATH_ABASTECIMENTO.replace('.json', '')}/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {} }
-async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); const idsParaLista = ids.slice(0, 5); if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; idsParaLista.forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); let labelsGrafico = []; let dadosGrafico = []; let titulo = "Comparativo Semanal (Litros)"; if (semanaFiltro === 'todas') { titulo = "Comparativo Semanal (Litros)"; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); let idx = 0; if (dia <= 7) idx = 0; else if (dia <= 14) idx = 1; else if (dia <= 21) idx = 2; else idx = 3; totaisSemana[idx] += parseInt(item.litros || 0); } }); labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana']; dadosGrafico = totaisSemana; } else { titulo = `Detalhes: Semana ${semanaFiltro}`; const diasMap = {}; let diaInicio = 1, diaFim = 7; if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; } if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; } if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; } Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); if (dia >= diaInicio && dia <= diaFim) { const labelDia = `Dia ${String(dia).padStart(2, '0')}`; if (!diasMap[labelDia]) diasMap[labelDia] = 0; diasMap[labelDia] += parseInt(item.litros || 0); } } }); labelsGrafico = Object.keys(diasMap).sort(); dadosGrafico = labelsGrafico.map(l => diasMap[l]); if (labelsGrafico.length === 0) { labelsGrafico = ["Sem dados"]; dadosGrafico = [0]; } } if(document.getElementById('tituloGraficoAbastecimento')) { document.getElementById('tituloGraficoAbastecimento').innerText = titulo; } if(chartAbastecimento) { chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = dadosGrafico; chartAbastecimento.update(); } } else if(listaUL) { listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; } } catch (e) { console.error(e); } }
-function animarBotaoSucesso(btnId) { const btn = document.getElementById(btnId); if(!btn) return; const originalHTML = btn.innerHTML; btn.classList.add('btn-success'); btn.innerHTML = '<i class="fas fa-check"></i> Salvo!'; setTimeout(() => { btn.classList.remove('btn-success'); btn.innerHTML = originalHTML; }, 2000); }
-async function salvarAbastecimento(litros) { if (!litros || litros <= 0) return; const agora = new Date(); const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString() }; try { await fetch(PATH_ABASTECIMENTO, { method: 'POST', body: JSON.stringify(dados) }); document.getElementById('litros-abastecidos').value = ''; carregarHistoricoAbastecimento(); animarBotaoSucesso('btn-salvar-abastecimento'); } catch (e) {} }
-async function salvarConfig(endpoint, valor) { try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {} }
-async function salvarCapacidade(valor) { if(!valor || valor <= 0) return; await salvarConfig('capacidade', valor); capacidadeTotal = valor; animarBotaoSucesso('btn-salvar-capacidade'); }
-async function salvarAltura(valor) { if(!valor || valor <= 0) return; await salvarConfig('altura', valor); alturaCaixa = valor; animarBotaoSucesso('btn-salvar-altura'); }
-async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = valor; animarBotaoSucesso('btn-salvar-nivel-alerta'); }
-async function carregarConfiguracoesGerais() { try { let config = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) config = await r.json(); } catch(e) {} if(config) { if (config.nivel_alerta) { document.getElementById('nivel-alerta-valor').value = config.nivel_alerta; nivelAlertaConfigurado = parseInt(config.nivel_alerta); } else if (config.nivel_critico_pct) { document.getElementById('nivel-alerta-valor').value = config.nivel_critico_pct; nivelAlertaConfigurado = parseInt(config.nivel_critico_pct); } if (config.capacidade) { document.getElementById('capacidade-total-valor').value = config.capacidade; capacidadeTotal = parseInt(config.capacidade); } else if (config.capacidade_total_litros) { document.getElementById('capacidade-total-valor').value = config.capacidade_total_litros; capacidadeTotal = parseInt(config.capacidade_total_litros); } if (config.altura) { document.getElementById('altura-caixa-valor').value = config.altura; alturaCaixa = parseInt(config.altura); } else if (config.altura_tanque_cm) { document.getElementById('altura-caixa-valor').value = config.altura_tanque_cm; alturaCaixa = parseInt(config.altura_tanque_cm); } } } catch (e) {} }
-async function adicionarContato(valor, tipo) { if (!valor) return; const novoContato = { valor, tipo }; try { await fetch(`${PATH_CONFIG_BASE}/contatos.json`, { method: 'POST', body: JSON.stringify(novoContato) }); document.getElementById('contato-valor').value = ''; carregarContatos(); animarBotaoSucesso('btn-add-contato'); } catch (e) {} }
-async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
-async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
-function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted[mid]; }
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
-    // Regras:
-    // - acima de 30%: desce 5% a cada 6h
-    // - de 30% até 20%: desce 5% a cada 4h
-    // - abaixo de 20% até 1%: desce 1% a cada 2h
-    if (nivelInicial === null || nivelInicial === undefined) return 0;
-    const n0 = Number(nivelInicial);
-    const t0 = Number(timestampInicial);
-    if (!isFinite(n0) || n0 <= 0 || !isFinite(t0) || t0 <= 0) return 0;
 
-    let nivel = n0;
-    let horas = (Date.now() - t0) / (1000 * 60 * 60);
-    if (horas <= 0) return Math.max(1, Math.min(100, Math.round(nivel)));
-
-    // segmento 1: > 30
-    if (nivel > 30 && horas > 0) {
-        const rate = 5 / 6; // % por hora
-        const timeTo30 = (nivel - 30) / rate;
-        if (horas <= timeTo30) {
-            nivel = nivel - horas * rate;
-            return Math.max(1, Math.min(100, Math.round(nivel)));
-        }
-        nivel = 30;
-        horas -= timeTo30;
-    }
-
-    // segmento 2: 30 -> 20
-    if (nivel > 20 && horas > 0) {
-        const rate = 5 / 4; // % por hora
-        const timeTo20 = (nivel - 20) / rate;
-        if (horas <= timeTo20) {
-            nivel = nivel - horas * rate;
-            return Math.max(1, Math.min(100, Math.round(nivel)));
-        }
-        nivel = 20;
-        horas -= timeTo20;
-    }
-
-    // segmento 3: 20 -> 1
-    if (nivel > 1 && horas > 0) {
-        const rate = 1 / 2; // % por hora
-        const timeTo1 = (nivel - 1) / rate;
-        if (horas <= timeTo1) {
-            nivel = nivel - horas * rate;
-            return Math.max(1, Math.min(100, Math.round(nivel)));
-        }
-        nivel = 1;
-    }
-
-    return Math.max(1, Math.min(100, Math.round(nivel)));
+function setupAudio() {
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        oscillator = audioContext.createOscillator();
+        gainNode = audioContext.createGain();
+        lfo = audioContext.createOscillator();
+        lfoGain = audioContext.createGain();
+        lfo.type = 'sine';
+        lfo.frequency.setValueAtTime(2, audioContext.currentTime);
+        lfoGain.gain.setValueAtTime(400, audioContext.currentTime);
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        lfo.connect(lfoGain);
+        lfoGain.connect(oscillator.frequency);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        lfo.start();
+        oscillator.start();
+    } catch (e) {}
 }
 
-async function loopDeAtualizacao() { 
-    const liveIndicator = document.getElementById('live-indicator'); 
-    try { 
-        if (!verificacaoInicialConcluida) return; 
-        lastUpdateTimestamp = Date.now();
-        // FIXO: PP07 sempre 20% (card e desenho)
-        if (FORCE_FIXED_LEVEL !== null && FORCE_FIXED_LEVEL !== undefined) {
-            const fixed = Math.max(1, Math.min(100, Math.round(Number(FORCE_FIXED_LEVEL))));
-            atualizarInterface(fixed, 'fixo', true);
-            // salva no histórico 1x por hora (tipo fixo)
-            const horaAtual = new Date().getHours();
-            if (horaAtual !== ultimoHorarioSalvo || (Date.now() - ultimoTempoSalvo) > 30*60*1000) {
-                ultimoHorarioSalvo = horaAtual;
-                ultimoTempoSalvo = Date.now();
-                salvarLeituraNoFirebase(fixed, Date.now(), 'fixo');
-            }
-            return;
-        }
- 
-        let j = {}; 
-        let fetchSuccess = false; 
-        try { 
-            const r = await safeFetch(PATH_TEMPO_REAL); 
-            if (r) { j = await r.json(); fetchSuccess = true; } 
-        } catch (err) {} 
-        
-        if(liveIndicator) { 
-            if (fetchSuccess) { 
-                liveIndicator.classList.remove('offline'); 
-                liveIndicator.classList.add('online'); 
-                liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5'); 
-            } else { 
-                liveIndicator.classList.remove('online'); 
-                liveIndicator.classList.add('offline'); 
-                liveIndicator.style.opacity = '1'; 
-            } 
-        } 
-        
-        let nivelRecebidoRaw = 0; 
-        if (j && j.nivel_pct !== undefined) nivelRecebidoRaw = j.nivel_pct; 
-        else if (j && j.percentual_atual !== undefined) nivelRecebidoRaw = j.percentual_atual; 
-        let nivelRecebido = Number(nivelRecebidoRaw); 
-        let tipoDado = 'real'; 
-        let statusSensor = j && j.status_leitura ? j.status_leitura : "OFFLINE"; 
-        
-        if (nivelRecebido > 0 && statusSensor !== "ERRO_SENSOR") { 
-            if (bufferLeituras.length === 0) { for(let i=0; i<9; i++) bufferLeituras.push(nivelRecebido); } 
-            else { bufferLeituras.push(nivelRecebido); if (bufferLeituras.length > 9) bufferLeituras.shift(); } 
-            let nivelEstavel = obterMediana(bufferLeituras); 
-            if (ultimoNivelValidoLatch !== null && Math.abs(nivelEstavel - ultimoNivelValidoLatch) > 5) { 
-                contadorLeiturasFantasmas++; 
-                if (contadorLeiturasFantasmas < 5) { nivelEstavel = ultimoNivelValidoLatch; } 
-                else { contadorLeiturasFantasmas = 0; } 
-            } else { contadorLeiturasFantasmas = 0; } 
-            
-            nivelAtual = nivelEstavel; 
-            tipoDado = 'real'; 
-            ultimoNivelValidoLatch = nivelEstavel; 
-            timestampLatch = Date.now(); 
-            salvarUltimasValidasFirebase(nivelEstavel, timestampLatch); 
-            localStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelEstavel); 
-            localStorage.setItem('__STORAGE_KEY_PREFIX___last_time', timestampLatch); 
-            document.getElementById('emergency-badge').style.display = 'none'; 
-            document.getElementById('simulated-indicator').style.display = 'none'; 
-        } else { 
-            let backupUsado = false; 
-            let pctBackup = 0;
-            let timeBackup = 0;
+function controlarAlarme(play) {
+    if (!audioContext) return;
+    if (audioContext.state === 'suspended') audioContext.resume();
+    if (play && !isAlarmPlaying) {
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+        isAlarmPlaying = true;
+    } else if (!play && isAlarmPlaying) {
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        isAlarmPlaying = false;
+    }
+}
 
-            // Prioridade 1: Dados do JSON em tempo real (se tiver ultima valida)
-            if (j && j.ultima_valida_pct > 0 && j.ultima_valida_time > 0) { 
-                pctBackup = j.ultima_valida_pct;
-                timeBackup = j.ultima_valida_time;
-            } 
-            // Prioridade 2: Memória Local (Latch)
-            else if (ultimoNivelValidoLatch !== null && timestampLatch !== null) { 
-                pctBackup = ultimoNivelValidoLatch;
-                timeBackup = timestampLatch;
-            } 
-            // Prioridade 3: LocalStorage persistente
-            else { 
-                const savedLvl = localStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); 
-                const savedTime = localStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); 
-                if(savedLvl && savedTime) { 
-                    pctBackup = Number(savedLvl);
-                    timeBackup = Number(savedTime);
-                } else {
-                    // Prioridade 4: Busca forçada no histórico (última chance antes de mostrar 0%)
-                    const histData = await buscarBackupHistorico();
-                    if (histData) {
-                        pctBackup = histData.pct;
-                        timeBackup = histData.time;
-                        // Salva para o próximo ciclo não precisar buscar
-                        ultimoNivelValidoLatch = pctBackup;
-                        timestampLatch = timeBackup;
+function atualizarCaixaDOM(nivel, simulated=false) {
+    const aguaDiv = document.getElementById('agua');
+    if(aguaDiv) {
+        aguaDiv.style.height = nivel + '%';
+        aguaDiv.innerText = nivel + '%';
+
+        if (nivel > 60) aguaDiv.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
+        else if (nivel > nivelAlertaConfigurado) aguaDiv.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+        else aguaDiv.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+    }
+
+    const ledVermelho = document.getElementById('led-vermelho');
+    const ledAmarelo = document.getElementById('led-amarelo');
+    const ledVerde = document.getElementById('led-verde');
+    if(ledVermelho && ledAmarelo && ledVerde) {
+        ledVermelho.classList.remove('aceso');
+        ledAmarelo.classList.remove('aceso');
+        ledVerde.classList.remove('aceso');
+
+        if (nivel > 60) ledVerde.classList.add('aceso');
+        else if (nivel > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
+        else ledVermelho.classList.add('aceso');
+    }
+
+    const txtNivel = document.getElementById('status-level');
+    if(txtNivel) {
+        txtNivel.innerText = nivel + '%';
+        if (nivel > 60) txtNivel.style.color = 'var(--level-ok)';
+        else if (nivel > nivelAlertaConfigurado) txtNivel.style.color = 'var(--level-warn)';
+        else txtNivel.style.color = 'var(--level-danger)';
+    }
+
+    const simIndicator = document.getElementById('simulated-indicator');
+    if(simIndicator) simIndicator.style.display = simulated ? 'inline-flex' : 'none';
+
+    if(document.getElementById('status-litros'))
+        document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivel)} <small>L</small>`;
+
+    if(document.getElementById('status-time'))
+        document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function interpolacaoLinear(arr) {
+    let filled = [...arr];
+    let indices = [];
+    for(let i = 0; i < filled.length; i++) if(filled[i] !== null) indices.push(i);
+    if(indices.length === 0) return filled;
+
+    for(let k = 0; k < indices.length - 1; k++) {
+        let startIdx = indices[k];
+        let endIdx = indices[k+1];
+        let startVal = filled[startIdx];
+        let endVal = filled[endIdx];
+        let steps = endIdx - startIdx;
+
+        if (endVal > startVal + 30) {
+            for(let j = 1; j < steps; j++) filled[startIdx + j] = startVal;
+        } else {
+            for(let j = 1; j < steps; j++) {
+                let val = startVal + (endVal - startVal) * (j / steps);
+                filled[startIdx + j] = Math.round(val);
+            }
+        }
+    }
+
+    if(filled[0] === null) {
+        let firstVal = filled[indices[0]];
+        for(let i = 0; i < indices[0]; i++) filled[i] = firstVal;
+    }
+
+    return filled;
+}
+
+function criarGraficos() {
+    Chart.register(ChartDataLabels);
+
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+
+    const zoomOptions = {
+        pan: { enabled: true, mode: 'x' },
+        zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' }
+    };
+
+    const xAxisConfig = {
+        ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, maxTicksLimit: 6, color: textColor },
+        grid: { display: true, color: gridColor }
+    };
+
+    if(document.getElementById('chartLinha')) {
+        const ctxL = document.getElementById('chartLinha').getContext('2d');
+        const gradL = ctxL.createLinearGradient(0, 0, 0, 300);
+        gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)');
+        gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)');
+        if(chartLinha) chartLinha.destroy();
+        chartLinha = new Chart(ctxL, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 3, spanGaps: true }] },
+            options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } }
+        });
+    }
+
+    if(document.getElementById('chartBlocos')) {
+        const ctxB = document.getElementById('chartBlocos').getContext('2d');
+        if(chartBlocos) chartBlocos.destroy();
+        chartBlocos = new Chart(ctxB, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] },
+            options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } }
+        });
+    }
+
+    if(document.getElementById('chartConsumoBloco')) {
+        const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d');
+        if(chartConsumoBloco) chartConsumoBloco.destroy();
+        chartConsumoBloco = new Chart(ctxCB, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] },
+            options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round, font: { size: 10 } } }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, suggestedMax: 2000, grid: { color: gridColor } } }, layout: { padding: { top: 20 } } }
+        });
+    }
+
+    if(document.getElementById('chartConsumoLinha')) {
+        const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d');
+        if(chartConsumoLinha) chartConsumoLinha.destroy();
+        chartConsumoLinha = new Chart(ctxCL, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 2 }] },
+            options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, suggestedMax: 3000, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } }
+        });
+    }
+
+    if(document.getElementById('chartAbastecimento')) {
+        const ctxA = document.getElementById('chartAbastecimento').getContext('2d');
+        if(chartAbastecimento) chartAbastecimento.destroy();
+        chartAbastecimento = new Chart(ctxA, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] },
+            options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, scales: { x: { ticks: { color: textColor }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } } }
+        });
+    }
+}
+
+async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
+    if (nivel === null || nivel === undefined) return;
+    if (tipo === 'real' && nivel <= 0) return;
+
+    const d = new Date(timestamp);
+    const localDate = getLocalISODate(d);
+    const horaKey = String(d.getHours()).padStart(2, '0');
+
+    const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`;
+    const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo };
+
+    try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {}
+}
+
+function atualizarGraficosHistorico(result) {
+    if (!chartLinha || !chartBlocos) return;
+    if (!result || !result.labels) return;
+
+    chartLinha.data.labels = result.labels;
+    chartLinha.data.datasets[0].data = result.niveis;
+    chartLinha.update();
+
+    chartBlocos.data.labels = result.labels;
+    chartBlocos.data.datasets[0].data = result.niveis;
+    chartBlocos.data.datasets[0].backgroundColor = 'rgba(6, 182, 212, 0.85)';
+    chartBlocos.update();
+}
+
+function atualizarGraficosConsumo(result) {
+    if (!chartConsumoBloco || !chartConsumoLinha) return;
+    if (!result || !result.consumo) return;
+
+    const consumoData = result.consumo || [];
+    const consumoLabels = result.labels || [];
+
+    const infoTexto = document.getElementById('consumo-info-texto');
+    if (infoTexto) {
+        let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
+        let statusTexto = "Normal";
+        let corStatus = "var(--accent)";
+        if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; }
+        else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; }
+
+        if (currentView === 'diario') infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`;
+        else infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`;
+    }
+
+    chartConsumoBloco.data.labels = consumoLabels;
+    chartConsumoBloco.data.datasets[0].data = consumoData;
+    chartConsumoBloco.update();
+
+    chartConsumoLinha.data.labels = consumoLabels;
+    chartConsumoLinha.data.datasets[0].data = consumoData;
+    chartConsumoLinha.update();
+}
+
+// ============================
+// CONSUMO: usa leituras + abastecimentos
+// Regra: consumo (L) no intervalo = max(0, (Vprev + Entradas) - Vcurr)
+// onde Entradas é a soma dos litros em abastecimentos com timestamp dentro do intervalo.
+// ============================
+async function carregarAbastecimentos() {
+    const r = await safeFetch(PATH_ABASTECIMENTO);
+    if (!r) return [];
+    const dados = await r.json();
+    if (!dados) return [];
+    return Object.values(dados)
+        .filter(x => x && typeof x.timestamp === 'number' && typeof x.litros === 'number')
+        .map(x => ({ timestamp: x.timestamp, litros: x.litros }))
+        .sort((a,b) => a.timestamp - b.timestamp);
+}
+
+function somarEntradasNoIntervalo(abastecimentos, t0, t1) {
+    if (!Array.isArray(abastecimentos) || abastecimentos.length === 0) return 0;
+    if (!t0 || !t1) return 0;
+    const a = Math.min(t0, t1);
+    const b = Math.max(t0, t1);
+    let soma = 0;
+    for (const ev of abastecimentos) {
+        if (ev.timestamp > a && ev.timestamp <= b) soma += (ev.litros || 0);
+        if (ev.timestamp > b) break;
+    }
+    return soma;
+}
+
+async function carregarHistoricoEConsumo() {
+    if (currentView === 'semanal') return;
+
+    let url = '';
+    let processData;
+    let result = { labels: [], niveis: [], consumo: [] };
+
+    if (currentView === 'diario') {
+        const dataEl = document.getElementById('dataEscolhida');
+        if(!dataEl) return result;
+        const data = dataEl.value;
+        if (!data) return result;
+
+        const dataParts = data.split('-');
+        const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]);
+        dateObj.setDate(dateObj.getDate() - 59);
+        const dataIni = getLocalISODate(dateObj);
+
+        url = `${PATH_HISTORICO}.json?orderBy=\"$key\"&startAt=\"${dataIni}\"&endAt=\"${data}\"`;
+
+        processData = (historico, abastecimentos) => {
+            const labels = [];
+            const niveis = [];
+            const consumo = [];
+            const horasMap = {};
+            const horasTs = {};
+
+            if (historico) {
+                for (const diaKey in historico) {
+                    const dia = historico[diaKey];
+                    if (!dia) continue;
+                    for (const horaKey in dia) {
+                        const leitura = dia[horaKey];
+                        if (!leitura) continue;
+                        const horaLabel = `${diaKey} ${horaKey}:00`;
+                        horasMap[horaLabel] = leitura;
+
+                        // timestamp de referência do ponto (preferência: leitura.timestamp)
+                        let ts = (leitura && typeof leitura.timestamp === 'number') ? leitura.timestamp : null;
+                        if (!ts) {
+                            // fallback: monta um Date local a partir do dia/hora
+                            const y = parseInt(diaKey.slice(0,4),10);
+                            const m = parseInt(diaKey.slice(5,7),10)-1;
+                            const d = parseInt(diaKey.slice(8,10),10);
+                            const h = parseInt(horaKey,10);
+                            ts = new Date(y,m,d,h,0,0,0).getTime();
+                        }
+                        horasTs[horaLabel] = ts;
                     }
                 }
-            } 
-
-            if (pctBackup > 0) {
-                nivelAtual = calcularNivelSimuladoLatch(pctBackup, timeBackup);
-                backupUsado = true;
-            } else {
-                nivelAtual = 0;
             }
 
-            document.getElementById('emergency-badge').style.display = 'flex'; 
-            if (backupUsado) { 
-                document.getElementById('simulated-indicator').style.display = 'flex'; 
-                tipoDado = 'estimado'; 
-            } else { 
-                tipoDado = 'real'; 
-            } 
-        } 
-        
-        const statusDisplay = document.getElementById('status-display'); 
-        if(statusDisplay) { 
-            statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger'); 
-            if (nivelAtual <= nivelAlertaConfigurado) { 
-                statusDisplay.classList.add('level-danger'); 
-                if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } 
-                if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { 
-                    enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; 
-                    setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); 
-                } else { enviarEmailAlerta(nivelAtual); } 
-            } else { 
-                if (nivelAtual > 50) { 
-                    if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; 
-                    if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; 
-                } 
-                if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); 
-                else statusDisplay.classList.add('level-ok'); 
-                if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } 
-                controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; 
-            } 
-        } 
-        atualizarCaixaDOM(nivelAtual); 
-        const agora = new Date(); 
-        const horaAtual = agora.getHours(); 
-        const agoraMs = agora.getTime(); 
-        if ((horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) && nivelAtual > 0) { 
-            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs, tipoDado); 
-            ultimoHorarioSalvo = horaAtual; 
-            ultimoTempoSalvo = agoraMs; 
-            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
-        } 
-    } catch(e) { 
-        if(liveIndicator) { 
-            liveIndicator.classList.remove('online'); 
-            liveIndicator.classList.add('offline'); 
-        } 
-    } 
+            const horasOrdenadas = Object.keys(horasMap).sort();
+            let lastNivel = null;
+            let lastTs = null;
+
+            horasOrdenadas.forEach((horaLabel) => {
+                const leitura = horasMap[horaLabel];
+                const nivel = (leitura && typeof leitura.nivel_pct === 'number') ? Math.round(leitura.nivel_pct) : null;
+                const tsPonto = horasTs[horaLabel] || null;
+
+                labels.push(horaLabel.substring(5, 16));
+
+                // Série do histórico (nível)
+                niveis.push(nivel);
+
+                // Série de consumo: calcula em litros com entradas (abastecimento)
+                if (nivel === null || lastNivel === null || !tsPonto || !lastTs) {
+                    consumo.push(0);
+                } else {
+                    const vPrev = (lastNivel/100) * capacidadeTotal;
+                    const vCurr = (nivel/100) * capacidadeTotal;
+                    const entradas = somarEntradasNoIntervalo(abastecimentos, lastTs, tsPonto);
+                    let c = (vPrev + entradas) - vCurr;
+                    if (c < 0) c = 0;
+                    consumo.push(Math.round(c));
+                }
+
+                if (nivel !== null) {
+                    lastNivel = nivel;
+                    lastTs = tsPonto;
+                } else {
+                    // mantém lastNivel/lastTs para não "zerar" consumo por buraco
+                }
+            });
+
+            // Para o histórico, mantemos interpolação visual. Para consumo NÃO interpolamos (evita distorcer).
+            result.labels = labels;
+            result.niveis = interpolacaoLinear(niveis);
+            result.consumo = consumo.map(x => (typeof x === 'number' && isFinite(x)) ? x : 0);
+            return result;
+        };
+
+    } else if (currentView === 'mensal') {
+        const mesEl = document.getElementById('mesEscolhido');
+        if(!mesEl) return result;
+        const mes = mesEl.value;
+        if (!mes) return result;
+
+        const startAt = `${mes}-01`;
+        const endAt = `${mes}-31`;
+        url = `${PATH_HISTORICO}.json?orderBy=\"$key\"&startAt=\"${startAt}\"&endAt=\"${endAt}\"`;
+
+        processData = (historico, abastecimentos) => {
+            const labels = [];
+            const niveis = [];
+            const consumo = [];
+            const dias = Object.keys(historico || {}).sort();
+
+            // Para cada dia, usa a última leitura do dia como nível do dia.
+            const pontos = [];
+            dias.forEach((diaKey) => {
+                const dia = historico[diaKey];
+                if (!dia) return;
+                const horas = Object.keys(dia).sort();
+                const ultimaHora = horas[horas.length - 1];
+                const leitura = dia[ultimaHora];
+                const nivel = (leitura && typeof leitura.nivel_pct === 'number') ? Math.round(leitura.nivel_pct) : null;
+
+                let ts = (leitura && typeof leitura.timestamp === 'number') ? leitura.timestamp : null;
+                if (!ts) {
+                    const y = parseInt(diaKey.slice(0,4),10);
+                    const m = parseInt(diaKey.slice(5,7),10)-1;
+                    const d = parseInt(diaKey.slice(8,10),10);
+                    const h = parseInt(ultimaHora,10);
+                    ts = new Date(y,m,d,h,0,0,0).getTime();
+                }
+
+                pontos.push({ diaKey, nivel, ts });
+            });
+
+            pontos.sort((a,b) => (a.ts||0) - (b.ts||0));
+
+            let last = null;
+            for (const p of pontos) {
+                labels.push(p.diaKey.substring(8, 10));
+                niveis.push(p.nivel);
+
+                if (!last || p.nivel === null || last.nivel === null || !p.ts || !last.ts) {
+                    consumo.push(0);
+                } else {
+                    const vPrev = (last.nivel/100) * capacidadeTotal;
+                    const vCurr = (p.nivel/100) * capacidadeTotal;
+                    const entradas = somarEntradasNoIntervalo(abastecimentos, last.ts, p.ts);
+                    let c = (vPrev + entradas) - vCurr;
+                    if (c < 0) c = 0;
+                    consumo.push(Math.round(c));
+                }
+
+                if (p.nivel !== null) last = p;
+            }
+
+            result.labels = labels;
+            result.niveis = interpolacaoLinear(niveis);
+            result.consumo = consumo.map(x => (typeof x === 'number' && isFinite(x)) ? x : 0);
+            return result;
+        };
+
+    } else if (currentView === 'intervalo') {
+        const iniEl = document.getElementById('dataInicio');
+        const fimEl = document.getElementById('dataFim');
+        if(!iniEl || !fimEl) return result;
+        const startAt = iniEl.value;
+        const endAt = fimEl.value;
+        if(!startAt || !endAt) return result;
+
+        url = `${PATH_HISTORICO}.json?orderBy=\"$key\"&startAt=\"${startAt}\"&endAt=\"${endAt}\"`;
+
+        processData = (historico) => {
+            const labels = [];
+            const niveis = [];
+            const consumo = [];
+
+            const dias = Object.keys(historico || {}).sort();
+            dias.forEach((diaKey) => {
+                const dia = historico[diaKey];
+                if (!dia) return;
+                const horas = Object.keys(dia).sort();
+                const ultimaHora = horas[horas.length - 1];
+                const leitura = dia[ultimaHora];
+                const nivel = (leitura && typeof leitura.nivel_pct === 'number') ? Math.round(leitura.nivel_pct) : null;
+                labels.push(diaKey.substring(8, 10));
+                niveis.push(nivel);
+            });
+
+            for(let i=0;i<niveis.length;i++) {
+                if(i===0 || niveis[i]===null || niveis[i-1]===null) consumo.push(0);
+                else {
+                    let diff = niveis[i-1] - niveis[i];
+                    if(diff<0) diff=0;
+                    consumo.push(Math.round((diff/100) * capacidadeTotal));
+                }
+            }
+
+            result.labels = labels;
+            result.niveis = interpolacaoLinear(niveis);
+            result.consumo = interpolacaoLinear(consumo);
+            return result;
+        };
+    }
+
+    const r = await safeFetch(url);
+    if (!r) return result;
+    const historico = await r.json();
+    if (!historico) return result;
+
+    // Abastecimentos entram no cálculo do consumo
+    const abastecimentos = await carregarAbastecimentos();
+
+    const processed = processData(historico, abastecimentos);
+    atualizarGraficosHistorico(processed);
+    atualizarGraficosConsumo(processed);
+    return processed;
 }
-window.onload = function() { checkAutoTheme(); const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; const dateControls = document.getElementById('date-controls'); const hoje = new Date(); const mesAtual = getLocalISODate(hoje).substring(0, 7); const elMesAbast = document.getElementById('mesAbastecimento'); if(elMesAbast) { elMesAbast.value = mesAtual; } const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; } setupAudio(); function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true }); verificacaoInicialConcluida = true; function switchView(viewName) { activeTab = viewName; for (const key in views) { if(views[key]) views[key].style.display = 'none'; } if (views[viewName]) { views[viewName].style.display = 'flex'; } document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); if (btns[viewName]) { btns[viewName].classList.add('active'); } if(dateControls) dateControls.style.display = 'none'; if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } if (viewName === 'caixa') carregarHistoricoAbastecimento(); else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); } else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); } else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); if(chartAbastecimento) chartAbastecimento.resize(); } else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais();
-    carregarUltimasValidasFirebase(); } } if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); if(btns.config) btns.config.addEventListener('click', () => switchView('config')); document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta); document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)); document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))); document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))); document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)); document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))); document.getElementById('lista-contatos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); document.getElementById('lista-abastecimentos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } }); criarGraficos(); const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; switchView('caixa'); const btnAt = document.getElementById('btnAtualizar'); if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; carregarConfiguracoesGerais(); carregarHistoricoEConsumo(); loopDeAtualizacao(); loopInterval = setInterval(loopDeAtualizacao, 2500); setInterval(() => { const now = Date.now(); if (now - lastUpdateTimestamp > 10000) { console.log("Watchdog: Reiniciando loop travado..."); loopDeAtualizacao(); } }, 5000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible') { console.log("App visível novamente. Forçando atualização..."); loopDeAtualizacao(); carregarHistoricoEConsumo(); clearInterval(loopInterval); loopInterval = setInterval(loopDeAtualizacao, 2500); } }); document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); }); };
+
+async function carregarConfiguracoesGerais() {
+    try {
+        const r = await safeFetch(`${PATH_CONFIG_BASE}/config.json`);
+        if (!r) return;
+        const cfg = await r.json();
+        if (!cfg) return;
+        if (typeof cfg.nivel_alerta === 'number') nivelAlertaConfigurado = cfg.nivel_alerta;
+        if (typeof cfg.capacidade_total === 'number') capacidadeTotal = cfg.capacidade_total;
+        if (typeof cfg.altura_caixa === 'number') alturaCaixa = cfg.altura_caixa;
+
+        const elNivel = document.getElementById('nivel-alerta-valor');
+        const elCap = document.getElementById('capacidade-total-valor');
+        const elAlt = document.getElementById('altura-caixa-valor');
+        if (elNivel) elNivel.value = nivelAlertaConfigurado;
+        if (elCap) elCap.value = capacidadeTotal;
+        if (elAlt) elAlt.value = alturaCaixa;
+    } catch(e) {}
+}
+
+async function carregarListaContatos() {
+    const ul = document.getElementById('lista-contatos');
+    if(!ul) return;
+    ul.innerHTML = '';
+
+    try {
+        const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`);
+        if (!r) return;
+        const contatos = await r.json();
+        if (!contatos) return;
+
+        Object.entries(contatos).forEach(([key, c]) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${c.valor} <small>(${c.tipo})</small></span><button class="delete-abastecimento-btn" title="Excluir">×</button>`;
+            li.querySelector('button').onclick = async () => {
+                try { await fetch(`${PATH_CONFIG_BASE}/contatos/${key}.json`, { method: 'DELETE' }); carregarListaContatos(); } catch(e){}
+            };
+            ul.appendChild(li);
+        });
+    } catch(e){}
+}
+
+async function salvarConfigCampo(campo, valor) {
+    const statusEl = { capacidade_total: document.getElementById('status-capacidade'), altura_caixa: document.getElementById('status-altura'), nivel_alerta: document.getElementById('status-alerta') }[campo];
+    if(statusEl) statusEl.textContent = '';
+
+    try {
+        const body = {}; body[campo] = valor;
+        await fetch(`${PATH_CONFIG_BASE}/config.json`, { method: 'PATCH', body: JSON.stringify(body) });
+        if(statusEl) statusEl.textContent = 'Salvo!';
+        setTimeout(() => { if(statusEl) statusEl.textContent = ''; }, 2000);
+    } catch(e) {
+        if(statusEl) statusEl.textContent = 'Erro ao salvar';
+    }
+}
+
+async function adicionarContato(tipo, valor) {
+    const statusEl = document.getElementById('status-contato');
+    if(statusEl) statusEl.textContent = '';
+
+    try {
+        const novo = { tipo, valor };
+        await fetch(`${PATH_CONFIG_BASE}/contatos.json`, { method: 'POST', body: JSON.stringify(novo) });
+        if(statusEl) statusEl.textContent = 'Adicionado!';
+        setTimeout(() => { if(statusEl) statusEl.textContent = ''; }, 2000);
+        carregarListaContatos();
+    } catch(e) {
+        if(statusEl) statusEl.textContent = 'Erro ao adicionar';
+    }
+}
+
+async function carregarHistoricoAbastecimento() {
+    const ul = document.getElementById('lista-abastecimentos');
+    if(!ul) return;
+    ul.innerHTML = '';
+
+    try {
+        const r = await safeFetch(`${PATH_ABASTECIMENTO}`);
+        if (!r) return;
+        const dados = await r.json();
+        if (!dados) return;
+
+        const itens = Object.entries(dados)
+            .map(([k,v]) => ({ key: k, ...v }))
+            .sort((a,b) => (b.timestamp||0) - (a.timestamp||0))
+            .slice(0, 20);
+
+        itens.forEach(item => {
+            const dt = item.timestamp ? new Date(item.timestamp).toLocaleString('pt-BR') : '';
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${item.litros} L <small>${dt}</small></span><button class="delete-abastecimento-btn" title="Excluir">×</button>`;
+            li.querySelector('button').onclick = async () => {
+                try { await fetch(`${PATH_CONFIG_BASE}/abastecimentos/${item.key}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch(e){}
+            };
+            ul.appendChild(li);
+        });
+    } catch(e) {}
+}
+
+async function salvarAbastecimento(litros) {
+    const statusEl = document.getElementById('status-abastecimento');
+    if(statusEl) statusEl.textContent = '';
+
+    try {
+        const entrada = { litros, timestamp: Date.now() };
+        await fetch(`${PATH_CONFIG_BASE}/abastecimentos.json`, { method: 'POST', body: JSON.stringify(entrada) });
+        if(statusEl) statusEl.textContent = 'Salvo!';
+        setTimeout(() => { if(statusEl) statusEl.textContent = ''; }, 2000);
+        carregarHistoricoAbastecimento();
+    } catch(e) {
+        if(statusEl) statusEl.textContent = 'Erro ao salvar';
+    }
+}
+
+function switchView(view) {
+    activeTab = view;
+    document.getElementById('caixa-view').style.display = (view === 'caixa') ? 'block' : 'none';
+    document.getElementById('grafico-container').style.display = (view === 'grafico') ? 'block' : 'none';
+    document.getElementById('abastecimento-view').style.display = (view === 'abastecimento') ? 'block' : 'none';
+    document.getElementById('consumo-view').style.display = (view === 'consumo') ? 'block' : 'none';
+    document.getElementById('config-view').style.display = (view === 'config') ? 'block' : 'none';
+
+    document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
+    const map = { caixa: 'btn-view-caixa', grafico: 'btn-view-grafico', abastecimento: 'btn-view-abastecimento', consumo: 'btn-view-consumo', config: 'btn-view-config' };
+    const btn = document.getElementById(map[view]);
+    if(btn) btn.classList.add('active');
+
+    document.getElementById('date-controls').style.display = (view === 'grafico' || view === 'consumo') ? 'flex' : 'none';
+
+    if(view === 'abastecimento') { carregarHistoricoAbastecimento(); carregarGraficoAbastecimento(); }
+    if(view === 'config') { carregarListaContatos(); }
+    if(view === 'grafico' || view === 'consumo') {
+        // Recria/ajusta gráficos APÓS a view ficar visível (Chart.js não renderiza bem quando o canvas está display:none)
+        criarGraficos();
+        setTimeout(() => {
+            if(chartLinha) chartLinha.resize();
+            if(chartBlocos) chartBlocos.resize();
+            if(chartConsumoBloco) chartConsumoBloco.resize();
+            if(chartConsumoLinha) chartConsumoLinha.resize();
+            carregarHistoricoEConsumo();
+        }, 80);
+    }
+}
+
+async function loopDeAtualizacao() {
+    lastUpdateTimestamp = Date.now();
+
+    // MODO FIXO (PP07) - solicitado: fixar 20% no desenho
+    if (typeof FORCE_LEVEL === 'number' && FORCE_LEVEL >= 0) {
+        const fixed = Math.round(FORCE_LEVEL);
+        const li = document.getElementById('live-indicator');
+        if(li) { li.classList.remove('online'); li.classList.add('offline'); }
+        atualizarCaixaDOM(fixed, true);
+        // também salva histórico como estimado, para alimentar gráfico
+        const ts = Date.now();
+        const hora = new Date(ts).getHours();
+        if(hora !== ultimoHorarioSalvo || (Date.now() - ultimoTempoSalvo) > 30*60*1000) {
+            ultimoHorarioSalvo = hora;
+            ultimoTempoSalvo = Date.now();
+            salvarLeituraNoFirebase(fixed, ts, 'estimado');
+        }
+        return;
+    }
+
+    const r = await safeFetch(PATH_TEMPO_REAL);
+    if(!r) {
+        contadorZerosConsecutivos++;
+        const li = document.getElementById('live-indicator');
+        if(li) { li.classList.remove('online'); li.classList.add('offline'); }
+        return;
+    }
+
+    const data = await r.json();
+    if(!data) return;
+
+    let nivelSensor = (typeof data.nivel_pct === 'number') ? Math.round(data.nivel_pct) : 0;
+    let ts = (typeof data.timestamp === 'number') ? data.timestamp : Date.now();
+
+    if(nivelSensor === 0) contadorZerosConsecutivos++;
+    else contadorZerosConsecutivos = 0;
+
+    // sempre registrar leituras válidas (>0)
+    if(nivelSensor > 0) {
+        await registrarLeituraValida(nivelSensor, ts);
+    }
+
+    let nivelExibido = nivelSensor;
+    let simulated = false;
+
+    // emergência se zeros consecutivos
+    if(contadorZerosConsecutivos >= 3) {
+        document.getElementById('emergency-badge').style.display = 'flex';
+        const base = obterBaseValida();
+        if(base) {
+            const estimado = calcularNivelEstimado(base.nivel, base.timestamp, Date.now());
+            if(typeof estimado === 'number') {
+                nivelExibido = estimado;
+                simulated = true;
+            }
+        }
+    } else {
+        document.getElementById('emergency-badge').style.display = 'none';
+    }
+
+    // online/offline indicator
+    const li = document.getElementById('live-indicator');
+    if(li) {
+        if(contadorZerosConsecutivos >= 3) { li.classList.remove('online'); li.classList.add('offline'); }
+        else { li.classList.remove('offline'); li.classList.add('online'); }
+    }
+
+    atualizarCaixaDOM(nivelExibido, simulated);
+
+    // alerta
+    if (nivelExibido > 0 && nivelExibido <= nivelAlertaConfigurado) {
+        if (!alertaModalMostrado && !alertaConfirmadoPeloUsuario) {
+            if (Date.now() < snoozeUntil) {
+            } else {
+                alertaModalMostrado = true;
+                mostrarAlertaModal();
+                controlarAlarme(true);
+                setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000);
+                enviarEmailAlerta(nivelExibido);
+            }
+        }
+    } else {
+        alertaConfirmadoPeloUsuario = false;
+    }
+
+    // salvar histórico por hora (real ou estimado)
+    const hora = new Date(ts).getHours();
+    if(hora !== ultimoHorarioSalvo || (Date.now() - ultimoTempoSalvo) > 30*60*1000) {
+        ultimoHorarioSalvo = hora;
+        ultimoTempoSalvo = Date.now();
+        const tipo = simulated ? 'estimado' : 'real';
+        salvarLeituraNoFirebase(nivelExibido, ts, tipo);
+    }
+}
+
+window.onload = async () => {
+    setupAudio();
+    checkAutoTheme();
+    criarGraficos();
+
+    // carregar buffer de emergência (3 últimas)
+    await carregarUltimasLeiturasValidas();
+
+    document.getElementById('btn-view-caixa').onclick = () => switchView('caixa');
+    document.getElementById('btn-view-grafico').onclick = () => switchView('grafico');
+    document.getElementById('btn-view-abastecimento').onclick = () => switchView('abastecimento');
+    document.getElementById('btn-view-consumo').onclick = () => switchView('consumo');
+    document.getElementById('btn-view-config').onclick = () => switchView('config');
+
+    document.getElementById('modal-close-btn').onclick = confirmarAlerta;
+
+    const hoje = new Date();
+    const dataFim = getLocalISODate(hoje);
+    const mesFim = dataFim.substring(0, 7);
+    const dIni = new Date(hoje.getTime());
+    dIni.setDate(dIni.getDate() - 59);
+    const dataIni = getLocalISODate(dIni);
+
+    document.getElementById('dataEscolhida').value = dataFim;
+    document.getElementById('dataEscolhidaConsumo').value = dataFim;
+    document.getElementById('mesEscolhido').value = mesFim;
+    document.getElementById('dataInicio').value = dataIni;
+    document.getElementById('dataFim').value = dataFim;
+
+    const mesAb = document.getElementById('mesAbastecimento');
+    if(mesAb) mesAb.value = mesFim;
+
+    const btnAt = document.getElementById('btnAtualizar');
+    btnAt.onclick = () => {
+        if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo();
+    };
+
+    document.getElementById('btn-salvar-capacidade').onclick = () => {
+        const v = parseInt(document.getElementById('capacidade-total-valor').value, 10);
+        if(!isNaN(v)) { capacidadeTotal = v; salvarConfigCampo('capacidade_total', v); }
+    };
+
+    document.getElementById('btn-salvar-altura').onclick = () => {
+        const v = parseInt(document.getElementById('altura-caixa-valor').value, 10);
+        if(!isNaN(v)) { alturaCaixa = v; salvarConfigCampo('altura_caixa', v); }
+    };
+
+    document.getElementById('btn-salvar-nivel-alerta').onclick = () => {
+        const v = parseInt(document.getElementById('nivel-alerta-valor').value, 10);
+        if(!isNaN(v)) { nivelAlertaConfigurado = v; salvarConfigCampo('nivel_alerta', v); }
+    };
+
+    document.getElementById('btn-add-contato').onclick = () => {
+        const val = document.getElementById('contato-valor').value.trim();
+        const tipo = document.getElementById('contato-tipo').value;
+        if(val) adicionarContato(tipo, val);
+        document.getElementById('contato-valor').value = '';
+    };
+
+    document.getElementById('btn-salvar-abastecimento').onclick = () => {
+        const v = parseInt(document.getElementById('litros-abastecidos').value, 10);
+        if(!isNaN(v) && v>0) salvarAbastecimento(v);
+        document.getElementById('litros-abastecidos').value = '';
+    };
+
+    document.getElementById('btnAtualizarAbastecimento').onclick = () => carregarGraficoAbastecimento();
+
+    // view selector
+    document.querySelectorAll('.view-selector .view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const parent = e.target.parentElement;
+            parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+
+            if (e.target.dataset.view) {
+                currentView = e.target.dataset.view;
+                const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' };
+                for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none';
+                if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex';
+                btnAt.click();
+            }
+        });
+    });
+
+    await carregarConfiguracoesGerais();
+    await carregarHistoricoEConsumo();
+
+    // loop
+    loopDeAtualizacao();
+    setInterval(loopDeAtualizacao, 2500);
+
+    setInterval(() => {
+        const now = Date.now();
+        if (now - lastUpdateTimestamp > 10000) loopDeAtualizacao();
+    }, 5000);
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'visible') {
+            loopDeAtualizacao();
+            carregarHistoricoEConsumo();
+        }
+    });
+};
+
+async function carregarGraficoAbastecimento() {
+    const mesInput = document.getElementById('mesAbastecimento');
+    const filtroSemana = document.getElementById('filtroSemana');
+    if(!mesInput || !filtroSemana) return;
+    const mes = mesInput.value;
+    if(!mes) return;
+    const semana = filtroSemana.value;
+
+    const r = await safeFetch(`${PATH_CONFIG_BASE}/abastecimentos.json`);
+    if(!r) return;
+    const dados = await r.json();
+    if(!dados) return;
+
+    const itens = Object.values(dados)
+        .filter(x => x && x.timestamp)
+        .map(x => ({ litros: x.litros || 0, timestamp: x.timestamp }))
+        .filter(x => new Date(x.timestamp).toISOString().slice(0,7) === mes)
+        .sort((a,b) => a.timestamp - b.timestamp);
+
+    let labels = [];
+    let valores = [];
+
+    if(semana === 'todas') {
+        const semanas = [0,0,0,0];
+        itens.forEach(it => {
+            const dia = new Date(it.timestamp).getDate();
+            const idx = dia <= 7 ? 0 : dia <= 14 ? 1 : dia <= 21 ? 2 : 3;
+            semanas[idx] += it.litros;
+        });
+        labels = ['Semana 1','Semana 2','Semana 3','Semana 4'];
+        valores = semanas;
+        const titulo = document.getElementById('tituloGraficoAbastecimento');
+        if(titulo) titulo.innerText = 'Comparativo Semanal (Litros)';
+    } else {
+        const idx = parseInt(semana,10);
+        const ini = idx===1?1:idx===2?8:idx===3?15:22;
+        const fim = idx===1?7:idx===2?14:idx===3?21:31;
+        const porDia = {};
+        for(let d=ini; d<=fim; d++) porDia[d]=0;
+        itens.forEach(it => {
+            const dia = new Date(it.timestamp).getDate();
+            if(dia>=ini && dia<=fim) porDia[dia] += it.litros;
+        });
+        labels = Object.keys(porDia).map(x => String(x).padStart(2,'0'));
+        valores = Object.values(porDia);
+        const titulo = document.getElementById('tituloGraficoAbastecimento');
+        if(titulo) titulo.innerText = `Semana ${idx} (Litros por dia)`;
+    }
+
+    if(chartAbastecimento) {
+        chartAbastecimento.data.labels = labels;
+        chartAbastecimento.data.datasets[0].data = valores;
+        chartAbastecimento.update();
+    }
+}
+
+/* ===============================
+   AJUSTES GLOBAIS – SINCRONIZAÇÃO REAL x EMERGÊNCIA
+   Aplicado a TODOS os cards
+   =============================== */
+
+const FIREBASE_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
+async function salvarEstadoAtual(cardId, nivel, tipo) {
+    const payload = {
+        nivel_pct: nivel,
+        tipo: tipo,
+        timestamp: Date.now()
+    };
+
+    try {
+        await fetch(`${FIREBASE_BASE}/${cardId}.json`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch(e) {
+        console.warn("Falha ao salvar estado:", e);
+    }
+}
+
+const isWebView = /wv|Android/i.test(navigator.userAgent);
+
+async function atualizarImediato(cardId) {
+    await loopDeAtualizacao(cardId);
+}
+
+function iniciarLoop(cardId) {
+    atualizarImediato(cardId);
+    setInterval(() => loopDeAtualizacao(cardId), isWebView ? 1200 : 2500);
+}
+
 </script>
 </body>
 </html>
@@ -858,302 +1878,221 @@ window.onload = function() { checkAutoTheme(); const views = { caixa: document.g
 <!-- SCRIPT DO DASHBOARD PRINCIPAL (E LÓGICA DE ABERTURA DOS APPS)             -->
 <!-- ========================================================================= -->
 <script>
-// --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
-// Lista de Praças (PP)
 const listPP = [
-    { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP1.json', firebaseConfigPath: '/PP1_config', firebaseHistPath: '/PP1_historico', title: 'Praça de Pedágio 01' },
-    { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP2.json', firebaseConfigPath: '/PP2_config', firebaseHistPath: '/PP2_historico', title: 'Praça de Pedágio 02' },
-    { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP3.json', firebaseConfigPath: '/PP3_config', firebaseHistPath: '/PP3_historico', title: 'Praça de Pedágio 03' },
-    { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP4.json', firebaseConfigPath: '/PP4_config', firebaseHistPath: '/PP4_historico', title: 'Praça de Pedágio 04' },
-    { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP5.json', firebaseConfigPath: '/PP5_config', firebaseHistPath: '/PP5_historico', title: 'Praça de Pedágio 05' },
-    { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP6.json', firebaseConfigPath: '/PP6_config', firebaseHistPath: '/PP6_historico', title: 'Praça de Pedágio 06' },
-    { 
-        id: 'pp7', 
-        name: 'PP 07', 
-        active: true, 
-        firebaseDataPath: '/PP7.json',
-        firebaseConfigPath: '/PP7_config',
-        firebaseHistPath: '/PP7_config/historico', // Mantido para compatibilidade do PP7
-        title: 'Praça de Pedágio 07 - Capim Branco/MG'
-    }
+    { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP1.json', firebaseConfigPath: '/PP1_config', firebaseHistPath: '/PP1_historico', title: 'Praça de Pedágio 01', forceLevel: -1 },
+    { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP2.json', firebaseConfigPath: '/PP2_config', firebaseHistPath: '/PP2_historico', title: 'Praça de Pedágio 02', forceLevel: -1 },
+    { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP3.json', firebaseConfigPath: '/PP3_config', firebaseHistPath: '/PP3_historico', title: 'Praça de Pedágio 03', forceLevel: -1 },
+    { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP4.json', firebaseConfigPath: '/PP4_config', firebaseHistPath: '/PP4_historico', title: 'Praça de Pedágio 04', forceLevel: -1 },
+    { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP5.json', firebaseConfigPath: '/PP5_config', firebaseHistPath: '/PP5_historico', title: 'Praça de Pedágio 05', forceLevel: -1 },
+    { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP6.json', firebaseConfigPath: '/PP6_config', firebaseHistPath: '/PP6_historico', title: 'Praça de Pedágio 06', forceLevel: -1 },
+    { id: 'pp7', name: 'PP 07', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_historico', title: 'Praça de Pedágio 07', forceLevel: 20 },
+    { id: 'pp8', name: 'PP 08', active: true, firebaseDataPath: '/PP8.json', firebaseConfigPath: '/PP8_config', firebaseHistPath: '/PP8_historico', title: 'Praça de Pedágio 08', forceLevel: -1 },
+    { id: 'pp9', name: 'PP 09', active: true, firebaseDataPath: '/PP9.json', firebaseConfigPath: '/PP9_config', firebaseHistPath: '/PP9_historico', title: 'Praça de Pedágio 09', forceLevel: -1 },
+    { id: 'pp10', name: 'PP 10', active: true, firebaseDataPath: '/PP10.json', firebaseConfigPath: '/PP10_config', firebaseHistPath: '/PP10_historico', title: 'Praça de Pedágio 10', forceLevel: -1 },
 ];
 
-// Lista de SAUs
 const listSAU = [
-    { id: 'sau01', name: 'SAU 01', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01' },
-    { id: 'sau02', name: 'SAU 02', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02' },
-    { id: 'sau03', name: 'SAU 03', active: true, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03' },
-    { id: 'sau04', name: 'SAU 04', active: true, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04' },
-    { id: 'sau05', name: 'SAU 05', active: true, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05' },
-    { id: 'sau06', name: 'SAU 06', active: true, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06' },
-    { id: 'sau07', name: 'SAU 07', active: true, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07' },
-    { id: 'sau08', name: 'SAU 08', active: true, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08' },
-    { id: 'sau09', name: 'SAU 09', active: true, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09' },
-    { id: 'sau10', name: 'SAU 10', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10' },
-    { id: 'sau11', name: 'SAU 11', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11' },
-    { id: 'sau12', name: 'SAU 12', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12' },
-    { 
-        id: 'sau13', 
-        name: 'SAU 13', 
-        active: true, 
-        firebaseDataPath: '/SAU13.json',
-        firebaseConfigPath: '/SAU13_config',
-        firebaseHistPath: '/SAU13_historico',
-        title: 'SAU 13 - Capim Branco/MG'
-    },
-    { id: 'sau14', name: 'SAU 14', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
+    { id: 'sau1', name: 'SAU 01', active: true, firebaseDataPath: '/SAU1.json', firebaseConfigPath: '/SAU1_config', firebaseHistPath: '/SAU1_historico', title: 'Base SAU 01', forceLevel: -1 },
+    { id: 'sau2', name: 'SAU 02', active: true, firebaseDataPath: '/SAU2.json', firebaseConfigPath: '/SAU2_config', firebaseHistPath: '/SAU2_historico', title: 'Base SAU 02', forceLevel: -1 },
+    { id: 'sau3', name: 'SAU 03', active: true, firebaseDataPath: '/SAU3.json', firebaseConfigPath: '/SAU3_config', firebaseHistPath: '/SAU3_historico', title: 'Base SAU 03', forceLevel: -1 },
+    { id: 'sau4', name: 'SAU 04', active: true, firebaseDataPath: '/SAU4.json', firebaseConfigPath: '/SAU4_config', firebaseHistPath: '/SAU4_historico', title: 'Base SAU 04', forceLevel: -1 },
+    { id: 'sau5', name: 'SAU 05', active: true, firebaseDataPath: '/SAU5.json', firebaseConfigPath: '/SAU5_config', firebaseHistPath: '/SAU5_historico', title: 'Base SAU 05', forceLevel: -1 },
+    { id: 'sau6', name: 'SAU 06', active: true, firebaseDataPath: '/SAU6.json', firebaseConfigPath: '/SAU6_config', firebaseHistPath: '/SAU6_historico', title: 'Base SAU 06', forceLevel: -1 },
+    { id: 'sau7', name: 'SAU 07', active: true, firebaseDataPath: '/SAU7.json', firebaseConfigPath: '/SAU7_config', firebaseHistPath: '/SAU7_historico', title: 'Base SAU 07', forceLevel: -1 },
+    { id: 'sau8', name: 'SAU 08', active: true, firebaseDataPath: '/SAU8.json', firebaseConfigPath: '/SAU8_config', firebaseHistPath: '/SAU8_historico', title: 'Base SAU 08', forceLevel: -1 },
+    { id: 'sau9', name: 'SAU 09', active: true, firebaseDataPath: '/SAU9.json', firebaseConfigPath: '/SAU9_config', firebaseHistPath: '/SAU9_historico', title: 'Base SAU 09', forceLevel: -1 },
+    { id: 'sau10', name: 'SAU 10', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'Base SAU 10', forceLevel: -1 },
+    { id: 'sau11', name: 'SAU 11', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'Base SAU 11', forceLevel: -1 },
+    { id: 'sau12', name: 'SAU 12', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'Base SAU 12', forceLevel: -1 },
+    { id: 'sau13', name: 'SAU 13', active: true, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'Base SAU 13', forceLevel: -1 },
+    { id: 'sau14', name: 'SAU 14', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'Base SAU 14', forceLevel: -1 },
+    { id: 'sau15', name: 'SAU 15', active: true, firebaseDataPath: '/SAU15.json', firebaseConfigPath: '/SAU15_config', firebaseHistPath: '/SAU15_historico', title: 'Base SAU 15', forceLevel: -1 },
+    { id: 'sau16', name: 'SAU 16', active: true, firebaseDataPath: '/SAU16.json', firebaseConfigPath: '/SAU16_config', firebaseHistPath: '/SAU16_historico', title: 'Base SAU 16', forceLevel: -1 },
+    { id: 'sau17', name: 'SAU 17', active: true, firebaseDataPath: '/SAU17.json', firebaseConfigPath: '/SAU17_config', firebaseHistPath: '/SAU17_historico', title: 'Base SAU 17', forceLevel: -1 },
+    { id: 'sau18', name: 'SAU 18', active: true, firebaseDataPath: '/SAU18.json', firebaseConfigPath: '/SAU18_config', firebaseHistPath: '/SAU18_historico', title: 'Base SAU 18', forceLevel: -1 },
+    { id: 'sau19', name: 'SAU 19', active: true, firebaseDataPath: '/SAU19.json', firebaseConfigPath: '/SAU19_config', firebaseHistPath: '/SAU19_historico', title: 'Base SAU 19', forceLevel: -1 },
+    { id: 'sau20', name: 'SAU 20', active: true, firebaseDataPath: '/SAU20.json', firebaseConfigPath: '/SAU20_config', firebaseHistPath: '/SAU20_historico', title: 'Base SAU 20', forceLevel: -1 }
 ];
 
-// --- RENDERIZAR CARDS NO DASHBOARD ---
 function renderGrid(containerId, list, iconClass) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    
+    const grid = document.getElementById(containerId);
+    if (!grid) return;
+    grid.innerHTML = '';
+
     list.forEach(item => {
-        const cls = item.active ? '' : 'inactive';
-        const action = item.active 
-            ? `onclick="prepararAbertura('${item.id}')"` 
-            : '';
-        
-        container.innerHTML += `
-            <div class="card ${cls}" id="card-${item.id}" ${action}>
-                <div class="card-water-bg" id="bg-${item.id}"></div>
-                <div class="card-content">
-                    <div class="live-dot"></div>
-                    <div class="simulated-badge" title="Valor Estimado">!</div>
-                    <i class="${iconClass} card-icon"></i>
-                    <div class="card-title">${item.name}</div>
-                    <div class="card-level" id="lvl-${item.id}">--%</div>
-                    <div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div>
-                </div>
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'card' + (item.active ? '' : ' inactive');
+        a.dataset.id = item.id;
+        a.dataset.status = 'offline';
+
+        a.innerHTML = `
+            <div class="card-water-bg"></div>
+            <div class="simulated-badge" title="Leitura Estimada">?</div>
+            <div class="live-dot"></div>
+            <div class="card-content">
+                <div class="card-icon"><i class="${iconClass}"></i></div>
+                <div class="card-title">${item.name}</div>
+                <div class="card-level">--%</div>
+                <div class="card-status">Aguardando...</div>
             </div>
         `;
+
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!item.active) return;
+            abrirApp(item);
+        });
+
+        grid.appendChild(a);
     });
 }
 
-function findItemById(id) {
-    let item = listPP.find(i => i.id === id);
-    if(!item) item = listSAU.find(i => i.id === id);
-    return item;
+async function fetchJson(url) {
+    try {
+        const r = await fetch(url + `?nocache=${Date.now()}_${Math.random()}`);
+        if (!r.ok) return null;
+        return await r.json();
+    } catch (e) {
+        return null;
+    }
 }
 
-// --- LÓGICA DE ABERTURA DE APPS ---
-let dashboardInterval = null;
+function setCardStatus(card, status, nivel, detalhe, isSimulated = false) {
+    card.dataset.status = status;
+    card.querySelector('.card-level').textContent = (nivel === null || nivel === undefined) ? '--%' : `${nivel}%`;
+    card.querySelector('.card-status').textContent = detalhe || '';
 
-function prepararAbertura(id) {
-    const item = findItemById(id);
-    if (!item) return;
+    const water = card.querySelector('.card-water-bg');
+    if (water && typeof nivel === 'number') {
+        water.style.height = Math.max(0, Math.min(100, nivel)) + '%';
+    }
 
-    let rawHTML = document.getElementById('app-template').value;
+    const dot = card.querySelector('.live-dot');
+    if (dot) dot.style.display = (status === 'ok') ? 'block' : 'none';
 
-    rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title);
-    rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
-    rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
-    rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath);
-    rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id);
-    rawHTML = rawHTML.replace(/__FORCE_FIXED_LEVEL__/g, (item.id === 'pp7' ? '20' : 'null')); 
-
-    abrirApp(rawHTML);
+    const badge = card.querySelector('.simulated-badge');
+    if (badge) badge.style.display = isSimulated ? 'flex' : 'none';
 }
 
-function abrirApp(htmlContent) {
+async function updateDashboardData() {
+    const allCards = document.querySelectorAll('.card');
+
+    for (const card of allCards) {
+        if (card.classList.contains('inactive')) continue;
+
+        const id = card.dataset.id;
+        const item = [...listPP, ...listSAU].find(x => x.id === id);
+        if (!item) continue;
+
+        // FIXO PP07 (20%) no dashboard
+        if (typeof item.forceLevel === 'number' && item.forceLevel >= 0) {
+            setCardStatus(card, 'simulated', item.forceLevel, 'Emergencial', true);
+            continue;
+        }
+
+        const data = await fetchJson(DB_BASE + item.firebaseDataPath);
+        if (!data) { setCardStatus(card, 'offline', null, 'Sem sinal'); continue; }
+
+        let nivel = (typeof data.nivel_pct === 'number') ? Math.round(data.nivel_pct) : null;
+        let tipo = data.tipo || 'real';
+        let ts = data.timestamp || null;
+
+        if (nivel === null) { setCardStatus(card, 'offline', null, 'Dados inválidos'); continue; }
+
+        let status = 'ok';
+        if (nivel <= 30) status = 'danger';
+        else if (nivel <= 60) status = 'warn';
+
+        const isSimulated = (tipo === 'estimado' || tipo === 'simulado');
+        if (isSimulated) status = 'simulated';
+
+        const detalhe = ts ? new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Atualizado';
+        setCardStatus(card, status, nivel, detalhe, isSimulated);
+    }
+}
+
+function toggleTheme() {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    if (isDark) document.body.removeAttribute('data-theme');
+    else document.body.setAttribute('data-theme', 'dark');
+}
+
+function abrirApp(item) {
     const overlay = document.getElementById('app-overlay');
-    const iframe = document.getElementById('app-frame');
-    iframe.srcdoc = htmlContent;
+    const frame = document.getElementById('app-frame');
+    const template = document.getElementById('app-template').value;
+
+    const html = template
+        .replace(/__APP_TITLE__/g, item.title)
+        .replace(/__FIREBASE_DATA_PATH__/g, item.firebaseDataPath)
+        .replace(/__FIREBASE_CONFIG_PATH__/g, item.firebaseConfigPath)
+        .replace(/__FIREBASE_HIST_PATH__/g, item.firebaseHistPath)
+        .replace(/__FORCE_LEVEL__/g, String((typeof item.forceLevel === 'number') ? item.forceLevel : -1));
+
     overlay.classList.add('active');
-    if(dashboardInterval) clearInterval(dashboardInterval);
+
+    // Força recarregamento do srcdoc (evita manter a versão anterior em alguns browsers)
+    frame.srcdoc = '';
+    requestAnimationFrame(() => { frame.srcdoc = html; });
 }
 
 function fecharApp() {
     const overlay = document.getElementById('app-overlay');
-    const iframe = document.getElementById('app-frame');
-    iframe.srcdoc = "";
+    const frame = document.getElementById('app-frame');
     overlay.classList.remove('active');
-    updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 5000);
+    frame.srcdoc = '';
 }
 
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
-    // Regras:
-    // - acima de 30%: desce 5% a cada 6h
-    // - de 30% até 20%: desce 5% a cada 4h
-    // - abaixo de 20% até 1%: desce 1% a cada 2h
-    if (nivelInicial === null || nivelInicial === undefined) return 0;
-    const n0 = Number(nivelInicial);
-    const t0 = Number(timestampInicial);
-    if (!isFinite(n0) || n0 <= 0 || !isFinite(t0) || t0 <= 0) return 0;
+window.fecharApp = fecharApp;
 
-    let nivel = n0;
-    let horas = (Date.now() - t0) / (1000 * 60 * 60);
-    if (horas <= 0) return Math.max(1, Math.min(100, Math.round(nivel)));
+renderGrid('grid-pp', listPP, 'fas fa-road');
+renderGrid('grid-sau', listSAU, 'fas fa-warehouse');
+updateDashboardData();
+setInterval(updateDashboardData, 5000);
 
-    // segmento 1: > 30
-    if (nivel > 30 && horas > 0) {
-        const rate = 5 / 6; // % por hora
-        const timeTo30 = (nivel - 30) / rate;
-        if (horas <= timeTo30) {
-            nivel = nivel - horas * rate;
-            return Math.max(1, Math.min(100, Math.round(nivel)));
-        }
-        nivel = 30;
-        horas -= timeTo30;
-    }
+/* ===============================
+   AJUSTES GLOBAIS – SINCRONIZAÇÃO REAL x EMERGÊNCIA
+   Aplicado a TODOS os cards
+   =============================== */
 
-    // segmento 2: 30 -> 20
-    if (nivel > 20 && horas > 0) {
-        const rate = 5 / 4; // % por hora
-        const timeTo20 = (nivel - 20) / rate;
-        if (horas <= timeTo20) {
-            nivel = nivel - horas * rate;
-            return Math.max(1, Math.min(100, Math.round(nivel)));
-        }
-        nivel = 20;
-        horas -= timeTo20;
-    }
+const FIREBASE_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
-    // segmento 3: 20 -> 1
-    if (nivel > 1 && horas > 0) {
-        const rate = 1 / 2; // % por hora
-        const timeTo1 = (nivel - 1) / rate;
-        if (horas <= timeTo1) {
-            nivel = nivel - horas * rate;
-            return Math.max(1, Math.min(100, Math.round(nivel)));
-        }
-        nivel = 1;
-    }
+async function salvarEstadoAtual(cardId, nivel, tipo) {
+    const payload = {
+        nivel_pct: nivel,
+        tipo: tipo,
+        timestamp: Date.now()
+    };
 
-    return Math.max(1, Math.min(100, Math.round(nivel)));
-}
-
-async function fetchLastValidFromHistory(histPath) {
     try {
-        const today = new Date().toISOString().split('T')[0];
-        const r = await fetch(`${DB_BASE}${histPath}/${today}.json?orderBy="$key"&limitToLast=1`);
-        const d = await r.json();
-        if(d) {
-            const keys = Object.keys(d);
-            if(keys.length > 0) {
-                const lastEntry = d[keys[0]];
-                return {
-                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
-                    time: lastEntry.timestamp || 0
-                };
-            }
-        }
-    } catch(e) { console.log('Erro ao buscar historico backup', e); }
-    return null;
-}
-
-async function updateDashboardData() {
-    const activeItems = [...listPP, ...listSAU].filter(i => i.active);
-    
-    for (const item of activeItems) {
-        try {
-            const r = await fetch(`${DB_BASE}${item.firebaseDataPath}?nocache=${Date.now()}`);
-            const d = await r.json();
-            
-            let lvl = 0;
-            let isSimulated = false;
-            let rawLvl = 0;
-
-            if(d) {
-                if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
-                else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
-                else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
-            }
-            
-            if (item.id === 'pp7') {
-                lvl = 20;
-                rawLvl = 20;
-                isSimulated = false;
-            } else if (rawLvl > 0) {
-                lvl = rawLvl;
-                isSimulated = false;
-            } else {
-                let lastValidPct = 0;
-                let lastValidTime = 0;
-
-                if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
-                     lastValidPct = d.ultima_valida_pct;
-                     lastValidTime = d.ultima_valida_time;
-                } else {
-                    const histData = await fetchLastValidFromHistory(item.firebaseHistPath);
-                    if(histData) {
-                        lastValidPct = histData.pct;
-                        lastValidTime = histData.time;
-                    }
-                }
-
-                if (lastValidPct > 0) {
-                    lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime);
-                    isSimulated = true;
-                } else {
-                    lvl = 0; 
-                }
-            }
-            
-            const card = document.getElementById(`card-${item.id}`);
-            const elLvl = document.getElementById(`lvl-${item.id}`);
-            const elBg = document.getElementById(`bg-${item.id}`);
-            
-            if(card && elLvl) {
-                elLvl.innerText = `${lvl}%`;
-                if(elBg) elBg.style.height = `${lvl}%`;
-
-                const dot = card.querySelector('.live-dot');
-                const badge = card.querySelector('.simulated-badge');
-                
-                if (rawLvl > 0) {
-                    dot.style.display = 'block';
-                    badge.style.display = 'none';
-                } else {
-                    dot.style.display = 'none';
-                    if (isSimulated && lvl > 0) badge.style.display = 'flex';
-                    else badge.style.display = 'none';
-                }
-                
-                card.removeAttribute('data-status');
-                
-                if (isSimulated && lvl > 0) {
-                    card.setAttribute('data-status', 'simulated');
-                    elLvl.style.color = '#d97706';
-                } else {
-                    if(lvl > 60) {
-                        card.setAttribute('data-status', 'ok');
-                        elLvl.style.color = 'var(--level-ok)';
-                    } else if (lvl > 30) {
-                        card.setAttribute('data-status', 'warn');
-                        elLvl.style.color = 'var(--level-warn)';
-                    } else {
-                        card.setAttribute('data-status', 'danger');
-                        elLvl.style.color = 'var(--level-danger)';
-                    }
-                }
-            }
-        } catch(e) { console.log(e); }
+        await fetch(`${FIREBASE_BASE}/${cardId}.json`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch(e) {
+        console.warn("Falha ao salvar estado:", e);
     }
 }
 
-let isDark = false;
-function toggleTheme() {
-    isDark = !isDark;
-    if(isDark) {
-        document.body.setAttribute('data-theme', 'dark');
-        document.querySelector('.theme-toggle i').classList.replace('fa-moon', 'fa-sun');
-    } else {
-        document.body.removeAttribute('data-theme');
-        document.querySelector('.theme-toggle i').classList.replace('fa-sun', 'fa-moon');
-    }
+const isWebView = /wv|Android/i.test(navigator.userAgent);
+
+async function atualizarImediato(cardId) {
+    await loopDeAtualizacao(cardId);
 }
 
-window.onload = () => {
-    renderGrid('grid-pp', listPP, 'fas fa-road'); 
-    renderGrid('grid-sau', listSAU, 'fas fa-home'); 
-    updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 5000); 
-};
+function iniciarLoop(cardId) {
+    atualizarImediato(cardId);
+    setInterval(() => loopDeAtualizacao(cardId), isWebView ? 1200 : 2500);
+}
+
 </script>
 </body>
 </html>
