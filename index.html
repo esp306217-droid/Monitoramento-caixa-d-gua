@@ -4,6 +4,218 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#0f172a">
+<title>Monitoramento Via Cristais - Central</title>
+
+<!-- Fontes e Ícones -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+/* --- ESTILO GERAL DO DASHBOARD --- */
+:root {
+    --bg-body: #f0f2f5;
+    --text-main: #1e293b;
+    --text-sec: #64748b;
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --card-border: rgba(226, 232, 240, 0.8);
+    --accent: #06b6d4; 
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    
+    --level-ok: #10b981;
+    --level-warn: #f59e0b;
+    --level-danger: #ef4444;
+    --level-offline: #94a3b8;
+}
+
+[data-theme="dark"] {
+    --bg-body: #0f172a;
+    --text-main: #f1f5f9;
+    --text-sec: #94a3b8;
+    --card-bg: rgba(30, 41, 59, 0.85);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --accent: #22d3ee;
+    --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg-body);
+    background-image: radial-gradient(at 0% 0%, hsla(192,70%,80%,0.05) 0, transparent 50%), radial-gradient(at 100% 100%, hsla(200,80%,80%,0.05) 0, transparent 50%);
+    color: var(--text-main);
+    margin: 0; padding: 20px;
+    transition: background-color 0.3s ease;
+}
+
+/* Header */
+.header { text-align: center; margin-bottom: 40px; position: relative; }
+.logo { width: 160px; mix-blend-mode: multiply; margin-bottom: 10px; }
+[data-theme="dark"] .logo { filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2); mix-blend-mode: screen; }
+h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Botão Tema Dashboard */
+.theme-toggle {
+    position: absolute; top: 0; right: 0;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    color: var(--text-main); width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    cursor: pointer; box-shadow: var(--shadow-card);
+}
+
+/* Grid */
+.section-title {
+    font-size: 1.1rem; font-weight: 700; color: var(--text-main);
+    margin: 30px 0 15px 5px; border-left: 5px solid var(--accent); padding-left: 10px;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    max-width: 1200px; margin: 0 auto;
+}
+
+/* Card */
+.card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-card); cursor: pointer;
+    text-decoration: none; position: relative; overflow: hidden;
+    transition: transform 0.2s; min-height: 150px;
+}
+.card:active { transform: scale(0.96); }
+.card.inactive { opacity: 0.6; filter: grayscale(1); cursor: default; pointer-events: none; }
+
+/* Fundo Animado de Água */
+.card-water-bg {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
+    background: linear-gradient(to top, rgba(6,182,212,0.2), rgba(6,182,212,0.5));
+    transition: height 0.5s ease-out; z-index: 0;
+}
+
+/* Conteúdo do Card */
+.card-content {
+    position: relative; z-index: 1; padding: 20px 15px;
+    width: 100%; display: flex; flex-direction: column; align-items: center;
+}
+
+/* Barra Lateral Status */
+.card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    background: var(--level-offline); transition: background 0.3s; z-index: 2;
+}
+.card[data-status="ok"]::before { background: var(--level-ok); }
+.card[data-status="warn"]::before { background: var(--level-warn); }
+.card[data-status="danger"]::before { background: var(--level-danger); }
+.card[data-status="simulated"]::before { background: #d97706; } /* Cor Laranja Escuro para Estimado */
+
+/* Ícone e Texto */
+.card-icon { font-size: 2rem; color: var(--text-sec); margin-bottom: 10px; }
+.card-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; }
+.card-level { font-size: 1.5rem; font-weight: 800; color: var(--text-sec); }
+.card-status { font-size: 0.75rem; color: var(--text-sec); margin-top: 5px; }
+
+/* Indicador de Leitura Estimada no Card */
+.simulated-badge {
+    position: absolute; top: 10px; left: 10px; 
+    background: #d97706; color: white; border-radius: 50%; width: 22px; height: 22px;
+    font-size: 14px; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 2;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.card[data-status="simulated"] .simulated-badge { display: flex; }
+
+/* Animação Online */
+.live-dot {
+    position: absolute; top: 10px; right: 10px; width: 10px; height: 10px;
+    background: var(--level-ok); border-radius: 50%; box-shadow: 0 0 5px var(--level-ok);
+    display: none; animation: pulse 2s infinite; z-index: 2;
+}
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+/* --- IFRAME FULLSCREEN --- */
+#app-overlay {
+    display: none;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #fff; z-index: 9999;
+}
+#app-overlay.active { display: block; }
+#app-frame { width: 100%; height: 100%; border: none; }
+
+/* --- ESTILO ADICIONADO: POPUP DE MANUTENÇÃO --- */
+#maintenance-popup {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; z-index: 30000;
+}
+.m-box {
+    background: var(--card-bg); border: 4px solid #d4af37; border-radius: 24px;
+    padding: 40px 30px; max-width: 500px; width: 90%; text-align: center;
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.4); animation: m-fade-in 0.5s ease;
+}
+@keyframes m-fade-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+.m-icon-anim {
+    font-size: 4rem; color: #d4af37; margin-bottom: 20px;
+    display: inline-block; animation: m-gear 3s infinite linear;
+}
+@keyframes m-gear { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.m-title { font-weight: 700; font-size: 1.5rem; margin-bottom: 15px; color: var(--text-main); }
+.m-desc { color: var(--text-sec); line-height: 1.6; margin-bottom: 20px; font-size: 1.05rem; }
+.m-warning { color: var(--text-main); font-size: 0.95rem; border-top: 1px solid rgba(212, 175, 55, 0.3); padding-top: 15px; }
+.m-btn {
+    margin-top: 25px; background: #d4af37; color: #fff; border: none;
+    padding: 12px 40px; border-radius: 50px; font-weight: 700; cursor: pointer;
+    transition: all 0.3s; font-family: 'Poppins', sans-serif;
+}
+.m-btn:hover { background: #b8952e; transform: translateY(-2px); }
+</style>
+</head>
+<body>
+
+<!-- POP-UP DE MANUTENÇÃO -->
+<div id="maintenance-popup">
+    <div class="m-box">
+        <div class="m-icon-anim"><i class="fas fa-cog"></i></div>
+        <div class="m-title">Aplicativo em manutenção</div>
+        <p class="m-desc">Estamos implantando as demais caixas d'água para melhorar nosso monitoramento.</p>
+        <div class="m-warning">
+            <strong>FAVOR DESCONSIDERAR POSSÍVEIS ALARMES E ENVIOS DE EMAILS COM 0%.</strong>
+        </div>
+        <button class="m-btn" onclick="document.getElementById('maintenance-popup').style.display='none'">Entendido</button>
+    </div>
+</div>
+
+<!-- DASHBOARD VISÍVEL INICIALMENTE -->
+<div id="dashboard-container">
+    <div class="header">
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+        <h1>Central de Monitoramento</h1>
+    </div>
+
+    <div class="section-title">Praças de Pedágio</div>
+    <div class="grid" id="grid-pp"></div>
+
+    <div class="section-title">Bases SAU</div>
+    <div class="grid" id="grid-sau"></div>
+</div>
+
+<!-- OVERLAY PARA EXIBIR OS APPS ORIGINAIS -->
+<div id="app-overlay">
+    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TEMPLATE UNIVERSAL ÚNICO (Para TODAS as Caixas)                            -->
+<!-- Este código é injetado no iframe, substituindo as variáveis __VARS__       -->
+<!-- ========================================================================= -->
+<textarea id="app-template" style="display:none;"><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Monit. Água">
@@ -13,7 +225,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
-<title>Monitoramento Caixa D'Água PP7 - V.3.41 Inertia Filter</title>
+<title>__APP_TITLE__</title>
 
 <!-- Fontes Google (Poppins) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -462,12 +674,13 @@ li {
 <!-- Evento direto no HTML para garantir funcionamento em WebViews antigas -->
 <button id="theme-toggle-btn" class="theme-toggle"><i class="fas fa-moon"></i></button>
 <!-- NOVO: Botão de Recarregar Página (Manual Fix) -->
-<button id="refresh-btn" class="refresh-toggle" onclick="window.location.reload(true)"><i class="fas fa-sync-alt"></i></button>
+<button id="refresh-btn" class="refresh-toggle" onclick="try{loopDeAtualizacao();}catch(e){}"><i class="fas fa-sync-alt"></i></button>
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
     <!-- MOVIDO: O live-indicator foi retirado daqui e colocado dentro do #status-display -->
     <div class="nav-group">
-        <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
+        <button id="btn-voltar-dashboard" class="nav-button"><i class="fas fa-arrow-left"></i> <span>Voltar</span></button>
+<button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
         <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
         <button id="btn-view-abastecimento" class="nav-button"><i class="fas fa-truck-droplet"></i> <span>Abastecimento</span></button>
         <button id="btn-view-consumo" class="nav-button"><i class="fas fa-chart-bar"></i> <span>Consumo</span></button>
@@ -476,7 +689,7 @@ li {
 </div>
 
 <div id="caixa-view">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     
     <div id="status-display" class="glass-panel">
         <!-- Indicador de Conexão (AGORA AQUI DENTRO) -->
@@ -526,7 +739,7 @@ li {
 </div>
 
 <div id="grafico-container" style="display:none;">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     <header>
         <h1><i class="fas fa-chart-line" style="color: var(--accent);"></i> Histórico de Nível</h1>
     </header>
@@ -545,7 +758,7 @@ li {
 </div>
 
 <div id="abastecimento-view" style="display:none;">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     <header>
         <h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1>
     </header>
@@ -589,7 +802,7 @@ li {
 </div>
 
 <div id="consumo-view" style="display:none;">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     <header>
         <h1><i class="fas fa-chart-bar" style="color: var(--accent);"></i> Consumo Diário</h1>
     </header>
@@ -615,7 +828,7 @@ li {
 
 
 <div id="config-view" style="display:none;">
-    <img class="logo" src="https://viacristais.tribox.info/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+    <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
     <h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
     <div class="config-board">
         <div class="config-card glass-panel">
@@ -833,6 +1046,14 @@ async function safeFetch(url, options = {}) {
         console.warn("Fetch falhou (Offline/Bloqueado):", url); // Apenas aviso, não erro
         return null; // Retorna nulo para indicar falha sem quebrar o loop
     }
+
+// ===== VARIÁVEIS INJETADAS PELO DASHBOARD =====
+const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`;      // precisa terminar com .json
+const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`;   // base (sem .json)
+const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`;       // base (sem .json)
+const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
+
 }
 
 // --- LÓGICA DE E-MAIL (COM LOCALSTORAGE E ROTAÇÃO) ---
@@ -856,7 +1077,7 @@ function salvarDadosEmailLocal(dados) {
 }
 
 async function enviarEmailAlerta(nivel) {
-    const urlTimestamp = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/controle_email/ultimo_disparo_timestamp.json';
+    const urlTimestamp = '${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json';
     
     if (emailEnviadoNessaSessao) return false;
 
@@ -877,7 +1098,7 @@ async function enviarEmailAlerta(nivel) {
     // Carrega contatos
     let contatos = {};
     try {
-        const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
+        const r = await safeFetch('${PATH_CONFIG_BASE}/contatos.json');
         if (r) contatos = await r.json();
         if (!contatos) return false; 
     } catch (e) { return false; }
@@ -1223,8 +1444,8 @@ async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
     const d = new Date(timestamp);
     const localDate = getLocalISODate(d);
     const horaKey = String(d.getHours()).padStart(2, '0'); 
-    const path = `PP7_config/historico/${localDate}/${horaKey}.json`;
-    const url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/${path}`;
+    const path = `__FIREBASE_HIST_PATH__/historico/${localDate}/${horaKey}.json`;
+    const url = `${DATABASE_URL}/${path}`;
     const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; 
     try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {}
 }
@@ -1238,8 +1459,8 @@ async function carregarHistoricoEConsumo() {
         const data = dataEl.value; if (!data) return result;
         const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]);
         dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj);
-        url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${data}.json`;
-        const urlOntem = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico/${dataAnterior}.json`;
+        url = `${PATH_CONFIG_BASE}/historico/${data}.json`;
+        const urlOntem = `${PATH_CONFIG_BASE}/historico/${dataAnterior}.json`;
         
         processData = (dadosHoje, dadosOntem) => {
             const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); 
@@ -1319,7 +1540,7 @@ async function carregarHistoricoEConsumo() {
             if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value;
             if (!dataInicio || !dataFim) return result;
         }
-        url = `https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
+        url = `${PATH_CONFIG_BASE}/historico.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`;
         processData = (dados) => {
             const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort();
             for (const dateKey in dados) {
@@ -1378,7 +1599,7 @@ async function carregarHistoricoEConsumo() {
 }
 
 async function removerAbastecimento(id) {
-    try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {}
+    try { await fetch(`${PATH_CONFIG_BASE}/abastecimentos/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {}
 }
 
 async function carregarHistoricoAbastecimento() {
@@ -1394,7 +1615,7 @@ async function carregarHistoricoAbastecimento() {
     try {
         let dados = null;
         try {
-            const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json?orderBy="$key"&limitToLast=100');
+            const r = await safeFetch('${PATH_CONFIG_BASE}/abastecimentos.json?orderBy="$key"&limitToLast=100');
             if (r) dados = await r.json();
         } catch(e) { console.warn("Fetch abastecimentos failed"); }
         
@@ -1507,14 +1728,14 @@ async function salvarAbastecimento(litros) {
     if (!litros || litros <= 0) return;
     const agora = new Date();
     const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString() };
-    try { await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/abastecimentos.json', { method: 'POST', body: JSON.stringify(dados) }); 
+    try { await fetch('${PATH_CONFIG_BASE}/abastecimentos.json', { method: 'POST', body: JSON.stringify(dados) }); 
           document.getElementById('litros-abastecidos').value = ''; 
           carregarHistoricoAbastecimento();
           animarBotaoSucesso('btn-salvar-abastecimento'); 
     } catch (e) {}
 }
 async function salvarConfig(endpoint, valor) {
-     try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {}
+     try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {}
 }
 
 async function salvarCapacidade(valor) {
@@ -1542,9 +1763,9 @@ async function carregarConfiguracoesGerais() {
     try {
         // FIX: Handle individual failures so one bad config doesn't break everything
         let rAlerta = null, rCap = null, rAlt = null;
-        try { rAlerta = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json'); } catch(e) {}
-        try { rCap = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/capacidade.json'); } catch(e) {}
-        try { rAlt = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/altura_cm.json'); } catch(e) {}
+        try { rAlerta = await safeFetch('${PATH_CONFIG_BASE}/nivel_alerta.json'); } catch(e) {}
+        try { rCap = await safeFetch('${PATH_CONFIG_BASE}/capacidade.json'); } catch(e) {}
+        try { rAlt = await safeFetch('${PATH_CONFIG_BASE}/altura_cm.json'); } catch(e) {}
 
         if(rAlerta) {
             const nivelSalvo = await rAlerta.json();
@@ -1563,14 +1784,14 @@ async function carregarConfiguracoesGerais() {
 async function adicionarContato(valor, tipo) {
     if (!valor) return;
     const novoContato = { valor, tipo };
-    try { await fetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json', { method: 'POST', body: JSON.stringify(novoContato) });
+    try { await fetch('${PATH_CONFIG_BASE}/contatos.json', { method: 'POST', body: JSON.stringify(novoContato) });
           document.getElementById('contato-valor').value = ''; 
           carregarContatos(); 
           animarBotaoSucesso('btn-add-contato'); 
     } catch (e) {} 
 }
 async function removerContato(id) {
-    try { await fetch(`https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} 
+    try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} 
 }
 async function carregarContatos() {
     const listaUL = document.getElementById('lista-contatos');
@@ -1578,7 +1799,7 @@ async function carregarContatos() {
     try {
         let contatos = null;
         try {
-            const r = await safeFetch('https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/contatos.json');
+            const r = await safeFetch('${PATH_CONFIG_BASE}/contatos.json');
             if (r) contatos = await r.json();
         } catch(e) { console.warn("Fetch contatos failed"); }
 
@@ -1658,7 +1879,7 @@ async function loopDeAtualizacao() {
         lastUpdateTimestamp = Date.now(); 
 
         const dataUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7.json';
-        const configUrl = 'https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com/PP7_config/nivel_alerta.json';
+        const configUrl = '${PATH_CONFIG_BASE}/nivel_alerta.json';
         
         // --- FIX: FETCH ROBUSTNESS (Silent Fail) ---
         let j = {};
@@ -1956,6 +2177,283 @@ window.onload = function() {
             }
         });
     });
+};
+// ===== Voltar para o Dashboard (fecha overlay do pai) =====
+document.getElementById('btn-voltar-dashboard')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  try { window.parent.fecharApp && window.parent.fecharApp(); } catch (err) {}
+});
+</script>
+</body>
+</html></textarea>
+
+<!-- ========================================================================= -->
+<!-- SCRIPT DO DASHBOARD PRINCIPAL (E LÓGICA DE ABERTURA DOS APPS)             -->
+<!-- ========================================================================= -->
+<script>
+// --- CONFIGURAÇÃO ---
+const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
+// Lista de Praças (PP)
+const listPP = [
+    { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP1.json', firebaseConfigPath: '/PP1_config', firebaseHistPath: '/PP1_historico', title: 'Praça de Pedágio 01' },
+    { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP2.json', firebaseConfigPath: '/PP2_config', firebaseHistPath: '/PP2_historico', title: 'Praça de Pedágio 02' },
+    { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP3.json', firebaseConfigPath: '/PP3_config', firebaseHistPath: '/PP3_historico', title: 'Praça de Pedágio 03' },
+    { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP4.json', firebaseConfigPath: '/PP4_config', firebaseHistPath: '/PP4_historico', title: 'Praça de Pedágio 04' },
+    { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP5.json', firebaseConfigPath: '/PP5_config', firebaseHistPath: '/PP5_historico', title: 'Praça de Pedágio 05' },
+    { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP6.json', firebaseConfigPath: '/PP6_config', firebaseHistPath: '/PP6_historico', title: 'Praça de Pedágio 06' },
+    { 
+        id: 'pp7', 
+        name: 'PP 07', 
+        active: true, 
+        firebaseDataPath: '/PP7.json',
+        firebaseConfigPath: '/PP7_config',
+        firebaseHistPath: '/PP7_config/historico', // Mantido para compatibilidade do PP7
+        title: 'Praça de Pedágio 07 - Capim Branco/MG'
+    }
+];
+
+// Lista de SAUs
+const listSAU = [
+    { id: 'sau01', name: 'SAU 01', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01' },
+    { id: 'sau02', name: 'SAU 02', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02' },
+    { id: 'sau03', name: 'SAU 03', active: true, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03' },
+    { id: 'sau04', name: 'SAU 04', active: true, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04' },
+    { id: 'sau05', name: 'SAU 05', active: true, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05' },
+    { id: 'sau06', name: 'SAU 06', active: true, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06' },
+    { id: 'sau07', name: 'SAU 07', active: true, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07' },
+    { id: 'sau08', name: 'SAU 08', active: true, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08' },
+    { id: 'sau09', name: 'SAU 09', active: true, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09' },
+    { id: 'sau10', name: 'SAU 10', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10' },
+    { id: 'sau11', name: 'SAU 11', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11' },
+    { id: 'sau12', name: 'SAU 12', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12' },
+    { 
+        id: 'sau13', 
+        name: 'SAU 13', 
+        active: true, 
+        firebaseDataPath: '/SAU13.json',
+        firebaseConfigPath: '/SAU13_config',
+        firebaseHistPath: '/SAU13_historico',
+        title: 'SAU 13 - Capim Branco/MG'
+    },
+    { id: 'sau14', name: 'SAU 14', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
+];
+
+// --- RENDERIZAR CARDS NO DASHBOARD ---
+function renderGrid(containerId, list, iconClass) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    
+    list.forEach(item => {
+        const cls = item.active ? '' : 'inactive';
+        const action = item.active 
+            ? `onclick="prepararAbertura('${item.id}')"` 
+            : '';
+        
+        container.innerHTML += `
+            <div class="card ${cls}" id="card-${item.id}" ${action}>
+                <div class="card-water-bg" id="bg-${item.id}"></div>
+                <div class="card-content">
+                    <div class="live-dot"></div>
+                    <div class="simulated-badge" title="Valor Estimado">!</div>
+                    <i class="${iconClass} card-icon"></i>
+                    <div class="card-title">${item.name}</div>
+                    <div class="card-level" id="lvl-${item.id}">--%</div>
+                    <div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function findItemById(id) {
+    let item = listPP.find(i => i.id === id);
+    if(!item) item = listSAU.find(i => i.id === id);
+    return item;
+}
+
+// --- LÓGICA DE ABERTURA DE APPS ---
+let dashboardInterval = null;
+
+function prepararAbertura(id) {
+    const item = findItemById(id);
+    if (!item) return;
+
+    let rawHTML = document.getElementById('app-template').value;
+
+    rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title);
+    rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
+    rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
+    rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath);
+    rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); 
+
+    abrirApp(rawHTML);
+}
+
+function abrirApp(htmlContent) {
+    const overlay = document.getElementById('app-overlay');
+    const iframe = document.getElementById('app-frame');
+    iframe.srcdoc = htmlContent;
+    overlay.classList.add('active');
+    if(dashboardInterval) clearInterval(dashboardInterval);
+}
+
+function fecharApp() {
+    const overlay = document.getElementById('app-overlay');
+    const iframe = document.getElementById('app-frame');
+    iframe.srcdoc = "";
+    overlay.classList.remove('active');
+    updateDashboardData();
+    dashboardInterval = setInterval(updateDashboardData, 5000);
+}
+
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
+    const agora = Date.now();
+    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
+    let nivelSimulado = nivelInicial;
+    let quedasAplicadas = 0;
+
+    while (horasPassadas > 0 && nivelSimulado > 0) {
+        let duracaoBloco = 2;
+        quedasAplicadas++;
+        if (quedasAplicadas <= 4) { duracaoBloco = 8; }
+        else if (quedasAplicadas <= 6) { duracaoBloco = 6; }
+        else if (quedasAplicadas <= 8) { duracaoBloco = 4; }
+        else { duracaoBloco = 2; }
+
+        if (horasPassadas >= duracaoBloco) {
+            nivelSimulado -= 5;
+            horasPassadas -= duracaoBloco;
+        } else {
+            break;
+        }
+    }
+    if (nivelSimulado < 0) nivelSimulado = 0;
+    return nivelSimulado;
+}
+
+async function fetchLastValidFromHistory(histPath) {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const r = await fetch(`${DB_BASE}${histPath}/${today}.json?orderBy="$key"&limitToLast=1`);
+        const d = await r.json();
+        if(d) {
+            const keys = Object.keys(d);
+            if(keys.length > 0) {
+                const lastEntry = d[keys[0]];
+                return {
+                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
+                    time: lastEntry.timestamp || 0
+                };
+            }
+        }
+    } catch(e) { console.log('Erro ao buscar historico backup', e); }
+    return null;
+}
+
+async function updateDashboardData() {
+    const activeItems = [...listPP, ...listSAU].filter(i => i.active);
+    
+    for (const item of activeItems) {
+        try {
+            const r = await fetch(`${DB_BASE}${item.firebaseDataPath}?nocache=${Date.now()}`);
+            const d = await r.json();
+            
+            let lvl = 0;
+            let isSimulated = false;
+            let rawLvl = 0;
+
+            if(d) {
+                if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
+                else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
+                else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
+            }
+            
+            if (rawLvl > 0) {
+                lvl = rawLvl;
+                isSimulated = false;
+            } else {
+                let lastValidPct = 0;
+                let lastValidTime = 0;
+
+                if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
+                     lastValidPct = d.ultima_valida_pct;
+                     lastValidTime = d.ultima_valida_time;
+                } else {
+                    const histData = await fetchLastValidFromHistory(item.firebaseHistPath);
+                    if(histData) {
+                        lastValidPct = histData.pct;
+                        lastValidTime = histData.time;
+                    }
+                }
+
+                if (lastValidPct > 0) {
+                    lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime);
+                    isSimulated = true;
+                } else {
+                    lvl = 0; 
+                }
+            }
+            
+            const card = document.getElementById(`card-${item.id}`);
+            const elLvl = document.getElementById(`lvl-${item.id}`);
+            const elBg = document.getElementById(`bg-${item.id}`);
+            
+            if(card && elLvl) {
+                elLvl.innerText = `${lvl}%`;
+                if(elBg) elBg.style.height = `${lvl}%`;
+
+                const dot = card.querySelector('.live-dot');
+                const badge = card.querySelector('.simulated-badge');
+                
+                if (rawLvl > 0) {
+                    dot.style.display = 'block';
+                    badge.style.display = 'none';
+                } else {
+                    dot.style.display = 'none';
+                    if (isSimulated && lvl > 0) badge.style.display = 'flex';
+                    else badge.style.display = 'none';
+                }
+                
+                card.removeAttribute('data-status');
+                
+                if (isSimulated && lvl > 0) {
+                    card.setAttribute('data-status', 'simulated');
+                    elLvl.style.color = '#d97706';
+                } else {
+                    if(lvl > 60) {
+                        card.setAttribute('data-status', 'ok');
+                        elLvl.style.color = 'var(--level-ok)';
+                    } else if (lvl > 30) {
+                        card.setAttribute('data-status', 'warn');
+                        elLvl.style.color = 'var(--level-warn)';
+                    } else {
+                        card.setAttribute('data-status', 'danger');
+                        elLvl.style.color = 'var(--level-danger)';
+                    }
+                }
+            }
+        } catch(e) { console.log(e); }
+    }
+}
+
+let isDark = false;
+function toggleTheme() {
+    isDark = !isDark;
+    if(isDark) {
+        document.body.setAttribute('data-theme', 'dark');
+        document.querySelector('.theme-toggle i').classList.replace('fa-moon', 'fa-sun');
+    } else {
+        document.body.removeAttribute('data-theme');
+        document.querySelector('.theme-toggle i').classList.replace('fa-sun', 'fa-moon');
+    }
+}
+
+window.onload = () => {
+    renderGrid('grid-pp', listPP, 'fas fa-road'); 
+    renderGrid('grid-sau', listSAU, 'fas fa-home'); 
+    updateDashboardData();
+    dashboardInterval = setInterval(updateDashboardData, 5000); 
 };
 </script>
 </body>
