@@ -578,21 +578,31 @@ function calcularVolumeLitros(nivelPercentual) { if (nivelPercentual <= 0) retur
 function getLocalISODate(dateObj) { const d = dateObj || new Date(); const offset = d.getTimezoneOffset() * 60000; const localDate = new Date(d.getTime() - offset); return localDate.toISOString().split('T')[0]; }
 function getNoCacheUrl(url) { const separator = url.includes('?') ? '&' : '?'; return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; }
 
-// --- FETCH OTIMIZADO COM TIMEOUT (CORREÇÃO PARA MIT APP INVENTOR) ---
+// --- FETCH OTIMIZADO COM TIMEOUT E SUPORTE A NAVEGADORES ANTIGOS ---
 async function safeFetch(url, options = {}) {
-    // Timeout de 5 segundos para não travar o App Inventor
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 5000);
-    const finalOptions = { ...options, cache: 'no-store', signal: controller.signal };
+    let signal = null;
+    let id = null;
+    let controller = null;
+    
+    // Verificação de compatibilidade para WebView antigo do App Inventor
+    if (typeof AbortController !== 'undefined') {
+        controller = new AbortController();
+        id = setTimeout(() => controller.abort(), 8000); // Aumentado para 8s para conexões lentas
+        signal = controller.signal;
+    }
+
+    const finalOptions = { ...options, cache: 'no-store' };
+    if (signal) finalOptions.signal = signal;
     
     try {
         const response = await fetch(getNoCacheUrl(url), finalOptions);
-        clearTimeout(id);
+        if (id) clearTimeout(id);
         if (!response.ok) throw new Error(response.statusText);
         return response;
     } catch(e) {
-        clearTimeout(id);
-        console.warn("Fetch falhou ou excedeu o tempo:", url);
+        if (id) clearTimeout(id);
+        // Ignora erros de aborto para não poluir o console, mas retorna null
+        if (e.name !== 'AbortError') console.warn("Fetch falhou:", url);
         return null;
     }
 }
@@ -951,17 +961,29 @@ function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
     return nivelSimulado;
 }
 
-// --- FETCH OTIMIZADO PARA DASHBOARD ---
+// --- FETCH OTIMIZADO COM COMPATIBILIDADE PARA O DASHBOARD ---
 async function safeFetchDashboard(url) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 4000); // 4s timeout
+    let signal = null;
+    let id = null;
+    let controller = null;
+    
+    // Verificação para compatibilidade com WebViews antigos
+    if (typeof AbortController !== 'undefined') {
+        controller = new AbortController();
+        id = setTimeout(() => controller.abort(), 5000); 
+        signal = controller.signal;
+    }
+
+    const options = { cache: 'no-store' };
+    if (signal) options.signal = signal;
+
     try {
-        const response = await fetch(`${url}?nocache=${Date.now()}`, { signal: controller.signal, cache: 'no-store' });
-        clearTimeout(id);
+        const response = await fetch(`${url}?nocache=${Date.now()}`, options);
+        if(id) clearTimeout(id);
         if(!response.ok) return null;
         return response.json();
     } catch(e) {
-        clearTimeout(id);
+        if(id) clearTimeout(id);
         return null;
     }
 }
