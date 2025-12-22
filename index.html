@@ -526,7 +526,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
 <!-- Botão Voltar (Movido para cá) -->
-<button class="nav-button-icon-only" onclick="try{ (window.parent && window.parent.fecharApp)?window.parent.fecharApp():fecharApp(); }catch(e){ try{window.location.href=(('__DASHBOARD_URL__')||(window.location.href.split('?')[0]));}catch(_e){} }" title="Voltar"><i class="fas fa-arrow-left"></i></button>
+<button id="btn-voltar" class="nav-button-icon-only" title="Voltar"><i class="fas fa-arrow-left"></i></button>
 <!-- Botões de Tema e Atualizar -->
 <button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
 <button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
@@ -742,6 +742,18 @@ function fecharApp(){
   try{ window.location.href = ('__DASHBOARD_URL__' || (window.location.href||'').split('?')[0]); }
   catch(e){ try{ history.back(); }catch(_e){} }
 }
+
+// Bind do botão voltar mesmo se o onload atrasar (WebView)
+document.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('btn-voltar');
+  if (b && !b.__bound) {
+    b.__bound = true;
+    b.onclick = () => {
+      try { (window.parent && window.parent.fecharApp) ? window.parent.fecharApp() : fecharApp(); }
+      catch(e) { try { fecharApp(); } catch(_e) {} }
+    };
+  }
+});
 
 // VARIAVEIS INJETADAS PELO DASHBOARD
 const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`; 
