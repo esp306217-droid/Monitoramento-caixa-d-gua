@@ -334,7 +334,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
 <!-- Botões de Tema e Atualizar -->
 <button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
-<button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
+<button class="nav-button-icon-only" onclick="window.forceRefresh()" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
 <!-- Botões de Navegação -->
 <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
 <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
@@ -544,19 +544,18 @@ const API_KEY = "";
 const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 // VARIAVEIS INJETADAS PELO DASHBOARD
 const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`; 
-const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`; 
-const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; 
+const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`; // Base path for config (e.g., /SAU13_config)
+const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; // Base path for historic (e.g., /SAU13_historico)
 const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
-
-// --- MELHORIA: Garantir dados sempre novos ---
-function getNoCacheUrl(url) { 
-    const separator = url.includes('?') ? '&' : '?'; 
-    return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 999999)}`; 
-}
-
+// CONTAS DE EMAIL ROTATIVAS
 const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
 let isDarkMode = false;
-window.toggleTheme = function(e) { if(e) { e.preventDefault(); e.stopPropagation(); } isDarkMode = !isDarkMode; applyTheme(); };
+// TORNAR GLOBAL PARA SER ACESSADA PELO ONCLICK
+window.toggleTheme = function(e) { 
+    if(e) { e.preventDefault(); e.stopPropagation(); } 
+    isDarkMode = !isDarkMode; 
+    applyTheme(); 
+};
 function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
 function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); }
 
@@ -573,11 +572,15 @@ let snoozeCount = 0, snoozeUntil = 0;
 const SNOOZE_DURATION_MINUTES = 10; const AUTO_SNOOZE_SECONDS = 30; 
 let ultimoNivelValidoLatch = null; let timestampLatch = null; 
 let historicoLeiturasValidas = []; let loopInterval = null;
-let lastUpdateTimestamp = 0; let bufferLeituras = []; let contadorLeiturasFantasmas = 0; let ultimoNivelExibido = -1; 
+let lastUpdateTimestamp = 0; let contadorZerosConsecutivos = 0; 
+let bufferLeituras = []; let contadorLeiturasFantasmas = 0; let ultimoNivelExibido = -1; 
 function calcularVolumeLitros(nivelPercentual) { if (nivelPercentual <= 0) return 0; if (nivelPercentual > 100) nivelPercentual = 100; return Math.floor((nivelPercentual / 100) * capacidadeTotal); }
 function getLocalISODate(dateObj) { const d = dateObj || new Date(); const offset = d.getTimezoneOffset() * 60000; const localDate = new Date(d.getTime() - offset); return localDate.toISOString().split('T')[0]; }
-async function safeFetch(url, options = {}) { const finalOptions = { ...options, cache: 'no-store' }; try { const response = await fetch(getNoCacheUrl(url), finalOptions); if (!response.ok) throw new Error(response.statusText); return response; } catch(e) { console.warn("Fetch falhou:", url); return null; } }
-async function enviarEmailAlerta(nivel) { const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`; if (emailEnviadoNessaSessao) return false; try { const rTime = await safeFetch(urlTimestamp); if (rTime) { const ultimoDisparo = await rTime.json(); const agora = Date.now(); if (ultimoDisparo) { const diferenca = agora - ultimoDisparo; const horas12 = 12 * 60 * 60 * 1000; if (diferenca < horas12) return false; } } } catch (e) {} let contatos = {}; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); if (!contatos) return false; } catch (e) { return false; } const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor); if (emailsParaEnviar.length === 0) return false; let credenciais = null; const hoje = new Date(); for (let conta of CONTAS_EMAIL) { let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio); if (hoje >= dataReinicio && conta.quota_inicial < 200) { conta.quota_inicial = 200; } if (conta.quota_inicial >= emailsParaEnviar.length) { credenciais = conta; break; } } if (!credenciais) { console.warn("Sem cota de email."); return false; } let todosEnviadosComSucesso = true; for (const email of emailsParaEnviar) { const templateParams = { "%": nivel, "email": email }; try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { console.error("Erro envio", err); todosEnviadosComSucesso = false; } } if (todosEnviadosComSucesso) { emailEnviadoNessaSessao = true; const agoraMs = Date.now(); try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {} } return todosEnviadosComSucesso; }
+function getNoCacheUrl(url) { const separator = url.includes('?') ? '&' : '?'; return `${url}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; }
+async function safeFetch(url, options = {}) {
+  return await fetchNoCache(url, options);
+}
+async function enviarEmailAlerta(nivel) { const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`; if (emailEnviadoNessaSessao) return false; try { const rTime = await safeFetch(urlTimestamp); if (rTime) { const ultimoDisparo = await rTime.json(); const agora = Date.now(); if (ultimoDisparo) { const diferenca = agora - ultimoDisparo; const horas12 = 12 * 60 * 60 * 1000; if (diferenca < horas12) return false; } } } catch (e) {} let contatos = {}; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); if (!contatos) return false; } catch (e) { return false; } const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor); if (emailsParaEnviar.length === 0) return false; let credenciais = null; const hoje = new Date(); for (let conta of CONTAS_EMAIL) { let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio); if (hoje >= dataReinicio && conta.quota_inicial < 200) { conta.quota_inicial = 200; } if (conta.quota_inicial >= emailsParaEnviar.length) { credenciais = conta; break; } } if (!credenciais) { console.warn("Sem cota de email."); return false; } let todosEnviadosComSucesso = true; for (const email of emailsParaEnviar) { const templateParams = { "%": nivel, "email": email }; try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { console.error("Erro envio", err); todosEnviadosComSucesso = false; } } if (todosEnviadosComSucesso) { emailEnviadoNessaSessao = true; const agoraMs = Date.now(); try { await writeNoCache(urlTimestamp, 'PUT', agoraMs); } catch(e) {} } return todosEnviadosComSucesso; }
 function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
 function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
 function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
@@ -589,120 +592,200 @@ function interpolacaoLinear(arr) { let filled = [...arr]; let indices = []; for(
 function atualizarGraficosHistorico(result) { if (!chartLinha || !chartBlocos) return; if (!result || !result.labels) return; let displayLabels = result.labels || []; let displayNiveis = result.niveis || []; chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update(); chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis; const cores = 'rgba(6, 182, 212, 0.85)'; chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update(); }
 function atualizarGraficosConsumo(result) { if (!chartConsumoBloco || !chartConsumoLinha) return; if (!result || !result.consumo) return; const consumoData = result.consumo || []; const consumoLabels = result.labels || []; const infoTexto = document.getElementById('consumo-info-texto'); if (infoTexto) { let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0); let statusTexto = "Normal"; let corStatus = "var(--accent)"; if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; } else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; } if (currentView === 'diario') { infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`; } else { infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`; } } chartConsumoBloco.data.labels = consumoLabels; chartConsumoBloco.data.datasets[0].data = consumoData; chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; chartConsumoBloco.update(); chartConsumoLinha.data.labels = consumoLabels; chartConsumoLinha.data.datasets[0].data = consumoData; chartConsumoLinha.update(); }
 function criarGraficos() { Chart.register(ChartDataLabels); const isDark = document.body.getAttribute('data-theme') === 'dark'; const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; const textColor = isDark ? '#94a3b8' : '#64748b'; const zoomOptions = { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' } }; const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, maxTicksLimit: 6, color: textColor }, grid: { display: true, color: gridColor } }; if(document.getElementById('chartLinha')) { const ctxL = document.getElementById('chartLinha').getContext('2d'); const gradL = ctxL.createLinearGradient(0, 0, 0, 300); gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)'); gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)'); if(chartLinha) chartLinha.destroy(); chartLinha = new Chart(ctxL, { type: 'line', data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 3, spanGaps: true }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartBlocos')) { const ctxB = document.getElementById('chartBlocos').getContext('2d'); if(chartBlocos) chartBlocos.destroy(); chartBlocos = new Chart(ctxB, { type: 'bar', data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartConsumoBloco')) { const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d'); if(chartConsumoBloco) chartConsumoBloco.destroy(); chartConsumoBloco = new Chart(ctxCB, { type: 'bar', data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round, font: { size: 10 } } }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, suggestedMax: 2000, grid: { color: gridColor } } }, layout: { padding: { top: 20 } } } }); } if(document.getElementById('chartConsumoLinha')) { const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d'); if(chartConsumoLinha) chartConsumoLinha.destroy(); chartConsumoLinha = new Chart(ctxCL, { type: 'line', data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 2 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartAbastecimento')) { const ctxA = document.getElementById('chartAbastecimento').getContext('2d'); if(chartAbastecimento) chartAbastecimento.destroy(); chartAbastecimento = new Chart(ctxA, { type: 'bar', data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, scales: { x: { ticks: { color: textColor }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } } } }); } }
-async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') { if (nivel === null || nivel === undefined) return; if (tipo === 'real' && nivel <= 0) return; const d = new Date(timestamp); const localDate = getLocalISODate(d); const horaKey = String(d.getHours()).padStart(2, '0'); const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} }
-async function carregarHistoricoEConsumo() { if (currentView === 'semanal') return; let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 }; if (currentView === 'diario') { const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result; const data = dataEl.value; if (!data) return result; const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj); url = `${PATH_HISTORICO}/${data}.json`; const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; processData = (dadosHoje, dadosOntem) => { const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); let lastHoraInt = -1; let previousVal = null; if (dadosOntem) { const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); if (horariosOntem.length > 0) { const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey]; const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null; } } if (dadosHoje) { const keysSorted = Object.keys(dadosHoje).sort((a, b) => { const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number); return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); }); keysSorted.forEach(key => { const horaInt = parseInt(key.split(':')[0]); const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null; if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; } if (val !== null && previousVal !== null) { if (previousVal > val) { const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val); const diff = volAnterior - volAtual; if(diff < 800) { const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap; for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; } } } } if (val !== null) { previousVal = val; lastHoraInt = horaInt; } }); if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; const niveisInterpolados = interpolacaoLinear(niveisFixed); for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h]; } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; } return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal }; }; try { let dadosHoje = null; try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = await rHoje.json(); } catch(e) {} let dadosOntem = null; try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = await rOntem.json(); } catch(e) {} result = processData(dadosHoje, dadosOntem); atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } else { let dataInicio, dataFim; if (currentView === 'mensal') { const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-'); const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`; } else if (currentView === 'intervalo') { const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim'); dataInicio = dataI.value; dataFim = dataF.value; } url = `${PATH_HISTORICO}.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`; try { let dados = null; try { const r = await safeFetch(url); if (r) dados = await r.json(); } catch(e) {} if (dados) { const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort(); for (const dateKey in dados) { const dailyReadings = dados[dateKey]; const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b)); if(times.length === 0) continue; let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null; for (let i = 0; i < times.length; i++) { const tCurrent = times[i]; const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0; const valCurrent = Number(valRaw); if(valCurrent > 0) { somaNiveis += valCurrent; countNiveis++; if (lastValidLevelForDay !== null && lastValidLevelForDay > valCurrent) { const diff = calcularVolumeLitros(lastValidLevelForDay) - calcularVolumeLitros(valCurrent); if(diff < 800) consumoDia += diff; } lastValidLevelForDay = valCurrent; } } dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0; } const labels = Object.keys(dailyConsumption).sort(); const displayLabels = labels.map(d => d.split('-')[2] + '/' + d.split('-')[1]); result = { labels: displayLabels, niveis: labels.map(k => dailyLevels[k]), consumo: labels.map(k => dailyConsumption[k]) }; } atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } }
+async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') { if (nivel === null || nivel === undefined) return; if (tipo === 'real' && nivel <= 0) return; const d = new Date(timestamp); const localDate = getLocalISODate(d); const horaKey = String(d.getHours()).padStart(2, '0'); const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; try { await writeNoCache(url, 'PUT', dados); } catch (e) {} }
+async function carregarHistoricoEConsumo() { if (currentView === 'semanal') return; let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 }; if (currentView === 'diario') { const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result; const data = dataEl.value; if (!data) return result; const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj); url = `${PATH_HISTORICO}/${data}.json`; const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; processData = (dadosHoje, dadosOntem) => { const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; if (dadosOntem) { const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); if (horariosOntem.length > 0) { const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey]; const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null; } } if (dadosHoje) { const keysSorted = Object.keys(dadosHoje).sort((a, b) => { const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number); return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); }); keysSorted.forEach(key => { const horaInt = parseInt(key.split(':')[0]); const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null; if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; } if (val !== null && previousVal !== null) { if (val > previousVal + 5) { detectedRefillIdx = horaInt; } if (previousVal > val) { const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val); const diff = volAnterior - volAtual; if(diff < 800) { const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap; for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; } } } } if (val !== null) { previousVal = val; lastHoraInt = horaInt; } }); if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; const niveisInterpolados = interpolacaoLinear(niveisFixed); for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h]; } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; } return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; }; try { let dadosHoje = null; try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = await rHoje.json(); } catch(e) {} let dadosOntem = null; try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = await rOntem.json(); } catch(e) {} result = processData(dadosHoje, dadosOntem); atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } else { let dataInicio, dataFim; if (currentView === 'mensal') { const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value; if (!mesAno) return result; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-'); const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`; } else if (currentView === 'intervalo') { const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim'); if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value; if (!dataInicio || !dataFim) return result; } url = `${PATH_HISTORICO}.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`; processData = (dados) => { const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort(); for (const dateKey in dados) { const dailyReadings = dados[dateKey]; const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b)); if(times.length === 0) continue; let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null; for (let i = 0; i < times.length; i++) { const tCurrent = times[i]; const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0; const valCurrent = Number(valRaw); if(valCurrent > 0) { somaNiveis += valCurrent; countNiveis++; if (lastValidLevelForDay !== null) { if (lastValidLevelForDay > valCurrent) { const volAnterior = calcularVolumeLitros(lastValidLevelForDay); const volAtual = calcularVolumeLitros(valCurrent); const diff = volAnterior - volAtual; if(diff < 800) consumoDia += diff; } } lastValidLevelForDay = valCurrent; } } dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0; } if (currentView === 'mensal') { const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0]; for (const dateKey in dailyConsumption) { const day = parseInt(dateKey.split('-')[2]); let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3)); weeks[idx] += dailyConsumption[dateKey]; if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; } } const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0); return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks }; } const labels = Object.keys(dailyConsumption).sort(); const consumo = labels.map(key => dailyConsumption[key]); const niveis = labels.map(key => dailyLevels[key]); const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; }); return { labels: displayLabels, niveis: niveis, consumo: consumo }; }; try { let dados = null; try { const r = await safeFetch(url); if (r) dados = await r.json(); } catch(e) {} result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] }; atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } }
 async function removerAbastecimento(id) { try { await fetch(`${PATH_ABASTECIMENTO.replace('.json', '')}/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {} }
-async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); ids.slice(0, 5).forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); if(chartAbastecimento) { const labelsGrafico = ['1ª Sem', '2ª Sem', '3ª Sem', '4ª Sem']; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); if(getLocalISODate(d).substring(0, 7) === mesAno) { const dia = d.getDate(); let idx = (dia <= 7) ? 0 : (dia <= 14 ? 1 : (dia <= 21 ? 2 : 3)); totaisSemana[idx] += parseInt(item.litros || 0); } }); chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = totaisSemana; chartAbastecimento.update(); } } } catch (e) {} }
+async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); const idsParaLista = ids.slice(0, 5); if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; idsParaLista.forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); let labelsGrafico = []; let dadosGrafico = []; let titulo = "Comparativo Semanal (Litros)"; if (semanaFiltro === 'todas') { titulo = "Comparativo Semanal (Litros)"; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); let idx = 0; if (dia <= 7) idx = 0; else if (dia <= 14) idx = 1; else if (dia <= 21) idx = 2; else idx = 3; totaisSemana[idx] += parseInt(item.litros || 0); } }); labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana']; dadosGrafico = totaisSemana; } else { titulo = `Detalhes: Semana ${semanaFiltro}`; const diasMap = {}; let diaInicio = 1, diaFim = 7; if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; } if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; } if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; } Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); if (dia >= diaInicio && dia <= diaFim) { const labelDia = `Dia ${String(dia).padStart(2, '0')}`; if (!diasMap[labelDia]) diasMap[labelDia] = 0; diasMap[labelDia] += parseInt(item.litros || 0); } } }); labelsGrafico = Object.keys(diasMap).sort(); dadosGrafico = labelsGrafico.map(l => diasMap[l]); if (labelsGrafico.length === 0) { labelsGrafico = ["Sem dados"]; dadosGrafico = [0]; } } if(document.getElementById('tituloGraficoAbastecimento')) { document.getElementById('tituloGraficoAbastecimento').innerText = titulo; } if(chartAbastecimento) { chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = dadosGrafico; chartAbastecimento.update(); } } else if(listaUL) { listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; } } catch (e) { console.error(e); } }
 function animarBotaoSucesso(btnId) { const btn = document.getElementById(btnId); if(!btn) return; const originalHTML = btn.innerHTML; btn.classList.add('btn-success'); btn.innerHTML = '<i class="fas fa-check"></i> Salvo!'; setTimeout(() => { btn.classList.remove('btn-success'); btn.innerHTML = originalHTML; }, 2000); }
 async function salvarAbastecimento(litros) { if (!litros || litros <= 0) return; const agora = new Date(); const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString() }; try { await fetch(PATH_ABASTECIMENTO, { method: 'POST', body: JSON.stringify(dados) }); document.getElementById('litros-abastecidos').value = ''; carregarHistoricoAbastecimento(); animarBotaoSucesso('btn-salvar-abastecimento'); } catch (e) {} }
 async function salvarConfig(endpoint, valor) { try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {} }
 async function salvarCapacidade(valor) { if(!valor || valor <= 0) return; await salvarConfig('capacidade', valor); capacidadeTotal = valor; animarBotaoSucesso('btn-salvar-capacidade'); }
 async function salvarAltura(valor) { if(!valor || valor <= 0) return; await salvarConfig('altura', valor); alturaCaixa = valor; animarBotaoSucesso('btn-salvar-altura'); }
 async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = valor; animarBotaoSucesso('btn-salvar-nivel-alerta'); }
-async function carregarConfiguracoesGerais() { try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) { const config = await r.json(); if(config) { if (config.nivel_alerta || config.nivel_critico_pct) { nivelAlertaConfigurado = parseInt(config.nivel_alerta || config.nivel_critico_pct); document.getElementById('nivel-alerta-valor').value = nivelAlertaConfigurado; } if (config.capacidade || config.capacidade_total_litros) { capacidadeTotal = parseInt(config.capacidade || config.capacidade_total_litros); document.getElementById('capacidade-total-valor').value = capacidadeTotal; } if (config.altura || config.altura_tanque_cm) { alturaCaixa = parseInt(config.altura || config.altura_tanque_cm); document.getElementById('altura-caixa-valor').value = alturaCaixa; } } } } catch (e) {} }
+async function carregarConfiguracoesGerais() { try { let config = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) config = await r.json(); } catch(e) {} if(config) { if (config.nivel_alerta) { document.getElementById('nivel-alerta-valor').value = config.nivel_alerta; nivelAlertaConfigurado = parseInt(config.nivel_alerta); } else if (config.nivel_critico_pct) { document.getElementById('nivel-alerta-valor').value = config.nivel_critico_pct; nivelAlertaConfigurado = parseInt(config.nivel_critico_pct); } if (config.capacidade) { document.getElementById('capacidade-total-valor').value = config.capacidade; capacidadeTotal = parseInt(config.capacidade); } else if (config.capacidade_total_litros) { document.getElementById('capacidade-total-valor').value = config.capacidade_total_litros; capacidadeTotal = parseInt(config.capacidade_total_litros); } if (config.altura) { document.getElementById('altura-caixa-valor').value = config.altura; alturaCaixa = parseInt(config.altura); } else if (config.altura_tanque_cm) { document.getElementById('altura-caixa-valor').value = config.altura_tanque_cm; alturaCaixa = parseInt(config.altura_tanque_cm); } } } catch (e) {} }
 async function adicionarContato(valor, tipo) { if (!valor) return; const novoContato = { valor, tipo }; try { await fetch(`${PATH_CONFIG_BASE}/contatos.json`, { method: 'POST', body: JSON.stringify(novoContato) }); document.getElementById('contato-valor').value = ''; carregarContatos(); animarBotaoSucesso('btn-add-contato'); } catch (e) {} }
 async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
-async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) { const contatos = await r.json(); if(listaUL) { listaUL.innerHTML = ''; if (contatos) { Object.keys(contatos).forEach(id => { const c = contatos[id]; const li = document.createElement('li'); li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); }); } else listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } } } catch (e) {} }
-function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); return sorted[Math.floor(sorted.length / 2)]; }
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let bloco = (quedas++ <= 4) ? 8 : (quedas <= 6 ? 6 : (quedas <= 8 ? 4 : 2)); if (horasPassadas >= bloco) { nivelSimulado -= 5; horasPassadas -= bloco; } else break; } return Math.max(0, nivelSimulado); }
-async function buscarBackupHistorico() { try { const today = new Date().toISOString().split('T')[0]; const r = await fetch(getNoCacheUrl(`${PATH_HISTORICO}/${today}.json?orderBy="$key"&limitToLast=1`)); const d = await r.json(); if(d) { const keys = Object.keys(d); if(keys.length > 0) return { pct: d[keys[0]].nivel_pct || d[keys[0]].nivel || 0, time: d[keys[0]].timestamp || 0 }; } } catch(e) {} return null; }
+async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = await r.json(); } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
+function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted[mid]; }
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
+
+// Nova Função para buscar dados históricos caso o realtime esteja 0/offline
+async function buscarBackupHistorico() {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        // Busca a última entrada do dia
+        const r = await fetch(`${PATH_HISTORICO}/${today}.json?orderBy="$key"&limitToLast=1`);
+        const d = await r.json();
+        if(d) {
+            const keys = Object.keys(d);
+            if(keys.length > 0) {
+                const lastEntry = d[keys[0]];
+                return {
+                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
+                    time: lastEntry.timestamp || 0
+                };
+            }
+        }
+    } catch(e) { console.log('Erro ao buscar backup historico', e); }
+    return null;
+}
 
 async function loopDeAtualizacao() { 
     const liveIndicator = document.getElementById('live-indicator'); 
     try { 
+        if (!verificacaoInicialConcluida) return; 
         lastUpdateTimestamp = Date.now(); 
-        const r = await safeFetch(PATH_TEMPO_REAL); 
-        let fetchSuccess = !!r; 
-        let j = fetchSuccess ? await r.json() : {}; 
+        let j = {}; 
+        let fetchSuccess = false; 
+        try { 
+            const r = await safeFetch(PATH_TEMPO_REAL); 
+            if (r) { j = await r.json(); fetchSuccess = true; } 
+        } catch (err) {} 
         
         if(liveIndicator) { 
-            liveIndicator.className = 'live-indicator ' + (fetchSuccess ? 'online' : 'offline');
-            liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5'); 
+            if (fetchSuccess) { 
+                liveIndicator.classList.remove('offline'); 
+                liveIndicator.classList.add('online'); 
+                liveIndicator.style.opacity = (liveIndicator.style.opacity === '0.5' ? '1' : '0.5'); 
+            } else { 
+                liveIndicator.classList.remove('online'); 
+                liveIndicator.classList.add('offline'); 
+                liveIndicator.style.opacity = '1'; 
+            } 
         } 
         
-        let rawLvl = j ? (j.nivel_pct ?? j.percentual_atual ?? 0) : 0; 
-        let nivelRecebido = Number(rawLvl); 
+        let nivelRecebidoRaw = 0; 
+        if (j && j.nivel_pct !== undefined) nivelRecebidoRaw = j.nivel_pct; 
+        else if (j && j.percentual_atual !== undefined) nivelRecebidoRaw = j.percentual_atual; 
+        let nivelRecebido = Number(nivelRecebidoRaw); 
         let tipoDado = 'real'; 
+        let statusSensor = j && j.status_leitura ? j.status_leitura : "OFFLINE"; 
         
-        if (nivelRecebido > 0 && (j.status_leitura !== "ERRO_SENSOR")) { 
-            bufferLeituras.push(nivelRecebido); if (bufferLeituras.length > 9) bufferLeituras.shift(); 
-            nivelAtual = obterMediana(bufferLeituras); 
-            ultimoNivelValidoLatch = nivelAtual; timestampLatch = Date.now(); 
-            localStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelAtual); 
+        if (nivelRecebido > 0 && statusSensor !== "ERRO_SENSOR") { 
+            if (bufferLeituras.length === 0) { for(let i=0; i<9; i++) bufferLeituras.push(nivelRecebido); } 
+            else { bufferLeituras.push(nivelRecebido); if (bufferLeituras.length > 9) bufferLeituras.shift(); } 
+            let nivelEstavel = obterMediana(bufferLeituras); 
+            if (ultimoNivelValidoLatch !== null && Math.abs(nivelEstavel - ultimoNivelValidoLatch) > 5) { 
+                contadorLeiturasFantasmas++; 
+                if (contadorLeiturasFantasmas < 5) { nivelEstavel = ultimoNivelValidoLatch; } 
+                else { contadorLeiturasFantasmas = 0; } 
+            } else { contadorLeiturasFantasmas = 0; } 
+            
+            nivelAtual = nivelEstavel; 
+            tipoDado = 'real'; 
+            ultimoNivelValidoLatch = nivelEstavel; 
+            timestampLatch = Date.now(); 
+            localStorage.setItem('__STORAGE_KEY_PREFIX___last_level', nivelEstavel); 
             localStorage.setItem('__STORAGE_KEY_PREFIX___last_time', timestampLatch); 
             document.getElementById('emergency-badge').style.display = 'none'; 
             document.getElementById('simulated-indicator').style.display = 'none'; 
         } else { 
-            let pctB = 0, timeB = 0;
-            if (j && j.ultima_valida_pct > 0) { pctB = j.ultima_valida_pct; timeB = j.ultima_valida_time; } 
-            else if (ultimoNivelValidoLatch) { pctB = ultimoNivelValidoLatch; timeB = timestampLatch; } 
-            else { 
-                const sL = localStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); 
-                const sT = localStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); 
-                if(sL) { pctB = Number(sL); timeB = Number(sT); } 
-                else { const h = await buscarBackupHistorico(); if(h) { pctB = h.pct; timeB = h.time; } }
-            } 
-            if (pctB > 0) { nivelAtual = calcularNivelSimuladoLatch(pctB, timeB); tipoDado = 'estimado'; document.getElementById('simulated-indicator').style.display = 'flex'; } 
-            else nivelAtual = 0;
-            document.getElementById('emergency-badge').style.display = 'flex'; 
-        } 
-        
-        atualizarCaixaDOM(nivelAtual); 
-        if (nivelAtual <= nivelAlertaConfigurado) { 
-            if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); if(!alertaModalMostrado) { mostrarAlertaModal(); alertaModalMostrado = true; enviarEmailAlerta(nivelAtual); } } 
-        } else { 
-            controlarAlarme(false); snoozeCount = 0; alertaModalMostrado = false; fecharAlertaModal(); 
-        }
-        
-        const agora = new Date(); 
-        if ((agora.getHours() !== ultimoHorarioSalvo || (agora.getTime() - ultimoTempoSalvo > 300000)) && nivelAtual > 0) { 
-            await salvarLeituraNoFirebase(Number(nivelAtual), agora.getTime(), tipoDado); 
-            ultimoHorarioSalvo = agora.getHours(); ultimoTempoSalvo = agora.getTime(); 
-        } 
-    } catch(e) { if(liveIndicator) liveIndicator.className = 'live-indicator offline'; } 
-}
+            let backupUsado = false; 
+            let pctBackup = 0;
+            let timeBackup = 0;
 
-window.onload = async function() { 
-    checkAutoTheme(); 
-    verificacaoInicialConcluida = true; 
-    setupAudio();
-    
-    // --- MELHORIA: Carga imediata sem esperar nada ---
-    await carregarConfiguracoesGerais();
-    await loopDeAtualizacao(); 
-    await carregarHistoricoEConsumo();
-    await carregarHistoricoAbastecimento();
-    
-    loopInterval = setInterval(loopDeAtualizacao, 2500); 
-    
-    // Eventos de clique para navegação e botões (mesmo código original)
-    document.getElementById('btn-view-caixa').onclick = () => switchView('caixa');
-    document.getElementById('btn-view-grafico').onclick = () => switchView('grafico');
-    document.getElementById('btn-view-abastecimento').onclick = () => switchView('abastecimento');
-    document.getElementById('btn-view-consumo').onclick = () => switchView('consumo');
-    document.getElementById('btn-view-config').onclick = () => switchView('config');
-    document.getElementById('modal-close-btn').onclick = confirmarAlerta;
-    
-    function switchView(v) { 
-        activeTab = v;
-        const vs = ['caixa-view', 'grafico-container', 'abastecimento-view', 'consumo-view', 'config-view'];
-        vs.forEach(id => document.getElementById(id).style.display = (id.startsWith(v) ? 'flex' : 'none'));
-        document.querySelectorAll('.nav-button').forEach(b => b.classList.toggle('active', b.id.includes(v)));
-        if(v === 'grafico' || v === 'consumo') carregarHistoricoEConsumo();
-        if(v === 'abastecimento') carregarHistoricoAbastecimento();
-    }
-};
+            // Prioridade 1: Dados do JSON em tempo real (se tiver ultima valida)
+            if (j && j.ultima_valida_pct > 0 && j.ultima_valida_time > 0) { 
+                pctBackup = j.ultima_valida_pct;
+                timeBackup = j.ultima_valida_time;
+            } 
+            // Prioridade 2: Memória Local (Latch)
+            else if (ultimoNivelValidoLatch !== null && timestampLatch !== null) { 
+                pctBackup = ultimoNivelValidoLatch;
+                timeBackup = timestampLatch;
+            } 
+            // Prioridade 3: LocalStorage persistente
+            else { 
+                const savedLvl = localStorage.getItem('__STORAGE_KEY_PREFIX___last_level'); 
+                const savedTime = localStorage.getItem('__STORAGE_KEY_PREFIX___last_time'); 
+                if(savedLvl && savedTime) { 
+                    pctBackup = Number(savedLvl);
+                    timeBackup = Number(savedTime);
+                } else {
+                    // Prioridade 4: Busca forçada no histórico (última chance antes de mostrar 0%)
+                    const histData = await buscarBackupHistorico();
+                    if (histData) {
+                        pctBackup = histData.pct;
+                        timeBackup = histData.time;
+                        // Salva para o próximo ciclo não precisar buscar
+                        ultimoNivelValidoLatch = pctBackup;
+                        timestampLatch = timeBackup;
+                    }
+                }
+            } 
+
+            if (pctBackup > 0) {
+                nivelAtual = calcularNivelSimuladoLatch(pctBackup, timeBackup);
+                backupUsado = true;
+            } else {
+                nivelAtual = 0;
+            }
+
+            document.getElementById('emergency-badge').style.display = 'flex'; 
+            if (backupUsado) { 
+                document.getElementById('simulated-indicator').style.display = 'flex'; 
+                tipoDado = 'estimado'; 
+            } else { 
+                tipoDado = 'real'; 
+            } 
+        } 
+        
+        const statusDisplay = document.getElementById('status-display'); 
+        if(statusDisplay) { 
+            statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger'); 
+            if (nivelAtual <= nivelAlertaConfigurado) { 
+                statusDisplay.classList.add('level-danger'); 
+                if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } 
+                if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { 
+                    enviarEmailAlerta(nivelAtual); mostrarAlertaModal(); alertaModalMostrado = true; 
+                    setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); 
+                } else { enviarEmailAlerta(nivelAtual); } 
+            } else { 
+                if (nivelAtual > 50) { 
+                    if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; 
+                    if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; 
+                } 
+                if (nivelAtual <= 60) statusDisplay.classList.add('level-warn'); 
+                else statusDisplay.classList.add('level-ok'); 
+                if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } 
+                controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; 
+            } 
+        } 
+        atualizarCaixaDOM(nivelAtual); 
+        const agora = new Date(); 
+        const horaAtual = agora.getHours(); 
+        const agoraMs = agora.getTime(); 
+        if ((horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) && nivelAtual > 0) { 
+            await salvarLeituraNoFirebase(Number(nivelAtual), agoraMs, tipoDado); 
+            ultimoHorarioSalvo = horaAtual; 
+            ultimoTempoSalvo = agoraMs; 
+            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
+        } 
+    } catch(e) { 
+        if(liveIndicator) { 
+            liveIndicator.classList.remove('online'); 
+            liveIndicator.classList.add('offline'); 
+        } 
+    } 
+}
+window.onload = function() { 
+  // FORÇA ATUALIZAÇÃO IMEDIATA AO ABRIR (MIT WebView costuma cachear/dormir)
+  try { window.forceRefresh(); } catch(e) {}
+  setTimeout(() => { try { window.forceRefresh(); } catch(e) {} }, 500);
+checkAutoTheme(); const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; const dateControls = document.getElementById('date-controls'); const hoje = new Date(); const mesAtual = getLocalISODate(hoje).substring(0, 7); const elMesAbast = document.getElementById('mesAbastecimento'); if(elMesAbast) { elMesAbast.value = mesAtual; } const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; } setupAudio(); function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } document.body.addEventListener('click', despertarAudio, { once: true }); document.body.addEventListener('touchstart', despertarAudio, { once: true }); verificacaoInicialConcluida = true; function switchView(viewName) { activeTab = viewName; for (const key in views) { if(views[key]) views[key].style.display = 'none'; } if (views[viewName]) { views[viewName].style.display = 'flex'; } document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); if (btns[viewName]) { btns[viewName].classList.add('active'); } if(dateControls) dateControls.style.display = 'none'; if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } if (viewName === 'caixa') carregarHistoricoAbastecimento(); else if (viewName === 'grafico') { if(chartLinha) chartLinha.resize(); if(chartBlocos) chartBlocos.resize(); } else if (viewName === 'consumo') { if(chartConsumoBloco) chartConsumoBloco.resize(); if(chartConsumoLinha) chartConsumoLinha.resize(); } else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); if(chartAbastecimento) chartAbastecimento.resize(); } else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); } } if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); if(btns.config) btns.config.addEventListener('click', () => switchView('config')); document.getElementById('modal-close-btn').addEventListener('click', confirmarAlerta); document.getElementById('btn-salvar-abastecimento').addEventListener('click', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)); document.getElementById('btn-salvar-capacidade').addEventListener('click', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))); document.getElementById('btn-salvar-altura').addEventListener('click', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))); document.getElementById('btn-add-contato').addEventListener('click', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)); document.getElementById('btn-salvar-nivel-alerta').addEventListener('click', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))); document.getElementById('lista-contatos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); document.getElementById('lista-abastecimentos').addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } }); criarGraficos(); const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; switchView('caixa'); const btnAt = document.getElementById('btnAtualizar'); if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; carregarConfiguracoesGerais(); carregarHistoricoEConsumo(); loopDeAtualizacao(); loopInterval = setInterval(loopDeAtualizacao, 2500); setInterval(() => { const now = Date.now(); if (now - lastUpdateTimestamp > 10000) { console.log("Watchdog: Reiniciando loop travado..."); loopDeAtualizacao(); } }, 5000); document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'visible') { console.log("App visível novamente. Forçando atualização..."); loopDeAtualizacao(); carregarHistoricoEConsumo(); clearInterval(loopInterval); loopInterval = setInterval(loopDeAtualizacao, 2500); } }); document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); }); };
 </script>
 </body>
 </html>
 </textarea>
 
 <!-- ========================================================================= -->
-<!-- SCRIPT DO DASHBOARD PRINCIPAL                                             -->
+<!-- SCRIPT DO DASHBOARD PRINCIPAL (E LÓGICA DE ABERTURA DOS APPS)             -->
 <!-- ========================================================================= -->
 <script>
+// --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
+// Lista de Praças (PP)
 const listPP = [
     { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP1.json', firebaseConfigPath: '/PP1_config', firebaseHistPath: '/PP1_historico', title: 'Praça de Pedágio 01' },
     { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP2.json', firebaseConfigPath: '/PP2_config', firebaseHistPath: '/PP2_historico', title: 'Praça de Pedágio 02' },
@@ -710,9 +793,18 @@ const listPP = [
     { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP4.json', firebaseConfigPath: '/PP4_config', firebaseHistPath: '/PP4_historico', title: 'Praça de Pedágio 04' },
     { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP5.json', firebaseConfigPath: '/PP5_config', firebaseHistPath: '/PP5_historico', title: 'Praça de Pedágio 05' },
     { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP6.json', firebaseConfigPath: '/PP6_config', firebaseHistPath: '/PP6_historico', title: 'Praça de Pedágio 06' },
-    { id: 'pp7', name: 'PP 07', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'Praça de Pedágio 07' }
+    { 
+        id: 'pp7', 
+        name: 'PP 07', 
+        active: true, 
+        firebaseDataPath: '/PP7.json',
+        firebaseConfigPath: '/PP7_config',
+        firebaseHistPath: '/PP7_config/historico', // Mantido para compatibilidade do PP7
+        title: 'Praça de Pedágio 07 - Capim Branco/MG'
+    }
 ];
 
+// Lista de SAUs
 const listSAU = [
     { id: 'sau01', name: 'SAU 01', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01' },
     { id: 'sau02', name: 'SAU 02', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02' },
@@ -726,93 +818,243 @@ const listSAU = [
     { id: 'sau10', name: 'SAU 10', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10' },
     { id: 'sau11', name: 'SAU 11', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11' },
     { id: 'sau12', name: 'SAU 12', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12' },
-    { id: 'sau13', name: 'SAU 13', active: true, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13' },
+    { 
+        id: 'sau13', 
+        name: 'SAU 13', 
+        active: true, 
+        firebaseDataPath: '/SAU13.json',
+        firebaseConfigPath: '/SAU13_config',
+        firebaseHistPath: '/SAU13_historico',
+        title: 'SAU 13 - Capim Branco/MG'
+    },
     { id: 'sau14', name: 'SAU 14', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
 ];
 
+// --- RENDERIZAR CARDS NO DASHBOARD ---
 function renderGrid(containerId, list, iconClass) {
     const container = document.getElementById(containerId);
-    container.innerHTML = list.map(item => `
-        <div class="card ${item.active ? '' : 'inactive'}" id="card-${item.id}" ${item.active ? `onclick="prepararAbertura('${item.id}')"` : ''}>
-            <div class="card-water-bg" id="bg-${item.id}"></div>
-            <div class="card-content">
-                <div class="live-dot"></div>
-                <div class="simulated-badge" title="Valor Estimado">!</div>
-                <i class="${iconClass} card-icon"></i>
-                <div class="card-title">${item.name}</div>
-                <div class="card-level" id="lvl-${item.id}">--%</div>
-                <div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div>
+    container.innerHTML = '';
+    
+    list.forEach(item => {
+        const cls = item.active ? '' : 'inactive';
+        const action = item.active 
+            ? `onclick="prepararAbertura('${item.id}')"` 
+            : '';
+        
+        container.innerHTML += `
+            <div class="card ${cls}" id="card-${item.id}" ${action}>
+                <div class="card-water-bg" id="bg-${item.id}"></div>
+                <div class="card-content">
+                    <div class="live-dot"></div>
+                    <div class="simulated-badge" title="Valor Estimado">!</div>
+                    <i class="${iconClass} card-icon"></i>
+                    <div class="card-title">${item.name}</div>
+                    <div class="card-level" id="lvl-${item.id}">--%</div>
+                    <div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    });
+}
+
+function findItemById(id) {
+    let item = listPP.find(i => i.id === id);
+    if(!item) item = listSAU.find(i => i.id === id);
+    return item;
+}
+
+// --- LÓGICA DE ABERTURA DE APPS ---
+let dashboardInterval = null;
+
+function prepararAbertura(id) {
+    const item = findItemById(id);
+    if (!item) return;
+
+    let rawHTML = document.getElementById('app-template').value;
+
+    rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title);
+    rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
+    rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
+    rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath);
+    rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); 
+
+    abrirApp(rawHTML);
+}
+
+function abrirApp(htmlContent) {
+    const overlay = document.getElementById('app-overlay');
+    const iframe = document.getElementById('app-frame');
+    iframe.srcdoc = htmlContent;
+    overlay.classList.add('active');
+    if(dashboardInterval) clearInterval(dashboardInterval);
+}
+
+function fecharApp() {
+    const overlay = document.getElementById('app-overlay');
+    const iframe = document.getElementById('app-frame');
+    iframe.srcdoc = "";
+    overlay.classList.remove('active');
+    updateDashboardData();
+    dashboardInterval = setInterval(updateDashboardData, 5000);
+}
+
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
+    const agora = Date.now();
+    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
+    let nivelSimulado = nivelInicial;
+    let quedasAplicadas = 0;
+
+    while (horasPassadas > 0 && nivelSimulado > 0) {
+        let duracaoBloco = 2;
+        quedasAplicadas++;
+        if (quedasAplicadas <= 4) { duracaoBloco = 8; }
+        else if (quedasAplicadas <= 6) { duracaoBloco = 6; }
+        else if (quedasAplicadas <= 8) { duracaoBloco = 4; }
+        else { duracaoBloco = 2; }
+
+        if (horasPassadas >= duracaoBloco) {
+            nivelSimulado -= 5;
+            horasPassadas -= duracaoBloco;
+        } else {
+            break;
+        }
+    }
+    if (nivelSimulado < 0) nivelSimulado = 0;
+    return nivelSimulado;
+}
+
+async function fetchLastValidFromHistory(histPath) {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const r = await fetch(`${DB_BASE}${histPath}/${today}.json?orderBy="$key"&limitToLast=1`);
+        const d = await r.json();
+        if(d) {
+            const keys = Object.keys(d);
+            if(keys.length > 0) {
+                const lastEntry = d[keys[0]];
+                return {
+                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
+                    time: lastEntry.timestamp || 0
+                };
+            }
+        }
+    } catch(e) { console.log('Erro ao buscar historico backup', e); }
+    return null;
 }
 
 async function updateDashboardData() {
     const activeItems = [...listPP, ...listSAU].filter(i => i.active);
+    
     for (const item of activeItems) {
         try {
-            const r = await fetch(`${DB_BASE}${item.firebaseDataPath}?nocache=${Date.now()}_${Math.random()}`);
+            const r = await fetch(`${DB_BASE}${item.firebaseDataPath}?nocache=${Date.now()}`);
             const d = await r.json();
-            let rawLvl = d ? (d.nivel_pct ?? d.nivel ?? d.percentual_atual ?? 0) : 0;
-            let lvl = Number(rawLvl);
+            
+            let lvl = 0;
             let isSimulated = false;
+            let rawLvl = 0;
 
-            if (lvl <= 0) {
-                let lastP = d?.ultima_valida_pct || 0;
-                let lastT = d?.ultima_valida_time || 0;
-                if(lastP > 0) {
-                    lvl = Math.max(0, Math.round(lastP - ((Date.now() - lastT) / 1000 / 60 / 60 / 2) * 5));
+            if(d) {
+                if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
+                else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
+                else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
+            }
+            
+            if (rawLvl > 0) {
+                lvl = rawLvl;
+                isSimulated = false;
+            } else {
+                let lastValidPct = 0;
+                let lastValidTime = 0;
+
+                if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
+                     lastValidPct = d.ultima_valida_pct;
+                     lastValidTime = d.ultima_valida_time;
+                } else {
+                    const histData = await fetchLastValidFromHistory(item.firebaseHistPath);
+                    if(histData) {
+                        lastValidPct = histData.pct;
+                        lastValidTime = histData.time;
+                    }
+                }
+
+                if (lastValidPct > 0) {
+                    lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime);
                     isSimulated = true;
+                } else {
+                    lvl = 0; 
                 }
             }
-
+            
+            const card = document.getElementById(`card-${item.id}`);
             const elLvl = document.getElementById(`lvl-${item.id}`);
             const elBg = document.getElementById(`bg-${item.id}`);
-            const card = document.getElementById(`card-${item.id}`);
-            if(elLvl) elLvl.innerText = lvl + '%';
-            if(elBg) elBg.style.height = lvl + '%';
-            if(card) {
-                card.querySelector('.live-dot').style.display = (rawLvl > 0 ? 'block' : 'none');
-                card.querySelector('.simulated-badge').style.display = (isSimulated ? 'flex' : 'none');
-                card.setAttribute('data-status', isSimulated ? 'simulated' : (lvl > 60 ? 'ok' : (lvl > 30 ? 'warn' : 'danger')));
-                elLvl.style.color = isSimulated ? '#d97706' : (lvl > 60 ? 'var(--level-ok)' : (lvl > 30 ? 'var(--level-warn)' : 'var(--level-danger)'));
+            
+            if(card && elLvl) {
+                elLvl.innerText = `${lvl}%`;
+                if(elBg) elBg.style.height = `${lvl}%`;
+
+                const dot = card.querySelector('.live-dot');
+                const badge = card.querySelector('.simulated-badge');
+                
+                if (rawLvl > 0) {
+                    dot.style.display = 'block';
+                    badge.style.display = 'none';
+                } else {
+                    dot.style.display = 'none';
+                    if (isSimulated && lvl > 0) badge.style.display = 'flex';
+                    else badge.style.display = 'none';
+                }
+                
+                card.removeAttribute('data-status');
+                
+                if (isSimulated && lvl > 0) {
+                    card.setAttribute('data-status', 'simulated');
+                    elLvl.style.color = '#d97706';
+                } else {
+                    if(lvl > 60) {
+                        card.setAttribute('data-status', 'ok');
+                        elLvl.style.color = 'var(--level-ok)';
+                    } else if (lvl > 30) {
+                        card.setAttribute('data-status', 'warn');
+                        elLvl.style.color = 'var(--level-warn)';
+                    } else {
+                        card.setAttribute('data-status', 'danger');
+                        elLvl.style.color = 'var(--level-danger)';
+                    }
+                }
             }
-        } catch(e) {}
+        } catch(e) { console.log(e); }
     }
 }
 
-function prepararAbertura(id) {
-    const item = [...listPP, ...listSAU].find(i => i.id === id);
-    let html = document.getElementById('app-template').value
-        .replace(/__APP_TITLE__/g, item.title)
-        .replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath)
-        .replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath)
-        .replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath)
-        .replace(/__STORAGE_KEY_PREFIX__/g, item.id);
-    document.getElementById('app-frame').srcdoc = html;
-    document.getElementById('app-overlay').classList.add('active');
-}
-
-function fecharApp() {
-    document.getElementById('app-overlay').classList.remove('active');
-    document.getElementById('app-frame').srcdoc = "";
-    updateDashboardData();
-}
-
+let isDark = false;
 function toggleTheme() {
-    document.body.toggleAttribute('data-theme');
-    const icon = document.querySelector('.theme-toggle i');
-    icon.classList.toggle('fa-moon');
-    icon.classList.toggle('fa-sun');
+    isDark = !isDark;
+    if(isDark) {
+        document.body.setAttribute('data-theme', 'dark');
+        document.querySelector('.theme-toggle i').classList.replace('fa-moon', 'fa-sun');
+    } else {
+        document.body.removeAttribute('data-theme');
+        document.querySelector('.theme-toggle i').classList.replace('fa-sun', 'fa-moon');
+    }
 }
 
 window.onload = () => {
     renderGrid('grid-pp', listPP, 'fas fa-road'); 
     renderGrid('grid-sau', listSAU, 'fas fa-home'); 
-    // --- MELHORIA: Atualiza tudo instantaneamente ao entrar ---
     updateDashboardData();
-    setInterval(updateDashboardData, 5000);
+    dashboardInterval = setInterval(updateDashboardData, 5000); 
 };
+</script>
+<script>
+  // GARANTE QUE O "VOLTAR" DO APP SEMPRE FECHA O OVERLAY
+  window.fecharApp = function () {
+    const overlay = document.getElementById('app-overlay');
+    const frame = document.getElementById('app-frame');
+    if (overlay) overlay.classList.remove('active');
+    if (frame) frame.srcdoc = '';
+  };
 </script>
 </body>
 </html>
