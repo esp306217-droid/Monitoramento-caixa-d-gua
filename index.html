@@ -331,7 +331,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
 <!-- Botão Voltar (Movido para cá) -->
-<button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
+<button class="nav-button-icon-only" onclick="try{window.location.href='__DASHBOARD_URL__';}catch(e){try{history.back();}catch(_e){}}" title="Voltar"><i class="fas fa-arrow-left"></i></button>
 <!-- Botões de Tema e Atualizar -->
 <button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
 <button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
@@ -779,6 +779,35 @@ window.onload = function() { checkAutoTheme(); const views = { caixa: document.g
 // --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
+// ===== MIT/WebView compat =====
+const IS_WEBVIEW = /wv|Android/i.test(navigator.userAgent);
+function getQueryParam(name){ try{return new URLSearchParams(window.location.search).get(name);}catch(e){return null;} }
+function baseUrlNoQuery(){ try{ return (window.location.origin + window.location.pathname); } catch(e){ return (window.location.href||'').split('?')[0]; } }
+
+function buildAppHtml(item){
+    const template = document.getElementById('app-template').value;
+    const dashboardUrl = baseUrlNoQuery();
+    return template
+        .replace(/__APP_TITLE__/g, item.title)
+        .replace(/__FIREBASE_DATA_PATH__/g, item.firebaseDataPath)
+        .replace(/__FIREBASE_CONFIG_PATH__/g, item.firebaseConfigPath)
+        .replace(/__FIREBASE_HIST_PATH__/g, item.firebaseHistPath)
+        .replace(/__FORCE_LEVEL__/g, String((typeof item.forceLevel === 'number') ? item.forceLevel : -1))
+        .replace(/__DASHBOARD_URL__/g, dashboardUrl);
+}
+
+// Abre APP: navegador usa overlay/iframe; MIT WebView usa navegação por URL (?app=pp7) para evitar srcdoc/sandbox.
+function openAppUnified(item){
+    if (IS_WEBVIEW) {
+        const url = baseUrlNoQuery() + '?app=' + encodeURIComponent(item.id);
+        window.location.href = url;
+        return;
+    }
+    const html = buildAppHtml(item);
+    abrirApp(html);
+}
+
+
 // Lista de Praças (PP)
 const listPP = [
     { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP1.json', firebaseConfigPath: '/PP1_config', firebaseHistPath: '/PP1_historico', title: 'Praça de Pedágio 01' },
@@ -1040,6 +1069,19 @@ window.onload = () => {
     updateDashboardData();
     dashboardInterval = setInterval(updateDashboardData, 5000); 
 };
+
+// ===== MODO APP (sem iframe) para MIT =====
+(function(){
+  const appId = (getQueryParam('app') || '').toLowerCase();
+  if(!appId) return;
+  try {
+    const item = [...listPP, ...listSAU].find(x => (x.id||'').toLowerCase() === appId);
+    if(!item) return;
+    const html = buildAppHtml(item);
+    document.open(); document.write(html); document.close();
+  } catch(e) {}
+})();
+
 </script>
 </body>
 </html>
