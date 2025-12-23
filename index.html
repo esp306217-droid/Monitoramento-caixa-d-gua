@@ -190,7 +190,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 <div id="dashboard-container">
     <div class="header">
         <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
-        <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais" onerror="this.style.display='none'; document.querySelector('h1').style.marginTop='20px'">
+        <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
         <h1>Central de Monitoramento</h1>
     </div>
 
@@ -267,7 +267,7 @@ body { font-family: 'Poppins', sans-serif; text-align: center; background: var(-
 #status-litros { font-size: 1.5rem; display: flex; justify-content: center; align-items: baseline; gap: 5px; }
 #status-litros small { font-size: 0.85rem; font-weight: 400; color: var(--text-sec); }
 #status-time { font-size: 1rem; color: var(--text-main); }
-.reservatorio-wrapper { width: 280px; height: 460px; position: relative; margin: -40px auto 0 auto; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1)); transform-origin: top center; transform: scale(0.9); }
+.reservatorio-wrapper { width: 280px; height: 460px; position: relative; margin: 10px auto 0 auto; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1)); transform-origin: top center; transform: scale(1.2); }
 .modern-button { background: var(--accent); border: none; color: #fff; font-weight: 600; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(6,182,212,0.2); transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .modern-button:hover { background: var(--accent-hover); transform: translateY(-2px); }
 .modern-button:active { transform: translateY(0); }
@@ -316,11 +316,11 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 .led-base.aceso.vermelho { fill: #ff0000; color: #ff0000; animation: pisca 0.8s infinite; }
 .led-base.aceso.amarelo { fill: #ffdd00; color: #ffdd00; animation: pisca 0.8s infinite; }
 .led-base.aceso.verde { fill: #00ff00; color: #00ff00; animation: pisca 0.8s infinite; }
-.agua-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
+.agua-wrapper { width: 100%; height: 100%; position: relative; overflow: visible; }
 .agua { position: absolute; bottom: 0; width: 100%; height: 0%; background: linear-gradient(to top, #06b6d4, #3b82f6); transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1); overflow: visible; color: white; font-weight: 800; text-align: center; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-.agua::before, .agua::after { content: ""; position: absolute; width: 200%; height: 20px; top: -15px; left: 0; background-repeat: repeat-x; border-radius: 45%; background: rgba(255,255,255,0.3); }
+.agua::before, .agua::after { content: ""; position: absolute; width: 200%; height: 20px; top: -15px; left: 0; background-repeat: repeat-x; border-radius: 45%; background: rgba(255,255,255,0.15); }
 .agua::before { transform: translateX(-50%); animation: onda1 4s linear infinite; }
-.agua::after { top: -12px; transform: translateX(-50%); background: rgba(255,255,255,0.15); animation: onda2 6s linear infinite; }
+.agua::after { top: -12px; transform: translateX(-50%); background: rgba(255,255,255,0.1); animation: onda2 6s linear infinite; }
 @keyframes onda1 { 0% { transform: translateX(0) translateY(0) scaleY(1); } 50% { transform: translateX(-25%) translateY(2px) scaleY(0.9); } 100% { transform: translateX(-50%) translateY(0) scaleY(1); } }
 @keyframes onda2 { 0% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-25%) translateY(2px); } 100% { transform: translateX(0) translateY(0); } }
 </style>
@@ -372,25 +372,43 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </div>
 </div>
 <div class="reservatorio-wrapper" id="caixa-container">
-<svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
+<!-- NOVO SVG TAÇA COM ÁGUA ANIMADA -->
+<svg viewBox="0 0 220 520" width="100%" height="auto" preserveAspectRatio="xMidYMin meet">
 <defs>
-<linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
-<stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/>
+<linearGradient id="gradTorre" x1="0" y1="0" x2="1" y2="0">
+<stop offset="0%" stop-color="#cfd8dc"/>
+<stop offset="50%" stop-color="#f5f7f8"/>
+<stop offset="100%" stop-color="#b0bec5"/>
 </linearGradient>
-<clipPath id="mascara-agua">
-<path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
+<linearGradient id="gradTanque" x1="0" y1="0" x2="1" y2="0">
+<stop offset="0%" stop-color="#e9eef1"/>
+<stop offset="50%" stop-color="#ffffff"/>
+<stop offset="100%" stop-color="#c2ccd2"/>
+</linearGradient>
+<clipPath id="clipTanque">
+<path d="M64 88 L156 88 L156 240 L146 270 Q110 288 74 270 L64 240 Z"/>
 </clipPath>
 </defs>
-<foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
-<div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
+<ellipse cx="110" cy="500" rx="70" ry="12" fill="rgba(0,0,0,0.16)"/>
+<rect x="78" y="260" width="64" height="220" fill="url(#gradTorre)"/>
+<rect x="62" y="482" width="96" height="16" fill="#b0bec5"/>
+<rect x="64" y="88" width="92" height="152" fill="url(#gradTanque)" stroke="#b0bec5" stroke-width="3"/>
+<path d="M64 240 L156 240 L146 270 Q110 288 74 270 Z" fill="#dde5ea" stroke="#b0bec5" stroke-width="3"/>
+<!-- ÁGUA ANIMADA DENTRO DA TAÇA -->
+<foreignObject x="64" y="88" width="92" height="200" clip-path="url(#clipTanque)">
+<div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper" style="height:100%; display:flex; flex-direction:column-reverse;">
 <div class="agua" id="agua">0%</div>
 </div>
 </foreignObject>
-<g id="estrutura-reservatorio">
-<g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
-<g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
-<g id="taca-solida"><path class="taca-solida" d="M 100 440 L 100 220 L 300 220 L 300 440 L 265 500 L 135 500 Z"/><path class="guarda-corpo" d="M 100 220 A 100 25 0 0 1 300 220"/></g>
-<g id="leds-base"><circle id="led-verde" class="led-base verde" cx="160" cy="975" r="12" /><circle id="led-amarelo" class="led-base amarelo" cx="200" cy="975" r="12" /><circle id="led-vermelho" class="led-base vermelho" cx="240" cy="975" r="12" /></g>
+<ellipse cx="110" cy="88" rx="46" ry="10" fill="#e0e6ea" stroke="#b0bec5" stroke-width="3"/>
+<ellipse cx="110" cy="70" rx="46" ry="10" fill="#ffffff" stroke="#b0bec5" stroke-width="3"/>
+<g stroke="#b0bec5" stroke-width="3" stroke-linecap="round">
+<line x1="64" y1="88" x2="64" y2="70"/>
+<line x1="156" y1="88" x2="156" y2="70"/>
+</g>
+<g stroke="#b0bec5" stroke-width="3" stroke-linecap="round">
+<line x1="96"  y1="96" x2="96"  y2="78"/>
+<line x1="124" y1="96" x2="124" y2="78"/>
 </g>
 </svg>
 </div>
@@ -731,9 +749,8 @@ function renderNivel(nivelPct, isSimulado = false) {
         elBarra.innerText = `${Math.round(nivelPct)}%`;
         
         // AQUI: Removida a condição 'if (isSimulado)' para cor de fundo
-        if (nivelPct > 60) elBarra.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
-        else if (nivelPct > nivelAlertaConfigurado) elBarra.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
-        else elBarra.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+        // ÁGUA SEMPRE AZUL
+        elBarra.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
     }
 
     // 3. Status Container
@@ -1091,8 +1108,6 @@ window.addEventListener('load', function() {
     });
 });
 </script>
-</body>
-</html>
 </textarea>
 
 <!-- ========================================================================= -->
@@ -1278,6 +1293,25 @@ async function safeFetchDashboard(url) {
         if(id) clearTimeout(id);
         return null;
     }
+}
+
+async function fetchLastValidFromHistory(histPath) {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const url = cleanFirebaseUrl(DB_BASE, `${histPath}/${today}.json`) + `&orderBy="$key"&limitToLast=1`;
+        const r = await safeFetchDashboard(url);
+        if(r) {
+            const keys = Object.keys(r);
+            if(keys.length > 0) {
+                const lastEntry = r[keys[0]];
+                return {
+                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
+                    time: lastEntry.timestamp || 0
+                };
+            }
+        }
+    } catch(e) {}
+    return null;
 }
 
 // --- UPDATE DASHBOARD SEQUENCIAL (ANTI-TRAVAMENTO & COM BACKUP) ---
