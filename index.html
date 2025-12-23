@@ -190,7 +190,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 <div id="dashboard-container">
     <div class="header">
         <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
-        <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
+        <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais" onerror="this.style.display='none'; document.querySelector('h1').style.marginTop='20px'">
         <h1>Central de Monitoramento</h1>
     </div>
 
@@ -576,7 +576,8 @@ let watchdogInterval = null;
 let ultimoUpdateEmMs = 0;
 const UPDATE_MS = 2500;
 let lastUpdateTimestamp = 0; let contadorZerosConsecutivos = 0; 
-let bufferLeituras = []; let contadorLeiturasFantasmas = 0; let ultimoNivelExibido = -1; 
+let bufferLeiturasValidas = []; // Buffer para filtro de mediana
+let lastSavedValidTime = 0; // Controle de tempo de salvamento
 function calcularVolumeLitros(nivelPercentual) { if (nivelPercentual <= 0) return 0; if (nivelPercentual > 100) nivelPercentual = 100; return Math.floor((nivelPercentual / 100) * capacidadeTotal); }
 function getLocalISODate(dateObj) { const d = dateObj || new Date(); const offset = d.getTimezoneOffset() * 60000; const localDate = new Date(d.getTime() - offset); return localDate.toISOString().split('T')[0]; }
 function getNoCacheUrl(url) { 
@@ -641,7 +642,38 @@ async function adicionarContato(valor, tipo) { if (!valor) return; const novoCon
 async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
 async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = r; } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
 function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted[mid]; }
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
+
+// LÓGICA DE DESCIDA DE EMERGÊNCIA (SIMULAÇÃO)
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
+    const agora = Date.now();
+    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
+    let nivelSimulado = nivelInicial;
+    
+    // Regra de Descida:
+    // - Primeiras 8h (4 blocos de 2h): Cai 5% a cada 2h.
+    // - Próximas 12h (2 blocos de 6h): Cai 5% a cada 6h.
+    // - Próximas 8h (2 blocos de 4h): Cai 5% a cada 4h.
+    // - Depois: Cai 5% a cada 2h (vazamento rápido).
+    let quedasAplicadas = 0;
+    while (horasPassadas > 0 && nivelSimulado > 0) {
+        let duracaoBloco = 2; // Padrão
+        quedasAplicadas++;
+        
+        if (quedasAplicadas <= 4) { duracaoBloco = 2; }      // Até 8h totais
+        else if (quedasAplicadas <= 6) { duracaoBloco = 6; } // Até 20h totais
+        else if (quedasAplicadas <= 8) { duracaoBloco = 4; } // Até 28h totais
+        else { duracaoBloco = 2; }                           // Vazamento critico
+        
+        if (horasPassadas >= duracaoBloco) {
+            nivelSimulado -= 5; // Tira 5%
+            horasPassadas -= duracaoBloco;
+        } else {
+            break; // Não completou o bloco de tempo ainda
+        }
+    }
+    if (nivelSimulado < 0) nivelSimulado = 0;
+    return nivelSimulado;
+}
 
 // Nova Função para buscar dados históricos caso o realtime esteja 0/offline
 async function buscarBackupHistorico() {
@@ -678,23 +710,27 @@ function extrairNivelPct(dados) {
 }
 
 // Renderiza o nível na DOM existente do template
-function renderNivel(nivelPct) {
+// Parâmetro 'isSimulado' adicionado para controle visual
+function renderNivel(nivelPct, isSimulado = false) {
     nivelAtual = nivelPct; // Atualiza variável global
 
-    // 1. Texto do Nível
+    // 1. Texto do Nível (Mantém cor laranja se simulado para alerta discreto)
     const elTexto = document.getElementById("status-level");
     if (elTexto) {
         elTexto.innerText = `${Math.round(nivelPct)}%`;
-        if (nivelPct > 60) elTexto.style.color = 'var(--level-ok)';
+        if (isSimulado) elTexto.style.color = '#d97706'; 
+        else if (nivelPct > 60) elTexto.style.color = 'var(--level-ok)';
         else if (nivelPct > nivelAlertaConfigurado) elTexto.style.color = 'var(--level-warn)';
         else elTexto.style.color = 'var(--level-danger)';
     }
 
-    // 2. Barra de Água (SVG)
+    // 2. Barra de Água (SVG) - CORRIGIDO: Sempre usa as cores reais, mesmo simulado
     const elBarra = document.getElementById("agua");
     if (elBarra) {
         elBarra.style.height = `${nivelPct}%`;
         elBarra.innerText = `${Math.round(nivelPct)}%`;
+        
+        // AQUI: Removida a condição 'if (isSimulado)' para cor de fundo
         if (nivelPct > 60) elBarra.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
         else if (nivelPct > nivelAlertaConfigurado) elBarra.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
         else elBarra.style.background = 'linear-gradient(to top, #ff3333, #990000)';
@@ -727,20 +763,33 @@ function renderNivel(nivelPct) {
         document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivelPct)} <small>L</small>`;
     }
     if(document.getElementById('status-time')) {
-        document.getElementById('status-time').innerText = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('status-time').innerText = isSimulado ? timeStr + "*" : timeStr;
     }
     
-    // 6. Indicador Live e Esconder Alertas Falsos
+    // 6. Indicador Live e Simulado
     const liveIndicator = document.getElementById('live-indicator');
+    const simIndicator = document.getElementById('simulated-indicator');
+    
     if (liveIndicator) {
-        liveIndicator.classList.remove('offline');
-        liveIndicator.classList.add('online');
+        if (isSimulado) {
+            liveIndicator.classList.remove('online');
+            liveIndicator.classList.add('offline');
+        } else {
+            liveIndicator.classList.remove('offline');
+            liveIndicator.classList.add('online');
+        }
     }
     document.getElementById('emergency-badge').style.display = 'none'; 
-    document.getElementById('simulated-indicator').style.display = 'none';
+    if (simIndicator) {
+        simIndicator.style.display = isSimulado ? 'inline-flex' : 'none';
+    }
 
     // Checagem de Alarme
-    if (nivelPct <= nivelAlertaConfigurado) { 
+    // Bloqueia alarme se for simulado E o nível for <= 0 (evita spam de erros)
+    let bloquearAlarme = (isSimulado && nivelPct <= 0);
+
+    if (!bloquearAlarme && nivelPct <= nivelAlertaConfigurado) { 
         if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } 
         if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { 
             enviarEmailAlerta(nivelPct); mostrarAlertaModal(); alertaModalMostrado = true; 
@@ -756,31 +805,115 @@ function renderNivel(nivelPct) {
     }
 }
 
-// LOOP PRINCIPAL (Watchdog style do seu snippet)
+// Salva a leitura válida no Firebase para persistência entre sessões
+async function salvarUltimaLeituraValida(nivel, timestamp) {
+    // Caminho: ..._config/ultima_leitura_valida.json
+    const url = `${PATH_CONFIG_BASE}/ultima_leitura_valida.json`;
+    const dados = { nivel: nivel, timestamp: timestamp };
+    try {
+        await fetch(url, { method: 'PUT', body: JSON.stringify(dados) });
+    } catch(e) { console.log("Erro ao salvar ultima valida", e); }
+}
+
+// Busca a leitura válida salva no Firebase (caso o buffer local esteja vazio)
+async function buscarBackupUltimaValidaFirebase() {
+    const url = `${PATH_CONFIG_BASE}/ultima_leitura_valida.json`;
+    try {
+        const r = await safeFetch(url);
+        if (r && r.nivel) return r;
+    } catch(e) {}
+    return null;
+}
+
+// LOOP PRINCIPAL (Watchdog style)
 async function loopDeAtualizacao() {
   try {
-    // safeFetch aqui retorna JSON diretamente (modificado)
     const dados = await safeFetch(PATH_TEMPO_REAL);
     
-    if(dados) {
-        const nivelPct = extrairNivelPct(dados);
+    // Extrai o nível cru (pode ser 0 ou null)
+    let nivelCru = extrairNivelPct(dados);
+    let nivelFinal = 0;
+    let isSimulado = false;
 
-        if (nivelPct !== null) {
-            renderNivel(nivelPct);
-            ultimoUpdateEmMs = Date.now();
-            
-            // Salvar histórico a cada hora ou 5 min
-            const agora = new Date(); 
-            const horaAtual = agora.getHours(); 
-            const agoraMs = agora.getTime(); 
-            if ((horaAtual !== ultimoHorarioSalvo || (agoraMs - ultimoTempoSalvo > 300000)) && nivelPct > 0) { 
-                await salvarLeituraNoFirebase(Number(nivelPct), agoraMs, 'real'); 
-                ultimoHorarioSalvo = horaAtual; 
-                ultimoTempoSalvo = agoraMs; 
-                if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
+    // --- LÓGICA DE FILTRO E LATCH ---
+    if (nivelCru !== null && nivelCru > 0) {
+        // LEITURA VÁLIDA:
+        // 1. Adiciona ao buffer (tamanho 5 para mediana estável)
+        bufferLeiturasValidas.push(nivelCru);
+        if (bufferLeiturasValidas.length > 5) bufferLeiturasValidas.shift(); 
+        
+        // 2. Calcula a Mediana para evitar "fantasmas" (picos isolados)
+        const sorted = [...bufferLeiturasValidas].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        const mediana = sorted.length > 0 ? sorted[mid] : nivelCru;
+
+        // "Faça a média e fixe" - Mediana é melhor para filtrar fantasmas, mas se quiser média simples:
+        // const sum = bufferLeiturasValidas.reduce((a,b)=>a+b,0); const media = sum/bufferLeiturasValidas.length;
+        
+        // Vou usar a MEDIANA pois filtra picos errados melhor que a média.
+        nivelFinal = mediana; 
+        isSimulado = false;
+
+        // 3. Salva no Firebase (com debounce de 1 min)
+        // "Sempre deixe o maior numero gravado": Se o buffer tiver oscilando, a mediana segura.
+        // Se a leitura for consistente, salvamos.
+        const agora = Date.now();
+        if (agora - lastSavedValidTime > 60000) {
+            // Verifica se vale a pena salvar (evita salvar zeros ou quedas bruscas irreais se tivermos histórico)
+            // Mas como é leitura válida confirmada pelo buffer, confiamos nela.
+            salvarUltimaLeituraValida(nivelFinal, agora);
+            lastSavedValidTime = agora;
+        }
+        
+        // Salvar histórico normal
+        const horaAtual = new Date().getHours(); 
+        if ((horaAtual !== ultimoHorarioSalvo || (agora - ultimoTempoSalvo > 300000)) && nivelFinal > 0) { 
+            await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real'); 
+            ultimoHorarioSalvo = horaAtual; 
+            ultimoTempoSalvo = agora; 
+            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
+        }
+
+    } else {
+        // LEITURA INVÁLIDA (0% ou Null) -> ENTRA MODO EMERGÊNCIA
+        isSimulado = true;
+        let baseNivel = 0;
+        let baseTime = 0;
+
+        // 1. Tenta usar o buffer local (memória RAM)
+        if (bufferLeiturasValidas.length > 0) {
+            // Usa a última mediana válida do buffer
+            const sorted = [...bufferLeiturasValidas].sort((a, b) => a - b);
+            baseNivel = sorted[Math.floor(sorted.length / 2)];
+            baseTime = Date.now(); 
+        } else {
+            // 2. Se buffer vazio (ex: F5 na página), busca do Firebase
+            const backup = await buscarBackupUltimaValidaFirebase();
+            if (backup) {
+                baseNivel = backup.nivel;
+                baseTime = backup.timestamp;
+            } else {
+                // 3. Se nem no Firebase tem, tenta o histórico do dia
+                const hist = await buscarBackupHistorico();
+                if (hist) {
+                    baseNivel = hist.pct;
+                    baseTime = hist.time;
+                }
             }
         }
+
+        // Se conseguiu alguma base válida, calcula a simulação
+        if (baseNivel > 0) {
+            nivelFinal = calcularNivelSimuladoLatch(baseNivel, baseTime);
+        } else {
+            // Se realmente não tem nada, mantemos 0 (raro)
+            nivelFinal = 0; 
+        }
     }
+
+    renderNivel(nivelFinal, isSimulado);
+    ultimoUpdateEmMs = Date.now();
+
   } catch (e) {
     // Falha silenciosa, watchdog cuida
   }
@@ -1147,34 +1280,16 @@ async function safeFetchDashboard(url) {
     }
 }
 
-async function fetchLastValidFromHistory(histPath) {
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const url = cleanFirebaseUrl(DB_BASE, `${histPath}/${today}.json`) + `&orderBy="$key"&limitToLast=1`;
-        const r = await safeFetchDashboard(url);
-        if(r) {
-            const keys = Object.keys(r);
-            if(keys.length > 0) {
-                const lastEntry = r[keys[0]];
-                return {
-                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
-                    time: lastEntry.timestamp || 0
-                };
-            }
-        }
-    } catch(e) {}
-    return null;
-}
-
-// --- UPDATE DASHBOARD SEQUENCIAL (ANTI-TRAVAMENTO) ---
+// --- UPDATE DASHBOARD SEQUENCIAL (ANTI-TRAVAMENTO & COM BACKUP) ---
 async function updateDashboardData() {
     const activeItems = [...listPP, ...listSAU].filter(i => i.active);
     
-    // Loop sequencial em vez de Promise.all para não saturar a rede do App Inventor
+    // Loop sequencial
     for (const item of activeItems) {
         try {
-            const url = cleanFirebaseUrl(DB_BASE, item.firebaseDataPath);
-            const d = await safeFetchDashboard(url);
+            // 1. Tenta pegar o valor realtime
+            const urlReal = cleanFirebaseUrl(DB_BASE, item.firebaseDataPath);
+            const d = await safeFetchDashboard(urlReal);
             
             let lvl = 0;
             let isSimulated = false;
@@ -1190,14 +1305,26 @@ async function updateDashboardData() {
                 lvl = rawLvl;
                 isSimulated = false;
             } else {
+                // 2. Se realtime falhou (0%), busca a última válida no config para simular
                 let lastValidPct = 0;
                 let lastValidTime = 0;
 
+                // Tenta do realtime se tiver (legado)
                 if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
-                     lastValidPct = d.ultima_valida_pct;
-                     lastValidTime = d.ultima_valida_time;
-                } else {
-                    // Histórico desativado no loop rápido para não pesar
+                      lastValidPct = d.ultima_valida_pct;
+                      lastValidTime = d.ultima_valida_time;
+                } 
+                
+                // Se não achou, tenta no JSON de backup (O NOVO MÉTODO)
+                if (lastValidPct === 0) {
+                    try {
+                        const urlBackup = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
+                        const backup = await safeFetchDashboard(urlBackup);
+                        if(backup && backup.nivel) {
+                            lastValidPct = backup.nivel;
+                            lastValidTime = backup.timestamp;
+                        }
+                    } catch(e2){}
                 }
 
                 if (lastValidPct > 0) {
