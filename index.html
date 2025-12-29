@@ -208,7 +208,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 
 <!-- ========================================================================= -->
 <!-- TEMPLATE UNIVERSAL ÚNICO (Para TODAS as Caixas)                           -->
-<!-- Este código é injetado no iframe, substituindo as variáveis __VARS__       -->
+<!-- Este código é injetado no iframe, substituindo as variáveis __VARS__        -->
 <!-- ========================================================================= -->
 <textarea id="app-template" style="display:none;">
 <!DOCTYPE html>
@@ -659,7 +659,7 @@ function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
         let duracaoBloco = 2; // Padrão
         quedasAplicadas++;
         
-        if (quedasAplicadas <= 4) { duracaoBloco = 2; }      // Até 8h totais
+        if (quedasAplicadas <= 4) { duracaoBloco = 2; }       // Até 8h totais
         else if (quedasAplicadas <= 6) { duracaoBloco = 6; } // Até 20h totais
         else if (quedasAplicadas <= 8) { duracaoBloco = 4; } // Até 28h totais
         else { duracaoBloco = 2; }                           // Vazamento critico
@@ -1104,12 +1104,12 @@ const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com"
 
 // Lista de Praças (PP)
 const listPP = [
-    { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP1.json', firebaseConfigPath: '/PP1_config', firebaseHistPath: '/PP1_historico', title: 'Praça de Pedágio 01' },
-    { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP2.json', firebaseConfigPath: '/PP2_config', firebaseHistPath: '/PP2_historico', title: 'Praça de Pedágio 02' },
-    { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP3.json', firebaseConfigPath: '/PP3_config', firebaseHistPath: '/PP3_historico', title: 'Praça de Pedágio 03' },
-    { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP4.json', firebaseConfigPath: '/PP4_config', firebaseHistPath: '/PP4_historico', title: 'Praça de Pedágio 04' },
-    { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP5.json', firebaseConfigPath: '/PP5_config', firebaseHistPath: '/PP5_historico', title: 'Praça de Pedágio 05' },
-    { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP6.json', firebaseConfigPath: '/PP6_config', firebaseHistPath: '/PP6_historico', title: 'Praça de Pedágio 06' },
+    { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
+    { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
+    { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
+    { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
+    { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
+    { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
     { 
         id: 'pp7', 
         name: 'PP 07', 
