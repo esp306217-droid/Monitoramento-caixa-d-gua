@@ -491,7 +491,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </div>
 <div id="status-altura" class="small" style="font-weight:bold;"></div>
 </div>
-<div class="config-card glass-panel">
+<div class="config-card glass-panel" id="card-novo-contato">
 <h2>Novo Contato</h2>
 <div class="form-group">
 <input type="text" id="contato-valor" placeholder="Email ou Telegram">
@@ -503,6 +503,16 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </div>
 <div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
 </div>
+<!-- CARD DO TELEGRAM BOT (VISÍVEL PARA TODOS) -->
+<div class="config-card glass-panel" id="card-telegram-bot">
+<h2>Telegram Bot</h2>
+<div class="form-group">
+<p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:10px;">Receba alertas no seu celular.</p>
+<a href="https://t.me/Caixadguap7_bot" target="_blank" class="modern-button" style="text-decoration:none; background-color:#229ED9; color:white; width:100%;">
+<i class="fab fa-telegram-plane"></i> Iniciar Bot
+</a>
+</div>
+</div>
 <div class="config-card glass-panel">
 <h2>Nível Alerta (%)</h2>
 <div class="form-group">
@@ -511,7 +521,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </div>
 <div id="status-alerta" class="small" style="font-weight:bold;"></div>
 </div>
-<div class="config-card glass-panel" style="grid-column: 1 / -1;">
+<div class="config-card glass-panel" style="grid-column: 1 / -1;" id="card-lista-contatos">
 <h2>Contatos Cadastrados</h2>
 <ul id="lista-contatos"></ul>
 <div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div>
@@ -957,6 +967,19 @@ window.addEventListener('load', function() {
     const dateControls = document.getElementById('date-controls'); 
     const btnAt = document.getElementById('btnAtualizar');
 
+    // ========== NOVO: LÓGICA DE EXIBIÇÃO POR ID ==========
+    const currentAppId = '__APP_ID__';
+    const whitelistNovoContato = ['pp7', 'sau11', 'sau13'];
+    
+    // Se o ID não estiver na whitelist, remove o card de Novo Contato e a lista de contatos
+    if (!whitelistNovoContato.includes(currentAppId)) {
+        const cardContato = document.getElementById('card-novo-contato');
+        const cardLista = document.getElementById('card-lista-contatos');
+        if (cardContato) cardContato.style.display = 'none';
+        if (cardLista) cardLista.style.display = 'none';
+    }
+    // ====================================================
+
     function switchView(viewName) { 
         activeTab = viewName; 
         for (const key in views) { if(views[key]) views[key].style.display = 'none'; } 
@@ -1190,6 +1213,7 @@ function prepararAbertura(id) {
     let rawHTML = document.getElementById('app-template').value;
 
     rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title);
+    rawHTML = rawHTML.replace(/__APP_ID__/g, item.id); // Substituição do ID para lógica interna
     rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
     rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
     rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath);
