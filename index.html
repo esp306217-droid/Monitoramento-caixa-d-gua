@@ -141,6 +141,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
     background: #fff; z-index: 9999;
 }
 #app-overlay.active { display: block; }
+/* IMPORTANTE: allow-top-navigation permite que o link do telegram quebre o iframe */
 #app-frame { width: 100%; height: 100%; border: none; }
 
 /* --- ESTILO ADICIONADO: POPUP DE MANUTENÇÃO --- */
@@ -202,8 +203,9 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 </div>
 
 <!-- OVERLAY PARA EXIBIR OS APPS ORIGINAIS -->
+<!-- Sandbox ajustado para permitir navegação no topo -->
 <div id="app-overlay">
-    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
 </div>
 
 <!-- ========================================================================= -->
@@ -508,10 +510,10 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <h2>Telegram Bot</h2>
 <div class="form-group">
 <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:10px;">Receba alertas no seu celular.</p>
-<!-- Ajuste para WebView MIT App Inventor: removido target="_blank" e usado onclick com location.href -->
-<button onclick="window.location.href='https://t.me/Caixadguap7_bot'" class="modern-button" style="background-color:#229ED9; color:white; width:100%;">
+<!-- Ajuste para WebView MIT App Inventor: link target="_top" para forçar abertura no app externo -->
+<a href="https://t.me/Caixadguap7_bot" target="_top" class="modern-button" style="text-decoration:none; background-color:#229ED9; color:white; width:100%; display:flex; align-items:center; justify-content:center;">
 <i class="fab fa-telegram-plane"></i> Iniciar Bot
-</button>
+</a>
 </div>
 </div>
 <div class="config-card glass-panel">
