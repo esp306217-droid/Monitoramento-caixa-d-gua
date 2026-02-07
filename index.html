@@ -5,65 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#0f172a">
 <title>Monitoramento Via Cristais - Central</title>
+
+<!-- Fontes e Ícones -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
-:root { --bg-body: #f0f2f5; --text-main: #1e293b; --text-sec: #64748b; --card-bg: rgba(255, 255, 255, 0.95); --card-border: rgba(226, 232, 240, 0.8); --accent: #06b6d4; --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1); --level-ok: #10b981; --level-warn: #f59e0b; --level-danger: #ef4444; --level-offline: #94a3b8; }
-[data-theme="dark"] { --bg-body: #0f172a; --text-main: #f1f5f9; --text-sec: #94a3b8; --card-bg: rgba(30, 41, 59, 0.85); --card-border: rgba(255, 255, 255, 0.1); --accent: #22d3ee; --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
+/* --- ESTILO GERAL DO DASHBOARD --- */
+:root {
+    --bg-body: #f0f2f5;
+    --text-main: #1e293b;
+    --text-sec: #64748b;
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --card-border: rgba(226, 232, 240, 0.8);
+    --accent: #06b6d4; 
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    
+    --level-ok: #10b981;
+    --level-warn: #f59e0b;
+    --level-danger: #ef4444;
+    --level-offline: #94a3b8;
+}
+
+[data-theme="dark"] {
+    --bg-body: #0f172a;
+    --text-main: #f1f5f9;
+    --text-sec: #94a3b8;
+    --card-bg: rgba(30, 41, 59, 0.85);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --accent: #22d3ee;
+    --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { font-family: 'Poppins', sans-serif; background: var(--bg-body); background-image: radial-gradient(at 0% 0%, hsla(192,70%,80%,0.05) 0, transparent 50%), radial-gradient(at 100% 100%, hsla(200,80%,80%,0.05) 0, transparent 50%); color: var(--text-main); margin: 0; padding: 20px; transition: background-color 0.3s ease; }
+body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg-body);
+    background-image: radial-gradient(at 0% 0%, hsla(192,70%,80%,0.05) 0, transparent 50%), radial-gradient(at 100% 100%, hsla(200,80%,80%,0.05) 0, transparent 50%);
+    color: var(--text-main);
+    margin: 0; padding: 20px;
+    transition: background-color 0.3s ease;
+}
+
+/* Header */
 .header { text-align: center; margin-bottom: 40px; position: relative; }
 .logo { width: 160px; mix-blend-mode: multiply; margin-bottom: 10px; }
 [data-theme="dark"] .logo { filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2); mix-blend-mode: screen; }
 h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-.theme-toggle { position: absolute; top: 0; right: 0; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; box-shadow: var(--shadow-card); }
-.section-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 30px 0 15px 5px; border-left: 5px solid var(--accent); padding-left: 10px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto; }
-.card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: var(--shadow-card); cursor: pointer; text-decoration: none; position: relative; overflow: hidden; transition: transform 0.2s; min-height: 150px; }
+
+/* Botão Tema Dashboard */
+.theme-toggle {
+    position: absolute; top: 0; right: 0;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    color: var(--text-main); width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    cursor: pointer; box-shadow: var(--shadow-card);
+}
+
+/* Grid */
+.section-title {
+    font-size: 1.1rem; font-weight: 700; color: var(--text-main);
+    margin: 30px 0 15px 5px; border-left: 5px solid var(--accent); padding-left: 10px;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    max-width: 1200px; margin: 0 auto;
+}
+
+/* Card */
+.card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-card); cursor: pointer;
+    text-decoration: none; position: relative; overflow: hidden;
+    transition: transform 0.2s; min-height: 150px;
+}
 .card:active { transform: scale(0.96); }
 .card.inactive { opacity: 0.6; filter: grayscale(1); cursor: default; pointer-events: none; }
-.card-water-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: linear-gradient(to top, rgba(6,182,212,0.2), rgba(6,182,212,0.5)); transition: height 0.5s ease-out; z-index: 0; }
-.card-content { position: relative; z-index: 1; padding: 20px 15px; width: 100%; display: flex; flex-direction: column; align-items: center; }
-.card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--level-offline); transition: background 0.3s; z-index: 2; }
+
+/* Fundo Animado de Água */
+.card-water-bg {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
+    background: linear-gradient(to top, rgba(6,182,212,0.2), rgba(6,182,212,0.5));
+    transition: height 0.5s ease-out; z-index: 0;
+}
+
+/* Conteúdo do Card */
+.card-content {
+    position: relative; z-index: 1; padding: 20px 15px;
+    width: 100%; display: flex; flex-direction: column; align-items: center;
+}
+
+/* Barra Lateral Status */
+.card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    background: var(--level-offline); transition: background 0.3s; z-index: 2;
+}
 .card[data-status="ok"]::before { background: var(--level-ok); }
 .card[data-status="warn"]::before { background: var(--level-warn); }
 .card[data-status="danger"]::before { background: var(--level-danger); }
-.card[data-status="simulated"]::before { background: #d97706; }
+.card[data-status="simulated"]::before { background: #d97706; } /* Cor Laranja Escuro para Estimado */
+
+/* Ícone e Texto */
 .card-icon { font-size: 2rem; color: var(--text-sec); margin-bottom: 10px; }
-.card-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; }
+.card-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; text-align: center; }
 .card-level { font-size: 1.5rem; font-weight: 800; color: var(--text-sec); }
 .card-status { font-size: 0.75rem; color: var(--text-sec); margin-top: 5px; }
-.simulated-badge { position: absolute; top: 10px; left: 10px; background: #d97706; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+/* Indicador de Leitura Estimada no Card */
+.simulated-badge {
+    position: absolute; top: 10px; left: 10px; 
+    background: #d97706; color: white; border-radius: 50%; width: 22px; height: 22px;
+    font-size: 14px; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 2;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
 .card[data-status="simulated"] .simulated-badge { display: flex; }
-.live-dot { position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; background: var(--level-ok); border-radius: 50%; box-shadow: 0 0 5px var(--level-ok); display: none; animation: pulse 2s infinite; z-index: 2; }
+
+/* Animação Online */
+.live-dot {
+    position: absolute; top: 10px; right: 10px; width: 10px; height: 10px;
+    background: var(--level-ok); border-radius: 50%; box-shadow: 0 0 5px var(--level-ok);
+    display: none; animation: pulse 2s infinite; z-index: 2;
+}
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-#app-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; }
+
+/* --- IFRAME FULLSCREEN --- */
+#app-overlay {
+    display: none;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #fff; z-index: 9999;
+}
 #app-overlay.active { display: block; }
+/* IMPORTANTE: allow-top-navigation permite que links target="_top" funcionem */
 #app-frame { width: 100%; height: 100%; border: none; }
-#maintenance-popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 30000; }
-.m-box { background: var(--card-bg); border: 4px solid #d4af37; border-radius: 24px; padding: 40px 30px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 0 30px rgba(212, 175, 55, 0.4); animation: m-fade-in 0.5s ease; }
+
+/* --- ESTILO ADICIONADO: POPUP DE MANUTENÇÃO --- */
+#maintenance-popup {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; z-index: 30000;
+}
+.m-box {
+    background: var(--card-bg); border: 4px solid #d4af37; border-radius: 24px;
+    padding: 40px 30px; max-width: 500px; width: 90%; text-align: center;
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.4); animation: m-fade-in 0.5s ease;
+}
 @keyframes m-fade-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-.m-icon-anim { font-size: 4rem; color: #d4af37; margin-bottom: 20px; display: inline-block; animation: m-gear 3s infinite linear; }
+.m-icon-anim {
+    font-size: 4rem; color: #d4af37; margin-bottom: 20px;
+    display: inline-block; animation: m-gear 3s infinite linear;
+}
 @keyframes m-gear { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 .m-title { font-weight: 700; font-size: 1.5rem; margin-bottom: 15px; color: var(--text-main); }
 .m-desc { color: var(--text-sec); line-height: 1.6; margin-bottom: 20px; font-size: 1.05rem; }
 .m-warning { color: var(--text-main); font-size: 0.95rem; border-top: 1px solid rgba(212, 175, 55, 0.3); padding-top: 15px; }
-.m-btn { margin-top: 25px; background: #d4af37; color: #fff; border: none; padding: 12px 40px; border-radius: 50px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-family: 'Poppins', sans-serif; }
+.m-btn {
+    margin-top: 25px; background: #d4af37; color: #fff; border: none;
+    padding: 12px 40px; border-radius: 50px; font-weight: 700; cursor: pointer;
+    transition: all 0.3s; font-family: 'Poppins', sans-serif;
+}
 .m-btn:hover { background: #b8952e; transform: translateY(-2px); }
 </style>
 </head>
 <body>
+
+<!-- POP-UP DE MANUTENÇÃO -->
 <div id="maintenance-popup">
-<div class="m-box"><div class="m-icon-anim"><i class="fas fa-cog"></i></div><div class="m-title">Aplicativo em manutenção</div><p class="m-desc">Estamos implantando as demais caixas d'água para melhorar nosso monitoramento.</p><div class="m-warning"><strong>FAVOR DESCONSIDERAR POSSÍVEIS ALARMES E ENVIOS DE EMAILS COM 0%.</strong></div><button class="m-btn" onclick="document.getElementById('maintenance-popup').style.display='none'">Entendido</button></div>
+    <div class="m-box">
+        <div class="m-icon-anim"><i class="fas fa-cog"></i></div>
+        <div class="m-title">Aplicativo em manutenção</div>
+        <p class="m-desc">Estamos implantando as demais caixas d'água para melhorar nosso monitoramento.</p>
+        <div class="m-warning">
+            <strong>FAVOR DESCONSIDERAR POSSÍVEIS ALARMES E ENVIOS DE EMAILS COM 0%.</strong>
+        </div>
+        <button class="m-btn" onclick="document.getElementById('maintenance-popup').style.display='none'">Entendido</button>
+    </div>
 </div>
+
+<!-- DASHBOARD VISÍVEL INICIALMENTE -->
 <div id="dashboard-container">
-<div class="header"><button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button><img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais" onerror="this.style.display='none'; document.querySelector('h1').style.marginTop='20px'"><h1>Central de Monitoramento</h1></div>
-<div class="section-title">Praças de Pedágio</div><div class="grid" id="grid-pp"></div>
-<div class="section-title">Bases SAU</div><div class="grid" id="grid-sau"></div>
+    <div class="header">
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+        <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais" onerror="this.style.display='none'; document.querySelector('h1').style.marginTop='20px'">
+        <h1>Central de Monitoramento</h1>
+    </div>
+
+    <div class="section-title">Praças de Pedágio</div>
+    <div class="grid" id="grid-pp"></div>
+
+    <div class="section-title">Bases SAU</div>
+    <div class="grid" id="grid-sau"></div>
 </div>
-<div id="app-overlay"><iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation allow-popups-to-escape-sandbox"></iframe></div>
+
+<!-- OVERLAY PARA EXIBIR OS APPS ORIGINAIS -->
+<div id="app-overlay">
+    <!-- Adicionadas permissões para navegação allow-top-navigation -->
+    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation allow-popups-to-escape-sandbox"></iframe>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TEMPLATE UNIVERSAL ÚNICO (Para TODAS as Caixas)                           -->
+<!-- Este código é injetado no iframe, substituindo as variáveis __VARS__        -->
+<!-- ========================================================================= -->
 <textarea id="app-template" style="display:none;">
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -82,6 +230,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <style>
+/* CSS do App Interno */
 :root { --bg-body: #f0f2f5; --text-main: #1e293b; --text-sec: #64748b; --card-bg: rgba(255, 255, 255, 0.95); --card-border: rgba(226, 232, 240, 0.8); --header-bg: rgba(255, 255, 255, 0.98); --accent: #06b6d4; --accent-hover: #0891b2; --input-bg: #f8fafc; --input-border: #cbd5e1; --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --level-ok: #10b981; --level-warn: #f59e0b; --level-danger: #ef4444; }
 [data-theme="dark"] { --bg-body: #0f172a; --text-main: #f1f5f9; --text-sec: #94a3b8; --card-bg: rgba(30, 41, 59, 0.85); --card-border: rgba(255, 255, 255, 0.1); --header-bg: rgba(15, 23, 42, 0.95); --accent: #22d3ee; --accent-hover: #67e8f9; --input-bg: #1e293b; --input-border: #334155; --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -172,6 +321,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </head>
 <body>
 <div id="emergency-badge" title="Sem Sinal">!</div>
+
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
 <button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
@@ -186,7 +336,12 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </div>
 <div id="caixa-view">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-<h2 style="font-size: 1rem; color: var(--text-sec); margin: 5px 0 10px 0; font-weight: 600; text-align: center;">__APP_TITLE__</h2>
+
+<div style="display:flex; justify-content:center; align-items:center; gap:10px; margin: 5px 0 10px 0;">
+    <h2 style="font-size: 1rem; color: var(--text-sec); margin: 0; font-weight: 600;">__APP_TITLE__</h2>
+    <a href="https://www.google.com/maps/search/?api=1&query=__MAPS_COORDS__" target="_top" style="color: #ef4444; font-size: 1.2rem;" title="Localização"><i class="fas fa-map-marker-alt"></i></a>
+</div>
+
 <div id="status-display" class="glass-panel">
 <div class="status-indicator-box"><div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div></div>
 <div class="status-item item-level"><span class="status-label">Nível Atual</span><div style="display:flex; justify-content:center; align-items:center;"><span class="status-value skeleton-text" id="status-level">--%</span><span id="simulated-indicator" style="display:none; background:#f59e0b; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; cursor:help; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Leitura Estimada (Sem Sinal)">?</span></div></div>
@@ -253,7 +408,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div class="config-card glass-panel"><h2>Capacidade (L)</h2><div class="form-group"><input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000"><button id="btn-salvar-capacidade" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-capacidade" class="small" style="font-weight:bold;"></div></div>
 <div class="config-card glass-panel"><h2>Altura (cm)</h2><div class="form-group"><input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1"><button id="btn-salvar-altura" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-altura" class="small" style="font-weight:bold;"></div></div>
 <div class="config-card glass-panel" id="card-novo-contato"><h2>Novo Contato</h2><div class="form-group"><input type="text" id="contato-valor" placeholder="Email ou Telegram"><select id="contato-tipo"><option value="email">Email</option><option value="telegram">Telegram</option></select><button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button></div><div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div></div>
-<div class="config-card glass-panel" id="card-telegram-bot"><h2>Telegram Bot</h2><div class="form-group"><p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:10px;">Receba alertas no seu celular.</p><button onclick="window.top.location.href='https://t.me/Caixadguap7_bot?start=start'" class="modern-button" style="background-color:#229ED9; color:white; width:100%;"><i class="fab fa-telegram-plane"></i> Iniciar Bot</button></div></div>
+<div class="config-card glass-panel" id="card-telegram-bot"><h2>Telegram Bot</h2><div class="form-group"><p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:10px;">Receba alertas no seu celular.</p><button id="btn-telegram-action" class="modern-button" style="background-color:#229ED9; color:white; width:100%; display:flex; align-items:center; justify-content:center;"><i class="fab fa-telegram-plane"></i> Iniciar Bot</button></div></div>
 <div class="config-card glass-panel"><h2>Nível Alerta (%)</h2><div class="form-group"><input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99"><button id="btn-salvar-nivel-alerta" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-alerta" class="small" style="font-weight:bold;"></div></div>
 <div class="config-card glass-panel" style="grid-column: 1 / -1;" id="card-lista-contatos"><h2>Contatos Cadastrados</h2><ul id="lista-contatos"></ul><div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div></div>
 </div>
@@ -369,6 +524,19 @@ window.addEventListener('load', function() {
     function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } 
     document.body.addEventListener('click', despertarAudio, { once: true }); 
     document.body.addEventListener('touchstart', despertarAudio, { once: true }); 
+    
+    // TELEGRAM FIX: Add click listener to button inside the template
+    const btnTel = document.getElementById('btn-telegram-action');
+    if(btnTel) {
+        btnTel.addEventListener('click', () => {
+            const url = "https://t.me/Caixadguap7_bot?start=start";
+            try {
+                if(window.top) { window.top.location.href = url; }
+                else { window.location.href = url; }
+            } catch(e) { window.location.href = url; }
+        });
+    }
+
     verificacaoInicialConcluida = true; 
     try { criarGraficos(); } catch(e) { console.log('Erro ao criar graficos', e); }
     const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); 
@@ -389,12 +557,12 @@ window.addEventListener('load', function() {
 </textarea>
 <script>
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
-const listPP = [ { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' }, { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' }, { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' }, { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' }, { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' }, { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' }, { id: 'pp7', name: 'PP 07', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'Praça de Pedágio 07 - Capim Branco/MG' } ];
-const listSAU = [ { id: 'sau01', name: 'SAU 01', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01' }, { id: 'sau02', name: 'SAU 02', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02' }, { id: 'sau03', name: 'SAU 03', active: true, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03' }, { id: 'sau04', name: 'SAU 04', active: true, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04' }, { id: 'sau05', name: 'SAU 05', active: true, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05' }, { id: 'sau06', name: 'SAU 06', active: true, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06' }, { id: 'sau07', name: 'SAU 07', active: true, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07' }, { id: 'sau08', name: 'SAU 08', active: true, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08' }, { id: 'sau09', name: 'SAU 09', active: true, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09' }, { id: 'sau10', name: 'SAU 10', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10' }, { id: 'sau11', name: 'SAU 11', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11' }, { id: 'sau12', name: 'SAU 12', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12' }, { id: 'sau13', name: 'SAU 13', active: true, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13 - Capim Branco/MG' }, { id: 'sau14', name: 'SAU 14', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' } ];
-function renderGrid(containerId, list, iconClass) { const container = document.getElementById(containerId); container.innerHTML = ''; list.forEach(item => { const cls = item.active ? '' : 'inactive'; const action = item.active ? `onclick="prepararAbertura('${item.id}')"` : ''; container.innerHTML += `<div class="card ${cls}" id="card-${item.id}" ${action}><div class="card-water-bg" id="bg-${item.id}"></div><div class="card-content"><div class="live-dot"></div><div class="simulated-badge" title="Valor Estimado">!</div><i class="${iconClass} card-icon"></i><div class="card-title">${item.name}</div><div class="card-level" id="lvl-${item.id}">--%</div><div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div></div></div>`; }); }
+const listPP = [ { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'PP 01 - Paracatu/MG', coords: '-17.098233, -47.026486' }, { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'PP 02 - Lagoa Grande/MG', coords: '-17.505925, -46.564761' }, { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'PP 03 - João Pinheiro/MG', coords: '-17.945544, -46.037600' }, { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'PP 04 - São Gonçalo do Abaeté/MG', coords: '-18.132631, -45.417289' }, { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'PP 05 - Felixlândia/MG', coords: '-18.565369, -45.020900' }, { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'PP 06 - Curvelo/MG', coords: '-19.079333, -44.655247' }, { id: 'pp7', name: 'PP 07', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'PP 07 - Capim Branco/MG', coords: '-19.601319, -44.221978' } ];
+const listSAU = [ { id: 'sau01', name: 'SAU 01', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01 - Cristalina/GO', coords: '-17.007067, -47.422869' }, { id: 'sau02', name: 'SAU 02', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02 - Cristalina/GO', coords: '-17.007036, -47.222869' }, { id: 'sau03', name: 'SAU 03', active: true, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03 - Paracatu/MG', coords: '-17.226303, -46.860847' }, { id: 'sau04', name: 'SAU 04', active: true, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04 - Paracatu/MG', coords: '-17.489497, -46.606253' }, { id: 'sau05', name: 'SAU 05', active: true, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05 - João Pinheiro/MG', coords: '-17.707331, -46.279814' }, { id: 'sau06', name: 'SAU 06', active: true, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06 - João Pinheiro/MG', coords: '-17.945833, -46.030556' }, { id: 'sau07', name: 'SAU 07', active: true, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07 - João Pinheiro/MG', coords: '-17.978008, -45.620039' }, { id: 'sau08', name: 'SAU 08', active: true, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08 - São Gonçalo do Abaeté/MG', coords: '-18.185247, -45.261031' }, { id: 'sau09', name: 'SAU 09', active: true, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09 - Três Marias/MG', coords: '-18.473639, -45.061050' }, { id: 'sau10', name: 'SAU 10', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10 - Felixlândia/MG', coords: '-18.764300, -44.837728' }, { id: 'sau11', name: 'SAU 11', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11 - Curvelo/MG', coords: '-19.076286, -44.654950' }, { id: 'sau12', name: 'SAU 12', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12 - Caetanópolis/MG', coords: '-19.300567, -44.378692' }, { id: 'sau13', name: 'SAU 13', active: true, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13 - Capim Branco/MG', coords: '-19.608456, -44.218711' }, { id: 'sau14', name: 'SAU 14', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14 - Contagem/MG', coords: '-19.885817, -44.050631' } ];
+function renderGrid(containerId, list, iconClass) { const container = document.getElementById(containerId); container.innerHTML = ''; list.forEach(item => { const cls = item.active ? '' : 'inactive'; const action = item.active ? `onclick="prepararAbertura('${item.id}')"` : ''; container.innerHTML += `<div class="card ${cls}" id="card-${item.id}" ${action} title="${item.title}"><div class="card-water-bg" id="bg-${item.id}"></div><div class="card-content"><div class="live-dot"></div><div class="simulated-badge" title="Valor Estimado">!</div><i class="${iconClass} card-icon"></i><div class="card-title">${item.name}</div><div class="card-level" id="lvl-${item.id}">--%</div><div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div></div></div>`; }); }
 function findItemById(id) { let item = listPP.find(i => i.id === id); if(!item) item = listSAU.find(i => i.id === id); return item; }
 let dashboardInterval = null;
-function prepararAbertura(id) { const item = findItemById(id); if (!item) return; let rawHTML = document.getElementById('app-template').value; rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title); rawHTML = rawHTML.replace(/__APP_ID__/g, item.id); rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath); rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath); rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath); rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); abrirApp(rawHTML); }
+function prepararAbertura(id) { const item = findItemById(id); if (!item) return; let rawHTML = document.getElementById('app-template').value; rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title); rawHTML = rawHTML.replace(/__APP_ID__/g, item.id); rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath); rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath); rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath); rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); rawHTML = rawHTML.replace(/__MAPS_COORDS__/g, item.coords || ''); abrirApp(rawHTML); }
 function abrirApp(htmlContent) { const overlay = document.getElementById('app-overlay'); const iframe = document.getElementById('app-frame'); iframe.srcdoc = htmlContent; overlay.classList.add('active'); if(dashboardInterval) clearInterval(dashboardInterval); }
 function fecharApp() { const overlay = document.getElementById('app-overlay'); const iframe = document.getElementById('app-frame'); iframe.srcdoc = ""; overlay.classList.remove('active'); updateDashboardData(); dashboardInterval = setInterval(updateDashboardData, 10000); }
 function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
