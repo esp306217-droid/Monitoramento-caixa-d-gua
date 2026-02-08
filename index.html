@@ -325,7 +325,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
 <button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
-<button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
+<button class="nav-button-icon-only" onclick="window.parent.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
 <button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
 <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
 <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
@@ -339,7 +339,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 
 <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin: 5px 0 10px 0;">
     <h2 style="font-size: 1rem; color: var(--text-sec); margin: 0; font-weight: 600;">__APP_TITLE__</h2>
-    <a href="https://www.google.com/maps/search/?api=1&query=__MAPS_COORDS__" target="_top" style="color: #ef4444; font-size: 1.2rem;" title="Localização"><i class="fas fa-map-marker-alt"></i></a>
+    <a href="#" id="btn-maps-action" data-coords="__MAPS_COORDS__" style="color: #ef4444; font-size: 1.2rem;" title="Abrir no Maps"><i class="fas fa-map-marker-alt"></i></a>
 </div>
 
 <div id="status-display" class="glass-panel">
@@ -528,12 +528,44 @@ window.addEventListener('load', function() {
     // TELEGRAM FIX: Add click listener to button inside the template
     const btnTel = document.getElementById('btn-telegram-action');
     if(btnTel) {
-        btnTel.addEventListener('click', () => {
-            const url = "https://t.me/Caixadguap7_bot?start=start";
+        btnTel.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Esquema 'tg://' força o Android/iOS a abrir o aplicativo instalado
+            // start=start envia o comando /start automaticamente
+            const url = "tg://resolve?domain=Caixadguap7_bot&start=start";
+            window.location.href = url;
+        });
+    }
+
+    // MAPS FIX
+    const btnMaps = document.getElementById('btn-maps-action');
+    if (btnMaps) {
+        btnMaps.addEventListener('click', (e) => {
+            e.preventDefault();
+            const coords = btnMaps.getAttribute('data-coords'); 
+            const q = coords.trim();
+            
+            // Tenta abrir com protocolo nativo
+            // Android: geo:lat,lon?q=lat,lon(Label)
+            // iOS: maps:?q=lat,lon
+            
+            let targetUrl = `https://www.google.com/maps/search/?api=1&query=${q}`; // Fallback universal
+            
+            const ua = navigator.userAgent || navigator.vendor || window.opera;
+            if (/android/i.test(ua)) {
+                targetUrl = `geo:${q}?q=${q}`;
+            } else if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+                targetUrl = `maps:?q=${q}`;
+            }
+            
             try {
-                if(window.top) { window.top.location.href = url; }
-                else { window.location.href = url; }
-            } catch(e) { window.location.href = url; }
+                 // Tenta navegar para a URL (seja geo:, maps: ou https:)
+                 // window.top força sair do iframe se for https
+                 if(window.top) { window.top.location.href = targetUrl; }
+                 else { window.location.href = targetUrl; }
+            } catch(e) {
+                 window.location.href = targetUrl;
+            }
         });
     }
 
@@ -551,27 +583,6 @@ window.addEventListener('load', function() {
     iniciarAtualizacao();
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { iniciarAtualizacao(); try { carregarHistoricoEConsumo(); } catch(e){} } });
 });
-</script>
-</body>
-</html>
-</textarea>
-<script>
-const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
-const listPP = [ { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'PP 01 - Paracatu/MG', coords: '-17.098233, -47.026486' }, { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'PP 02 - Lagoa Grande/MG', coords: '-17.505925, -46.564761' }, { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'PP 03 - João Pinheiro/MG', coords: '-17.945544, -46.037600' }, { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'PP 04 - São Gonçalo do Abaeté/MG', coords: '-18.132631, -45.417289' }, { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'PP 05 - Felixlândia/MG', coords: '-18.565369, -45.020900' }, { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'PP 06 - Curvelo/MG', coords: '-19.079333, -44.655247' }, { id: 'pp7', name: 'PP 07', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'PP 07 - Capim Branco/MG', coords: '-19.601319, -44.221978' } ];
-const listSAU = [ { id: 'sau01', name: 'SAU 01', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01 - Cristalina/GO', coords: '-17.007067, -47.422869' }, { id: 'sau02', name: 'SAU 02', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02 - Cristalina/GO', coords: '-17.007036, -47.222869' }, { id: 'sau03', name: 'SAU 03', active: true, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03 - Paracatu/MG', coords: '-17.226303, -46.860847' }, { id: 'sau04', name: 'SAU 04', active: true, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04 - Paracatu/MG', coords: '-17.489497, -46.606253' }, { id: 'sau05', name: 'SAU 05', active: true, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05 - João Pinheiro/MG', coords: '-17.707331, -46.279814' }, { id: 'sau06', name: 'SAU 06', active: true, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06 - João Pinheiro/MG', coords: '-17.945833, -46.030556' }, { id: 'sau07', name: 'SAU 07', active: true, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07 - João Pinheiro/MG', coords: '-17.978008, -45.620039' }, { id: 'sau08', name: 'SAU 08', active: true, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08 - São Gonçalo do Abaeté/MG', coords: '-18.185247, -45.261031' }, { id: 'sau09', name: 'SAU 09', active: true, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09 - Três Marias/MG', coords: '-18.473639, -45.061050' }, { id: 'sau10', name: 'SAU 10', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10 - Felixlândia/MG', coords: '-18.764300, -44.837728' }, { id: 'sau11', name: 'SAU 11', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11 - Curvelo/MG', coords: '-19.076286, -44.654950' }, { id: 'sau12', name: 'SAU 12', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12 - Caetanópolis/MG', coords: '-19.300567, -44.378692' }, { id: 'sau13', name: 'SAU 13', active: true, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13 - Capim Branco/MG', coords: '-19.608456, -44.218711' }, { id: 'sau14', name: 'SAU 14', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14 - Contagem/MG', coords: '-19.885817, -44.050631' } ];
-function renderGrid(containerId, list, iconClass) { const container = document.getElementById(containerId); container.innerHTML = ''; list.forEach(item => { const cls = item.active ? '' : 'inactive'; const action = item.active ? `onclick="prepararAbertura('${item.id}')"` : ''; container.innerHTML += `<div class="card ${cls}" id="card-${item.id}" ${action} title="${item.title}"><div class="card-water-bg" id="bg-${item.id}"></div><div class="card-content"><div class="live-dot"></div><div class="simulated-badge" title="Valor Estimado">!</div><i class="${iconClass} card-icon"></i><div class="card-title">${item.name}</div><div class="card-level" id="lvl-${item.id}">--%</div><div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div></div></div>`; }); }
-function findItemById(id) { let item = listPP.find(i => i.id === id); if(!item) item = listSAU.find(i => i.id === id); return item; }
-let dashboardInterval = null;
-function prepararAbertura(id) { const item = findItemById(id); if (!item) return; let rawHTML = document.getElementById('app-template').value; rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title); rawHTML = rawHTML.replace(/__APP_ID__/g, item.id); rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath); rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath); rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath); rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); rawHTML = rawHTML.replace(/__MAPS_COORDS__/g, item.coords || ''); abrirApp(rawHTML); }
-function abrirApp(htmlContent) { const overlay = document.getElementById('app-overlay'); const iframe = document.getElementById('app-frame'); iframe.srcdoc = htmlContent; overlay.classList.add('active'); if(dashboardInterval) clearInterval(dashboardInterval); }
-function fecharApp() { const overlay = document.getElementById('app-overlay'); const iframe = document.getElementById('app-frame'); iframe.srcdoc = ""; overlay.classList.remove('active'); updateDashboardData(); dashboardInterval = setInterval(updateDashboardData, 10000); }
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
-function cleanFirebaseUrl(baseUrl, path) { let cleanBase = baseUrl.trim(); if(cleanBase.endsWith('/')) cleanBase = cleanBase.slice(0, -1); let cleanPath = path.trim(); if(!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath; return `${cleanBase}${cleanPath}?nocache=${Date.now()}`; }
-async function safeFetchDashboard(url) { let controller = null; let signal = null; let id = null; if (typeof AbortController !== 'undefined') { controller = new AbortController(); id = setTimeout(() => controller.abort(), 4000); signal = controller.signal; } const options = { cache: 'no-store' }; if (signal) options.signal = signal; try { const response = await fetch(url, options); if(id) clearTimeout(id); if(!response.ok) return null; return response.json(); } catch(e) { if(id) clearTimeout(id); return null; } }
-async function updateDashboardData() { const activeItems = [...listPP, ...listSAU].filter(i => i.active); for (const item of activeItems) { try { const urlReal = cleanFirebaseUrl(DB_BASE, item.firebaseDataPath); const d = await safeFetchDashboard(urlReal); let lvl = 0; let isSimulated = false; let rawLvl = 0; if(d) { if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct); else if(d.nivel !== undefined) rawLvl = Number(d.nivel); else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual); } if (rawLvl > 0) { lvl = rawLvl; isSimulated = false; } else { let lastValidPct = 0; let lastValidTime = 0; if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) { lastValidPct = d.ultima_valida_pct; lastValidTime = d.ultima_valida_time; } if (lastValidPct === 0) { try { const urlBackup = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`); const backup = await safeFetchDashboard(urlBackup); if(backup && backup.nivel) { lastValidPct = backup.nivel; lastValidTime = backup.timestamp; } } catch(e2){} } if (lastValidPct > 0) { lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime); isSimulated = true; } else { lvl = 0; } } const card = document.getElementById(`card-${item.id}`); const elLvl = document.getElementById(`lvl-${item.id}`); const elBg = document.getElementById(`bg-${item.id}`); if(card && elLvl) { elLvl.innerText = `${lvl}%`; if(elBg) elBg.style.height = `${lvl}%`; const dot = card.querySelector('.live-dot'); const badge = card.querySelector('.simulated-badge'); if (rawLvl > 0) { dot.style.display = 'block'; badge.style.display = 'none'; } else { dot.style.display = 'none'; if (isSimulated && lvl > 0) badge.style.display = 'flex'; else badge.style.display = 'none'; } card.removeAttribute('data-status'); if (isSimulated && lvl > 0) { card.setAttribute('data-status', 'simulated'); elLvl.style.color = '#d97706'; } else { if(lvl > 60) { card.setAttribute('data-status', 'ok'); elLvl.style.color = 'var(--level-ok)'; } else if (lvl > 30) { card.setAttribute('data-status', 'warn'); elLvl.style.color = 'var(--level-warn)'; } else { card.setAttribute('data-status', 'danger'); elLvl.style.color = 'var(--level-danger)'; } } } } catch(e) { console.log("Erro ao atualizar card " + item.id); } } }
-let isDark = false;
-function toggleTheme() { isDark = !isDark; if(isDark) { document.body.setAttribute('data-theme', 'dark'); document.querySelector('.theme-toggle i').classList.replace('fa-moon', 'fa-sun'); } else { document.body.removeAttribute('data-theme'); document.querySelector('.theme-toggle i').classList.replace('fa-sun', 'fa-moon'); } }
-window.onload = () => { renderGrid('grid-pp', listPP, 'fas fa-road'); renderGrid('grid-sau', listSAU, 'fas fa-home'); updateDashboardData(); dashboardInterval = setInterval(updateDashboardData, 10000); };
 </script>
 </body>
 </html>
