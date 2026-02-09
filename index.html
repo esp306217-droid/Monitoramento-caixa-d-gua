@@ -525,50 +525,35 @@ window.addEventListener('load', function() {
     document.body.addEventListener('click', despertarAudio, { once: true }); 
     document.body.addEventListener('touchstart', despertarAudio, { once: true }); 
     
-    // TELEGRAM FIX: Add click listener to button inside the template
+    // TELEGRAM FIX: Abre o bot do Telegram com /start
     const btnTel = document.getElementById('btn-telegram-action');
     if(btnTel) {
         btnTel.addEventListener('click', (e) => {
             e.preventDefault();
-            // Esquema 'tg://' força o Android/iOS a abrir o aplicativo instalado
-            // start=start envia o comando /start automaticamente
-            const url = "tg://resolve?domain=Caixadguap7_bot&start=start";
-            try {
-                if(window.top) { window.top.location.href = url; }
-                else { window.location.href = url; }
-            } catch(e) { window.location.href = url; }
+            e.stopPropagation();
+            // URL HTTPS universal que funciona em qualquer plataforma
+            // O Telegram Web redireciona para o app se instalado
+            const url = "https://t.me/Caixadguap7_bot?start=start";
+            window.open(url, '_blank');
         });
     }
 
-    // MAPS FIX
+    // MAPS FIX: Abre o Google Maps com as coordenadas
     const btnMaps = document.getElementById('btn-maps-action');
     if (btnMaps) {
         btnMaps.addEventListener('click', (e) => {
             e.preventDefault();
-            const coords = btnMaps.getAttribute('data-coords'); 
-            const q = coords.trim();
+            e.stopPropagation();
+            const coords = btnMaps.getAttribute('data-coords');
+            if (!coords) return;
             
-            // Tenta abrir com protocolo nativo
-            // Android: geo:lat,lon?q=lat,lon(Label)
-            // iOS: maps:?q=lat,lon
+            // Limpa espaços e formata coordenadas
+            const cleanCoords = coords.replace(/\s/g, '');
             
-            let targetUrl = `https://www.google.com/maps/search/?api=1&query=${q}`; // Fallback universal
-            
-            const ua = navigator.userAgent || navigator.vendor || window.opera;
-            if (/android/i.test(ua)) {
-                targetUrl = `geo:${q}?q=${q}`;
-            } else if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
-                targetUrl = `maps:?q=${q}`;
-            }
-            
-            try {
-                 // Tenta navegar para a URL (seja geo:, maps: ou https:)
-                 // window.top força sair do iframe se for https
-                 if(window.top) { window.top.location.href = targetUrl; }
-                 else { window.location.href = targetUrl; }
-            } catch(e) {
-                 window.location.href = targetUrl;
-            }
+            // URL HTTPS universal do Google Maps - funciona em qualquer plataforma
+            // Se tiver o app Google Maps instalado, abre nele automaticamente
+            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanCoords)}`;
+            window.open(url, '_blank');
         });
     }
 
