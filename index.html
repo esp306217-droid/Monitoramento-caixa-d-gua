@@ -113,7 +113,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 
 /* Ícone e Texto */
 .card-icon { font-size: 2rem; color: var(--text-sec); margin-bottom: 10px; }
-.card-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; text-align: center; }
+.card-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; }
 .card-level { font-size: 1.5rem; font-weight: 800; color: var(--text-sec); }
 .card-status { font-size: 0.75rem; color: var(--text-sec); margin-top: 5px; }
 
@@ -141,7 +141,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
     background: #fff; z-index: 9999;
 }
 #app-overlay.active { display: block; }
-/* IMPORTANTE: allow-top-navigation permite que links target="_top" funcionem */
+/* IMPORTANTE: allow-top-navigation permite que o link do telegram quebre o iframe */
 #app-frame { width: 100%; height: 100%; border: none; }
 
 /* --- ESTILO ADICIONADO: POPUP DE MANUTENÇÃO --- */
@@ -203,9 +203,9 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 </div>
 
 <!-- OVERLAY PARA EXIBIR OS APPS ORIGINAIS -->
+<!-- Sandbox ajustado para permitir navegação no topo -->
 <div id="app-overlay">
-    <!-- Adicionadas permissões para navegação allow-top-navigation -->
-    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation allow-popups-to-escape-sandbox"></iframe>
+    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
 </div>
 
 <!-- ========================================================================= -->
@@ -239,20 +239,28 @@ body { font-family: 'Poppins', sans-serif; text-align: center; background: var(-
 ::-webkit-scrollbar { display: none; }
 * { -ms-overflow-style: none; scrollbar-width: none; }
 .glass-panel { background: var(--card-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--card-border); box-shadow: var(--shadow-card); border-radius: 16px; }
+
+/* Botões da Barra de Tarefas (Nav Group) SEM Sombra */
 .nav-button-icon-only { width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-sec); cursor: pointer; transition: all 0.2s; box-shadow: none; }
 .nav-button-icon-only:active { background: var(--accent); color: white; transform: translateY(2px); }
+
+/* Ajuste da Barra de Tarefas para o Topo (Sem margem) */
 .main-header { width: 100%; padding: 10px 5px; background-color: var(--header-bg); backdrop-filter: blur(10px); box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); display: flex; justify-content: center; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; flex-wrap: wrap; gap: 8px; padding-left: 0; margin-top: 0; } 
 .nav-group { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 0; justify-content: center; align-items: center; }
+
+/* Indicador Live no Quadro Branco */
 .status-indicator-box { position: absolute; top: 10px; right: 10px; }
 .live-indicator { width: 10px; height: 10px; border-radius: 50%; background-color: #64748b; transition: background-color 0.3s; display: inline-block; }
 .live-indicator.online { background-color: var(--level-ok); box-shadow: 0 0 8px var(--level-ok); animation: pulse-green 2s infinite; }
 .live-indicator.offline { background-color: var(--level-danger); }
 @keyframes pulse-green { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1.0); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
 #caixa-view, #grafico-container, #config-view, #abastecimento-view, #consumo-view { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 0.5rem; overflow-y: auto; min-height: calc(100vh - 70px); }
 .logo { width: 140px; margin-bottom: 5px; opacity: 0.95; display: block; margin-left: auto; margin-right: auto; mix-blend-mode: multiply; transition: all 0.3s ease; }
 [data-theme="dark"] .logo { filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2); mix-blend-mode: screen; opacity: 1; margin-bottom: 10px; }
 #emergency-badge { position: fixed; top: 80px; right: 20px; width: 50px; height: 50px; background-color: var(--level-danger); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.6); z-index: 1500; animation: pulse-red 1.5s infinite; cursor: help; }
 @keyframes pulse-red { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
 #status-display { width: 100%; max-width: 360px; padding: 15px; margin: 0 auto 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; position: relative; z-index: 10; margin-top: 10px; }
 .status-item { display: flex; flex-direction: column; text-align: center; }
 .status-item.item-time { grid-column: 1 / 3; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 5px; margin-top: 2px; }
@@ -324,9 +332,12 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
+<!-- Botão Voltar (Movido para cá) -->
 <button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
-<button class="nav-button-icon-only" onclick="window.parent.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
+<!-- Botões de Tema e Atualizar -->
+<button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
 <button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
+<!-- Botões de Navegação -->
 <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
 <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
 <button id="btn-view-abastecimento" class="nav-button"><i class="fas fa-truck-droplet"></i> <span>Abastecimento</span></button>
@@ -337,21 +348,49 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div id="caixa-view">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
 
-<div style="display:flex; justify-content:center; align-items:center; gap:10px; margin: 5px 0 10px 0;">
-    <h2 style="font-size: 1rem; color: var(--text-sec); margin: 0; font-weight: 600;">__APP_TITLE__</h2>
-    <a href="#" id="btn-maps-action" data-coords="__MAPS_COORDS__" style="color: #ef4444; font-size: 1.2rem;" title="Abrir no Maps"><i class="fas fa-map-marker-alt"></i></a>
+<!-- Título Específico da Caixa com Botão de Mapa ao Lado -->
+<div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 5px 0 10px 0;">
+    <h2 style="margin:0; font-size: 1rem; color: var(--text-sec); font-weight: 600;">__APP_TITLE__</h2>
+    __MAPS_BTN__
 </div>
 
 <div id="status-display" class="glass-panel">
-<div class="status-indicator-box"><div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div></div>
-<div class="status-item item-level"><span class="status-label">Nível Atual</span><div style="display:flex; justify-content:center; align-items:center;"><span class="status-value skeleton-text" id="status-level">--%</span><span id="simulated-indicator" style="display:none; background:#f59e0b; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; cursor:help; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Leitura Estimada (Sem Sinal)">?</span></div></div>
-<div class="status-item item-litros"><span class="status-label">Volume</span><span class="status-value skeleton-text" id="status-litros">---- <small>L</small></span></div>
-<div class="status-item item-time"><span class="status-label">Hora</span><span class="status-value skeleton-text" id="status-time" style="font-size: 1.2rem;">--:--</span></div>
+<!-- Indicador LED dentro do quadro branco -->
+<div class="status-indicator-box">
+<div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
+</div>
+
+<div class="status-item item-level">
+<span class="status-label">Nível Atual</span>
+<div style="display:flex; justify-content:center; align-items:center;">
+<span class="status-value skeleton-text" id="status-level">--%</span>
+<span id="simulated-indicator" style="display:none; background:#f59e0b; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; cursor:help; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Leitura Estimada (Sem Sinal)">?</span>
+</div>
+</div>
+<div class="status-item item-litros">
+<span class="status-label">Volume</span>
+<span class="status-value skeleton-text" id="status-litros">---- <small>L</small></span>
+</div>
+<div class="status-item item-time">
+<span class="status-label">Hora</span>
+<span class="status-value skeleton-text" id="status-time" style="font-size: 1.2rem;">--:--</span>
+</div>
 </div>
 <div class="reservatorio-wrapper" id="caixa-container">
 <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
-<defs><linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/></linearGradient><clipPath id="mascara-agua"><path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/></clipPath></defs>
-<foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)"><div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper"><div class="agua" id="agua">0%</div></div></foreignObject>
+<defs>
+<linearGradient id="grad-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" stop-color="#e2e8f0"/><stop offset="50%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#cbd5e1"/>
+</linearGradient>
+<clipPath id="mascara-agua">
+<path d="M 105 220 L 295 220 L 295 440 L 265 500 L 135 500 L 105 440 Z"/>
+</clipPath>
+</defs>
+<foreignObject x="105" y="220" width="190" height="280" clip-path="url(#mascara-agua)">
+<div xmlns="http://www.w3.org/1999/xhtml" class="agua-wrapper">
+<div class="agua" id="agua">0%</div>
+</div>
+</foreignObject>
 <g id="estrutura-reservatorio">
 <g id="base"><path class="base-concreto" d="M 80 950 L 320 950 L 310 930 L 90 930 Z"/><path class="suportes-base" d="M 130 930 L 120 940 L 140 940 Z M 170 930 L 160 940 L 180 940 Z M 210 930 L 200 940 L 220 940 Z M 250 930 L 240 940 L 260 940 Z M 290 930 L 280 940 L 300 940 Z"/></g>
 <g id="coluna"><path class="estrutura-solida" d="M 135 930 L 135 500 L 265 500 L 265 930 Z"/><path class="faixa-metalica" d="M 135 620 L 265 620 M 135 770 L 265 770"/></g>
@@ -363,70 +402,201 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </div>
 <div id="grafico-container" style="display:none;">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-<header><h1><i class="fas fa-chart-line" style="color: var(--accent);"></i> Histórico de Nível</h1></header>
+<header>
+<h1><i class="fas fa-chart-line" style="color: var(--accent);"></i> Histórico de Nível</h1>
+</header>
 <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
 <div id="diario-picker"><input type="date" id="dataEscolhida"></div>
 <div id="mensal-picker" style="display:none;"><input type="month" id="mesEscolhido"></div>
 <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
 <button id="btnAtualizar" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
 </div>
-<div class="board"><div class="charts"><div class="chart-card glass-panel"><strong>Variação de Nível (%)</strong><canvas id="chartLinha"></canvas></div><div class="chart-card glass-panel"><strong>Nível Médio por Hora (%)</strong><canvas id="chartBlocos"></canvas></div></div></div>
+<div class="board">
+<div class="charts">
+<div class="chart-card glass-panel"><strong>Variação de Nível (%)</strong><canvas id="chartLinha"></canvas></div>
+<div class="chart-card glass-panel"><strong>Nível Médio por Hora (%)</strong><canvas id="chartBlocos"></canvas></div>
+</div>
+</div>
 </div>
 <div id="abastecimento-view" style="display:none;">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-<header><h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1></header>
+<header>
+<h1><i class="fas fa-truck-droplet" style="color: var(--accent);"></i> Abastecimento</h1>
+</header>
 <div class="board" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
 <div id="abastecimento-form" class="config-card glass-panel" style="margin: 0; width: 100%; max-width: 500px;">
 <h2>Registrar Entrada</h2>
-<div class="form-group"><input type="number" id="litros-abastecidos" placeholder="Qtd. Litros (ex: 5000)" min="1"><button id="btn-salvar-abastecimento" class="modern-button"><i class="fas fa-save"></i> Salvar</button></div>
+<div class="form-group">
+<input type="number" id="litros-abastecidos" placeholder="Qtd. Litros (ex: 5000)" min="1">
+<button id="btn-salvar-abastecimento" class="modern-button"><i class="fas fa-save"></i> Salvar</button>
+</div>
 <div id="status-abastecimento" class="small" style="font-weight:bold; margin: -10px 0 0 0;"></div>
 </div>
 <div id="abastecimento-historico-card" class="glass-panel" style="width: 100%; max-width: 500px; padding: 20px;">
-<h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; text-align: left; border-bottom: 1px solid var(--text-sec); padding-bottom: 8px;">Histórico Recente</h3><ul id="lista-abastecimentos"></ul>
+<h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; text-align: left; border-bottom: 1px solid var(--text-sec); padding-bottom: 8px;">Histórico Recente</h3>
+<ul id="lista-abastecimentos"></ul>
 </div>
 <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 5px; flex-wrap:wrap;">
-<input type="month" id="mesAbastecimento"><select id="filtroSemana" style="padding: 10px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); font-family: 'Poppins', sans-serif;"><option value="todas">Visão Mensal</option><option value="1">Semana 1 (1-7)</option><option value="2">Semana 2 (8-14)</option><option value="3">Semana 3 (15-21)</option><option value="4">Semana 4 (22+)</option></select><button id="btnAtualizarAbastecimento" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
+<input type="month" id="mesAbastecimento">
+<select id="filtroSemana" style="padding: 10px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); font-family: 'Poppins', sans-serif;">
+<option value="todas">Visão Mensal</option>
+<option value="1">Semana 1 (1-7)</option>
+<option value="2">Semana 2 (8-14)</option>
+<option value="3">Semana 3 (15-21)</option>
+<option value="4">Semana 4 (22+)</option>
+</select>
+<button id="btnAtualizarAbastecimento" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
 </div>
-<div class="chart-card glass-panel" style="width: 100%; max-width: 600px;"><strong id="tituloGraficoAbastecimento">Comparativo Semanal (Litros)</strong><canvas id="chartAbastecimento"></canvas></div>
+<div class="chart-card glass-panel" style="width: 100%; max-width: 600px;">
+<strong id="tituloGraficoAbastecimento">Comparativo Semanal (Litros)</strong>
+<canvas id="chartAbastecimento"></canvas>
+</div>
 </div>
 </div>
 <div id="consumo-view" style="display:none;">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
-<header><h1><i class="fas fa-chart-bar" style="color: var(--accent);"></i> Consumo Diário</h1></header>
+<header>
+<h1><i class="fas fa-chart-bar" style="color: var(--accent);"></i> Consumo Diário</h1>
+</header>
 <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
-<input type="date" id="dataEscolhidaConsumo" onchange="document.getElementById('dataEscolhida').value=this.value; document.getElementById('btnAtualizar').click();"><button onclick="document.getElementById('btnAtualizar').click()" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
+<input type="date" id="dataEscolhidaConsumo" onchange="document.getElementById('dataEscolhida').value=this.value; document.getElementById('btnAtualizar').click();">
+<button onclick="document.getElementById('btnAtualizar').click()" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
 </div>
-<div class="board"><div class="charts">
-<div class="chart-card glass-panel" id="consumo-chart-card-bloco"><strong>Consumo Estimado (Litros)</strong><canvas id="chartConsumoBloco"></canvas><div id="consumo-info-texto" style="margin-top: 15px; font-weight: 700; color: var(--accent); font-size: 1.1rem;"></div></div>
-<div class="chart-card glass-panel" id="consumo-chart-card-linha"><strong>Curva de Consumo</strong><canvas id="chartConsumoLinha"></canvas></div>
-</div></div>
+<div class="board">
+<div class="charts">
+<div class="chart-card glass-panel" id="consumo-chart-card-bloco">
+<strong>Consumo Estimado (Litros)</strong>
+<canvas id="chartConsumoBloco"></canvas>
+<div id="consumo-info-texto" style="margin-top: 15px; font-weight: 700; color: var(--accent); font-size: 1.1rem;"></div>
+</div>
+<div class="chart-card glass-panel" id="consumo-chart-card-linha">
+<strong>Curva de Consumo</strong>
+<canvas id="chartConsumoLinha"></canvas>
+</div>
+</div>
+</div>
 </div>
 <div id="config-view" style="display:none;">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
 <h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
 <div class="config-board">
-<div class="config-card glass-panel"><h2>Capacidade (L)</h2><div class="form-group"><input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000"><button id="btn-salvar-capacidade" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-capacidade" class="small" style="font-weight:bold;"></div></div>
-<div class="config-card glass-panel"><h2>Altura (cm)</h2><div class="form-group"><input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1"><button id="btn-salvar-altura" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-altura" class="small" style="font-weight:bold;"></div></div>
-<div class="config-card glass-panel" id="card-novo-contato"><h2>Novo Contato</h2><div class="form-group"><input type="text" id="contato-valor" placeholder="Email ou Telegram"><select id="contato-tipo"><option value="email">Email</option><option value="telegram">Telegram</option></select><button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button></div><div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div></div>
-<div class="config-card glass-panel" id="card-telegram-bot"><h2>Telegram Bot</h2><div class="form-group"><p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:10px;">Receba alertas no seu celular.</p><button id="btn-telegram-action" class="modern-button" style="background-color:#229ED9; color:white; width:100%; display:flex; align-items:center; justify-content:center;"><i class="fab fa-telegram-plane"></i> Iniciar Bot</button></div></div>
-<div class="config-card glass-panel"><h2>Nível Alerta (%)</h2><div class="form-group"><input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99"><button id="btn-salvar-nivel-alerta" class="modern-button"><i class="fas fa-check"></i></button></div><div id="status-alerta" class="small" style="font-weight:bold;"></div></div>
-<div class="config-card glass-panel" style="grid-column: 1 / -1;" id="card-lista-contatos"><h2>Contatos Cadastrados</h2><ul id="lista-contatos"></ul><div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div></div>
+<div class="config-card glass-panel">
+<h2>Capacidade (L)</h2>
+<div class="form-group">
+<input type="number" id="capacidade-total-valor" placeholder="Ex: 8000" min="1000">
+<button id="btn-salvar-capacidade" class="modern-button"><i class="fas fa-check"></i></button>
+</div>
+<div id="status-capacidade" class="small" style="font-weight:bold;"></div>
+</div>
+<div class="config-card glass-panel">
+<h2>Altura (cm)</h2>
+<div class="form-group">
+<input type="number" id="altura-caixa-valor" placeholder="Ex: 200" min="1">
+<button id="btn-salvar-altura" class="modern-button"><i class="fas fa-check"></i></button>
+</div>
+<div id="status-altura" class="small" style="font-weight:bold;"></div>
+</div>
+<div class="config-card glass-panel" id="card-novo-contato">
+<h2>Novo Contato</h2>
+<div class="form-group">
+<input type="text" id="contato-valor" placeholder="Email ou Telegram">
+<select id="contato-tipo">
+<option value="email">Email</option>
+<option value="telegram">Telegram</option>
+</select>
+<button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button>
+</div>
+<div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+</div>
+
+<!-- CARD DO TELEGRAM BOT - MODIFICADO PARA INTENT -->
+<div class="config-card glass-panel" id="card-telegram-bot">
+<h2>Telegram Bot</h2>
+<div class="form-group">
+<p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:10px;">Receba alertas no seu celular.</p>
+<!-- Botão alterado para chamar a função JS e disparar o protocolo tg:// -->
+<button onclick="abrirAppExterno('telegram', 'Caixadguap7_bot')" class="modern-button" style="background-color:#229ED9; color:white; width:100%; display:flex; align-items:center; justify-content:center;">
+<i class="fab fa-telegram-plane"></i> Iniciar Bot
+</button>
 </div>
 </div>
-<div id="alert-modal"><div class="modal-content"><div class="modal-header"><i class="fas fa-exclamation-triangle"></i> ALERTA DE NÍVEL BAIXO</div><div class="modal-body">Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)</div><div class="modal-footer"><button id="modal-close-btn" class="modern-button">Entendido</button></div></div></div>
-<div class="header-right" id="date-controls" style="display: none;"><div class="view-selector"><button id="btn-view-diario" class="view-btn active" data-view="diario">Hoje</button><button id="btn-view-semanal" class="view-btn" data-view="semanal" style="display:none;">Semanal</button><button id="btn-view-mensal" class="view-btn" data-view="mensal">Mês</button><button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Período</button></div></div>
+
+<div class="config-card glass-panel">
+<h2>Nível Alerta (%)</h2>
+<div class="form-group">
+<input type="number" id="nivel-alerta-valor" placeholder="Ex: 30" min="1" max="99">
+<button id="btn-salvar-nivel-alerta" class="modern-button"><i class="fas fa-check"></i></button>
+</div>
+<div id="status-alerta" class="small" style="font-weight:bold;"></div>
+</div>
+<div class="config-card glass-panel" style="grid-column: 1 / -1;" id="card-lista-contatos">
+<h2>Contatos Cadastrados</h2>
+<ul id="lista-contatos"></ul>
+<div id="status-lista-contatos" class="small" style="font-weight:bold; margin-top: 10px;"></div>
+</div>
+</div>
+</div>
+<div id="alert-modal">
+<div class="modal-content">
+<div class="modal-header">
+<i class="fas fa-exclamation-triangle"></i> ALERTA DE NÍVEL BAIXO
+</div>
+<div class="modal-body">
+Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)
+</div>
+<div class="modal-footer">
+<button id="modal-close-btn" class="modern-button">Entendido</button>
+</div>
+</div>
+</div>
+<div class="header-right" id="date-controls" style="display: none;">
+<div class="view-selector">
+<button id="btn-view-diario" class="view-btn active" data-view="diario">Hoje</button>
+<button id="btn-view-semanal" class="view-btn" data-view="semanal" style="display:none;">Semanal</button>
+<button id="btn-view-mensal" class="view-btn" data-view="mensal">Mês</button>
+<button id="btn-view-intervalo" class="view-btn" data-view="intervalo">Período</button>
+</div>
+</div>
 <script>
+// --- FUNÇÃO PARA FORÇAR INTENTS (Telegram/Maps) ---
+function abrirAppExterno(protocolo, valor) {
+    let urlFinal = '';
+    
+    if (protocolo === 'telegram') {
+        let usuario = valor.replace('@', '').replace('https://t.me/', '');
+        urlFinal = 'tg://resolve?domain=' + usuario;
+    } 
+    else if (protocolo === 'maps') {
+        urlFinal = 'geo:' + valor;
+    }
+    else {
+        urlFinal = protocolo;
+    }
+
+    // Força a navegação na janela Pai (fora do iframe)
+    // Isso fará o WebViewer do Kodular detectar a URL "tg://" ou "geo:" e disparar o ActivityStarter
+    window.top.location.href = urlFinal;
+}
+
 const API_KEY = ""; 
 const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+// VARIAVEIS INJETADAS PELO DASHBOARD
 const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`; 
 const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`; 
 const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; 
 const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
+// CONTAS DE EMAIL ROTATIVAS
 const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
 let isDarkMode = false;
-window.toggleTheme = function(e) { if(e) { e.preventDefault(); e.stopPropagation(); } isDarkMode = !isDarkMode; applyTheme(); };
+// TORNAR GLOBAL PARA SER ACESSADA PELO ONCLICK
+window.toggleTheme = function(e) { 
+    if(e) { e.preventDefault(); e.stopPropagation(); } 
+    isDarkMode = !isDarkMode; 
+    applyTheme(); 
+};
 function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
 function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } try { criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); } catch(e){} }
+
 try { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
 let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
 let historicoNiveis = [], historicoLabels = [];
@@ -444,12 +614,45 @@ let watchdogInterval = null;
 let ultimoUpdateEmMs = 0;
 const UPDATE_MS = 2500;
 let lastUpdateTimestamp = 0; let contadorZerosConsecutivos = 0; 
-let bufferLeiturasValidas = []; 
-let lastSavedValidTime = 0; 
+let bufferLeiturasValidas = []; // Buffer para filtro de mediana
+let lastSavedValidTime = 0; // Controle de tempo de salvamento
 function calcularVolumeLitros(nivelPercentual) { if (nivelPercentual <= 0) return 0; if (nivelPercentual > 100) nivelPercentual = 100; return Math.floor((nivelPercentual / 100) * capacidadeTotal); }
 function getLocalISODate(dateObj) { const d = dateObj || new Date(); const offset = d.getTimezoneOffset() * 60000; const localDate = new Date(d.getTime() - offset); return localDate.toISOString().split('T')[0]; }
-function getNoCacheUrl(url) { let cleanUrl = url.trim(); if(cleanUrl.endsWith('/') && cleanUrl.includes('.json')) { cleanUrl = cleanUrl.slice(0, -1); } const separator = cleanUrl.includes('?') ? '&' : '?'; return `${cleanUrl}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; }
-async function safeFetch(url, timeoutMs = 8000) { let controller = null; let signal = null; let t = null; if (typeof AbortController !== 'undefined') { controller = new AbortController(); signal = controller.signal; t = setTimeout(() => controller.abort(), timeoutMs); } const options = { cache: 'no-store' }; if (signal) options.signal = signal; try { const response = await fetch(getNoCacheUrl(url), options); if (t) clearTimeout(t); if (!response.ok) throw new Error(response.statusText); return await response.json(); } catch(e) { if (t) clearTimeout(t); return null; } }
+function getNoCacheUrl(url) { 
+    let cleanUrl = url.trim();
+    if(cleanUrl.endsWith('/') && cleanUrl.includes('.json')) {
+        cleanUrl = cleanUrl.slice(0, -1);
+    }
+    const separator = cleanUrl.includes('?') ? '&' : '?'; 
+    return `${cleanUrl}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; 
+}
+
+// --- FETCH ROBUSTO (Compatível com Android antigo e Lento) ---
+async function safeFetch(url, timeoutMs = 8000) {
+    let controller = null;
+    let signal = null;
+    let t = null;
+
+    if (typeof AbortController !== 'undefined') {
+        controller = new AbortController();
+        signal = controller.signal;
+        t = setTimeout(() => controller.abort(), timeoutMs);
+    }
+
+    const options = { cache: 'no-store' };
+    if (signal) options.signal = signal;
+    
+    try {
+        const response = await fetch(getNoCacheUrl(url), options);
+        if (t) clearTimeout(t);
+        if (!response.ok) throw new Error(response.statusText);
+        return await response.json();
+    } catch(e) {
+        if (t) clearTimeout(t);
+        return null;
+    }
+}
+
 async function enviarEmailAlerta(nivel) { const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`; if (emailEnviadoNessaSessao) return false; try { const rTime = await safeFetch(urlTimestamp); if (rTime) { const ultimoDisparo = rTime; const agora = Date.now(); if (ultimoDisparo) { const diferenca = agora - ultimoDisparo; const horas12 = 12 * 60 * 60 * 1000; if (diferenca < horas12) return false; } } } catch (e) {} let contatos = {}; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = r; if (!contatos) return false; } catch (e) { return false; } const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor); if (emailsParaEnviar.length === 0) return false; let credenciais = null; const hoje = new Date(); for (let conta of CONTAS_EMAIL) { let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio); if (hoje >= dataReinicio && conta.quota_inicial < 200) { conta.quota_inicial = 200; } if (conta.quota_inicial >= emailsParaEnviar.length) { credenciais = conta; break; } } if (!credenciais) { console.warn("Sem cota de email."); return false; } let todosEnviadosComSucesso = true; for (const email of emailsParaEnviar) { const templateParams = { "%": nivel, "email": email }; try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { console.error("Erro envio", err); todosEnviadosComSucesso = false; } } if (todosEnviadosComSucesso) { emailEnviadoNessaSessao = true; const agoraMs = Date.now(); try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {} } return todosEnviadosComSucesso; }
 function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
 function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
@@ -457,6 +660,7 @@ function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alerta
 function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
 function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
 function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
+
 function interpolacaoLinear(arr) { let filled = [...arr]; let indices = []; for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); } if(indices.length === 0) return filled; for(let k = 0; k < indices.length - 1; k++) { let startIdx = indices[k]; let endIdx = indices[k+1]; let startVal = filled[startIdx]; let endVal = filled[endIdx]; let steps = endIdx - startIdx; if (endVal > startVal + 30) { for(let j = 1; j < steps; j++) { filled[startIdx + j] = startVal; } } else { for(let j = 1; j < steps; j++) { let val = startVal + (endVal - startVal) * (j / steps); filled[startIdx + j] = Math.round(val); } } } if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; } return filled; }
 function atualizarGraficosHistorico(result) { if (!chartLinha || !chartBlocos) return; if (!result || !result.labels) return; let displayLabels = result.labels || []; let displayNiveis = result.niveis || []; chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update(); chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis; const cores = 'rgba(6, 182, 212, 0.85)'; chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update(); }
 function atualizarGraficosConsumo(result) { if (!chartConsumoBloco || !chartConsumoLinha) return; if (!result || !result.consumo) return; const consumoData = result.consumo || []; const consumoLabels = result.labels || []; const infoTexto = document.getElementById('consumo-info-texto'); if (infoTexto) { let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0); let statusTexto = "Normal"; let corStatus = "var(--accent)"; if (totalConsumo > 3000) { statusTexto = "Alto"; corStatus = "var(--level-danger)"; } else if (totalConsumo < 500) { statusTexto = "Baixo"; corStatus = "var(--level-ok)"; } if (currentView === 'diario') { infoTexto.innerHTML = `Consumo Atual: ${totalConsumo.toFixed(0)} L (<span style="color:${corStatus}">${statusTexto}</span>)`; } else { infoTexto.innerText = `Total no Período: ${totalConsumo.toFixed(0)} L`; } } chartConsumoBloco.data.labels = consumoLabels; chartConsumoBloco.data.datasets[0].data = consumoData; chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; chartConsumoBloco.update(); chartConsumoLinha.data.labels = consumoLabels; chartConsumoLinha.data.datasets[0].data = consumoData; chartConsumoLinha.update(); }
@@ -476,148 +680,775 @@ async function adicionarContato(valor, tipo) { if (!valor) return; const novoCon
 async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
 async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = r; } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
 function obterMediana(arr) { if(arr.length === 0) return 0; const sorted = [...arr].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); return sorted[mid]; }
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
-async function buscarBackupHistorico() { try { const today = new Date().toISOString().split('T')[0]; const r = await fetch(`${PATH_HISTORICO}/${today}.json?orderBy="$key"&limitToLast=1`); const d = await r.json(); if(d) { const keys = Object.keys(d); if(keys.length > 0) { const lastEntry = d[keys[0]]; return { pct: lastEntry.nivel_pct || lastEntry.nivel || 0, time: lastEntry.timestamp || 0 }; } } } catch(e) { console.log('Erro ao buscar backup historico', e); } return null; }
-function extrairNivelPct(dados) { let v = null; if (dados && typeof dados.nivel_pct !== "undefined") v = dados.nivel_pct; else if (dados && typeof dados.nivel !== "undefined") v = dados.nivel; else if (dados && typeof dados.percentual_atual !== "undefined") v = dados.percentual_atual; else if (dados && dados.ultimo_valor_valido && typeof dados.ultimo_valor_valido.nivel_pct !== "undefined") v = dados.ultimo_valor_valido.nivel_pct; v = Number(v); if (!Number.isFinite(v)) return null; return Math.max(0, Math.min(100, v)); }
-function renderNivel(nivelPct, isSimulado = false) { nivelAtual = nivelPct; const elTexto = document.getElementById("status-level"); if (elTexto) { elTexto.innerText = `${Math.round(nivelPct)}%`; if (isSimulado) elTexto.style.color = '#d97706'; else if (nivelPct > 60) elTexto.style.color = 'var(--level-ok)'; else if (nivelPct > nivelAlertaConfigurado) elTexto.style.color = 'var(--level-warn)'; else elTexto.style.color = 'var(--level-danger)'; } const elBarra = document.getElementById("agua"); if (elBarra) { elBarra.style.height = `${nivelPct}%`; elBarra.innerText = `${Math.round(nivelPct)}%`; if (nivelPct > 60) elBarra.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)'; else if (nivelPct > nivelAlertaConfigurado) elBarra.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)'; else elBarra.style.background = 'linear-gradient(to top, #ff3333, #990000)'; } const statusDisplay = document.getElementById('status-display'); if (statusDisplay) { statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger'); if (nivelPct > 60) statusDisplay.classList.add('level-ok'); else if (nivelPct > nivelAlertaConfigurado) statusDisplay.classList.add('level-warn'); else statusDisplay.classList.add('level-danger'); } const ledVermelho = document.getElementById('led-vermelho'); const ledAmarelo = document.getElementById('led-amarelo'); const ledVerde = document.getElementById('led-verde'); if(ledVermelho && ledAmarelo && ledVerde) { ledVermelho.classList.remove('aceso'); ledAmarelo.classList.remove('aceso'); ledVerde.classList.remove('aceso'); if (nivelPct > 60) ledVerde.classList.add('aceso'); else if (nivelPct > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso'); else ledVermelho.classList.add('aceso'); } if(document.getElementById('status-litros')) { document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivelPct)} <small>L</small>`; } if(document.getElementById('status-time')) { const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); document.getElementById('status-time').innerText = isSimulado ? timeStr + "*" : timeStr; } const liveIndicator = document.getElementById('live-indicator'); const simIndicator = document.getElementById('simulated-indicator'); if (liveIndicator) { if (isSimulado) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); } else { liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online'); } } document.getElementById('emergency-badge').style.display = 'none'; if (simIndicator) { simIndicator.style.display = isSimulado ? 'inline-flex' : 'none'; } let bloquearAlarme = (isSimulado && nivelPct <= 0); if (!bloquearAlarme && nivelPct <= nivelAlertaConfigurado) { if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { enviarEmailAlerta(nivelPct); mostrarAlertaModal(); alertaModalMostrado = true; setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); } else { enviarEmailAlerta(nivelPct); } } else { if (nivelPct > 50) { if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; } if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; } }
-async function salvarUltimaLeituraValida(nivel, timestamp) { const url = `${PATH_CONFIG_BASE}/ultima_leitura_valida.json`; const dados = { nivel: nivel, timestamp: timestamp }; try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch(e) { console.log("Erro ao salvar ultima valida", e); } }
-async function buscarBackupUltimaValidaFirebase() { const url = `${PATH_CONFIG_BASE}/ultima_leitura_valida.json`; try { const r = await safeFetch(url); if (r && r.nivel) return r; } catch(e) {} return null; }
-async function loopDeAtualizacao() { try { const dados = await safeFetch(PATH_TEMPO_REAL); let nivelCru = extrairNivelPct(dados); let nivelFinal = 0; let isSimulado = false; if (nivelCru !== null && nivelCru > 0) { bufferLeiturasValidas.push(nivelCru); if (bufferLeiturasValidas.length > 5) bufferLeiturasValidas.shift(); const sorted = [...bufferLeiturasValidas].sort((a, b) => a - b); const mid = Math.floor(sorted.length / 2); const mediana = sorted.length > 0 ? sorted[mid] : nivelCru; nivelFinal = mediana; isSimulado = false; const agora = Date.now(); if (agora - lastSavedValidTime > 60000) { salvarUltimaLeituraValida(nivelFinal, agora); lastSavedValidTime = agora; } const horaAtual = new Date().getHours(); if ((horaAtual !== ultimoHorarioSalvo || (agora - ultimoTempoSalvo > 300000)) && nivelFinal > 0) { await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real'); ultimoHorarioSalvo = horaAtual; ultimoTempoSalvo = agora; if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); } } else { isSimulado = true; let baseNivel = 0; let baseTime = 0; if (bufferLeiturasValidas.length > 0) { const sorted = [...bufferLeiturasValidas].sort((a, b) => a - b); baseNivel = sorted[Math.floor(sorted.length / 2)]; baseTime = Date.now(); } else { const backup = await buscarBackupUltimaValidaFirebase(); if (backup) { baseNivel = backup.nivel; baseTime = backup.timestamp; } else { const hist = await buscarBackupHistorico(); if (hist) { baseNivel = hist.pct; baseTime = hist.time; } } } if (baseNivel > 0) { nivelFinal = calcularNivelSimuladoLatch(baseNivel, baseTime); } else { nivelFinal = 0; } } renderNivel(nivelFinal, isSimulado); ultimoUpdateEmMs = Date.now(); } catch (e) {} }
-function iniciarWatchdog() { if (watchdogInterval) clearInterval(watchdogInterval); watchdogInterval = setInterval(() => { if (Date.now() - ultimoUpdateEmMs > 10000) { loopDeAtualizacao(); } }, 5000); }
-function iniciarAtualizacao() { loopDeAtualizacao(); if (loopInterval) clearInterval(loopInterval); loopInterval = setInterval(loopDeAtualizacao, UPDATE_MS); iniciarWatchdog(); }
+
+// LÓGICA DE DESCIDA DE EMERGÊNCIA (SIMULAÇÃO)
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
+    const agora = Date.now();
+    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
+    let nivelSimulado = nivelInicial;
+    
+    // Regra de Descida:
+    // - Primeiras 8h (4 blocos de 2h): Cai 5% a cada 2h.
+    // - Próximas 12h (2 blocos de 6h): Cai 5% a cada 6h.
+    // - Próximas 8h (2 blocos de 4h): Cai 5% a cada 4h.
+    // - Depois: Cai 5% a cada 2h (vazamento rápido).
+    let quedasAplicadas = 0;
+    while (horasPassadas > 0 && nivelSimulado > 0) {
+        let duracaoBloco = 2; // Padrão
+        quedasAplicadas++;
+        
+        if (quedasAplicadas <= 4) { duracaoBloco = 2; }        // Até 8h totais
+        else if (quedasAplicadas <= 6) { duracaoBloco = 6; } // Até 20h totais
+        else if (quedasAplicadas <= 8) { duracaoBloco = 4; } // Até 28h totais
+        else { duracaoBloco = 2; }                           // Vazamento critico
+        
+        if (horasPassadas >= duracaoBloco) {
+            nivelSimulado -= 5; // Tira 5%
+            horasPassadas -= duracaoBloco;
+        } else {
+            break; // Não completou o bloco de tempo ainda
+        }
+    }
+    if (nivelSimulado < 0) nivelSimulado = 0;
+    return nivelSimulado;
+}
+
+// Nova Função para buscar dados históricos caso o realtime esteja 0/offline
+async function buscarBackupHistorico() {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        // Busca a última entrada do dia
+        const r = await fetch(`${PATH_HISTORICO}/${today}.json?orderBy="$key"&limitToLast=1`);
+        const d = await r.json();
+        if(d) {
+            const keys = Object.keys(d);
+            if(keys.length > 0) {
+                const lastEntry = d[keys[0]];
+                return {
+                    pct: lastEntry.nivel_pct || lastEntry.nivel || 0,
+                    time: lastEntry.timestamp || 0
+                };
+            }
+        }
+    } catch(e) { console.log('Erro ao buscar backup historico', e); }
+    return null;
+}
+
+function extrairNivelPct(dados) {
+  let v = null;
+  // Removido ?. para compatibilidade total com Android antigo
+  if (dados && typeof dados.nivel_pct !== "undefined") v = dados.nivel_pct;
+  else if (dados && typeof dados.nivel !== "undefined") v = dados.nivel;
+  else if (dados && typeof dados.percentual_atual !== "undefined") v = dados.percentual_atual;
+  else if (dados && dados.ultimo_valor_valido && typeof dados.ultimo_valor_valido.nivel_pct !== "undefined") v = dados.ultimo_valor_valido.nivel_pct;
+
+  v = Number(v);
+  if (!Number.isFinite(v)) return null;
+  return Math.max(0, Math.min(100, v));
+}
+
+// Renderiza o nível na DOM existente do template
+// Parâmetro 'isSimulado' adicionado para controle visual
+function renderNivel(nivelPct, isSimulado = false) {
+    nivelAtual = nivelPct; // Atualiza variável global
+
+    // 1. Texto do Nível (Mantém cor laranja se simulado para alerta discreto)
+    const elTexto = document.getElementById("status-level");
+    if (elTexto) {
+        elTexto.innerText = `${Math.round(nivelPct)}%`;
+        if (isSimulado) elTexto.style.color = '#d97706'; 
+        else if (nivelPct > 60) elTexto.style.color = 'var(--level-ok)';
+        else if (nivelPct > nivelAlertaConfigurado) elTexto.style.color = 'var(--level-warn)';
+        else elTexto.style.color = 'var(--level-danger)';
+    }
+
+    // 2. Barra de Água (SVG) - CORRIGIDO: Sempre usa as cores reais, mesmo simulado
+    const elBarra = document.getElementById("agua");
+    if (elBarra) {
+        elBarra.style.height = `${nivelPct}%`;
+        elBarra.innerText = `${Math.round(nivelPct)}%`;
+        
+        // AQUI: Removida a condição 'if (isSimulado)' para cor de fundo
+        if (nivelPct > 60) elBarra.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
+        else if (nivelPct > nivelAlertaConfigurado) elBarra.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+        else elBarra.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+    }
+
+    // 3. Status Container
+    const statusDisplay = document.getElementById('status-display');
+    if (statusDisplay) {
+        statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
+        if (nivelPct > 60) statusDisplay.classList.add('level-ok');
+        else if (nivelPct > nivelAlertaConfigurado) statusDisplay.classList.add('level-warn');
+        else statusDisplay.classList.add('level-danger');
+    }
+
+    // 4. LEDs
+    const ledVermelho = document.getElementById('led-vermelho');
+    const ledAmarelo = document.getElementById('led-amarelo');
+    const ledVerde = document.getElementById('led-verde');
+    if(ledVermelho && ledAmarelo && ledVerde) {
+        ledVermelho.classList.remove('aceso');
+        ledAmarelo.classList.remove('aceso');
+        ledVerde.classList.remove('aceso');
+        if (nivelPct > 60) ledVerde.classList.add('aceso');
+        else if (nivelPct > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
+        else ledVermelho.classList.add('aceso');
+    }
+
+    // 5. Litros e Hora
+    if(document.getElementById('status-litros')) {
+        document.getElementById('status-litros').innerHTML = `${calcularVolumeLitros(nivelPct)} <small>L</small>`;
+    }
+    if(document.getElementById('status-time')) {
+        const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('status-time').innerText = isSimulado ? timeStr + "*" : timeStr;
+    }
+    
+    // 6. Indicador Live e Simulado
+    const liveIndicator = document.getElementById('live-indicator');
+    const simIndicator = document.getElementById('simulated-indicator');
+    
+    if (liveIndicator) {
+        if (isSimulado) {
+            liveIndicator.classList.remove('online');
+            liveIndicator.classList.add('offline');
+        } else {
+            liveIndicator.classList.remove('offline');
+            liveIndicator.classList.add('online');
+        }
+    }
+    document.getElementById('emergency-badge').style.display = 'none'; 
+    if (simIndicator) {
+        simIndicator.style.display = isSimulado ? 'inline-flex' : 'none';
+    }
+
+    // Checagem de Alarme
+    // Bloqueia alarme se for simulado E o nível for <= 0 (evita spam de erros)
+    let bloquearAlarme = (isSimulado && nivelPct <= 0);
+
+    if (!bloquearAlarme && nivelPct <= nivelAlertaConfigurado) { 
+        if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } 
+        if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { 
+            enviarEmailAlerta(nivelPct); mostrarAlertaModal(); alertaModalMostrado = true; 
+            setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); 
+        } else { enviarEmailAlerta(nivelPct); } 
+    } else { 
+        if (nivelPct > 50) { 
+            if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; 
+            if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; 
+        }
+        if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } 
+        controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; 
+    }
+}
+
+// Salva a leitura válida no Firebase para persistência entre sessões
+async function salvarUltimaLeituraValida(nivel, timestamp) {
+    // Caminho: ..._config/ultima_leitura_valida.json
+    const url = `${PATH_CONFIG_BASE}/ultima_leitura_valida.json`;
+    const dados = { nivel: nivel, timestamp: timestamp };
+    try {
+        await fetch(url, { method: 'PUT', body: JSON.stringify(dados) });
+    } catch(e) { console.log("Erro ao salvar ultima valida", e); }
+}
+
+// Busca a leitura válida salva no Firebase (caso o buffer local esteja vazio)
+async function buscarBackupUltimaValidaFirebase() {
+    const url = `${PATH_CONFIG_BASE}/ultima_leitura_valida.json`;
+    try {
+        const r = await safeFetch(url);
+        if (r && r.nivel) return r;
+    } catch(e) {}
+    return null;
+}
+
+// LOOP PRINCIPAL (Watchdog style)
+async function loopDeAtualizacao() {
+  try {
+    const dados = await safeFetch(PATH_TEMPO_REAL);
+    
+    // Extrai o nível cru (pode ser 0 ou null)
+    let nivelCru = extrairNivelPct(dados);
+    let nivelFinal = 0;
+    let isSimulado = false;
+
+    // --- LÓGICA DE FILTRO E LATCH ---
+    if (nivelCru !== null && nivelCru > 0) {
+        // LEITURA VÁLIDA:
+        // 1. Adiciona ao buffer (tamanho 5 para mediana estável)
+        bufferLeiturasValidas.push(nivelCru);
+        if (bufferLeiturasValidas.length > 5) bufferLeiturasValidas.shift(); 
+        
+        // 2. Calcula a Mediana para evitar "fantasmas" (picos isolados)
+        const sorted = [...bufferLeiturasValidas].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        const mediana = sorted.length > 0 ? sorted[mid] : nivelCru;
+
+        // "Faça a média e fixe" - Mediana é melhor para filtrar fantasmas, mas se quiser média simples:
+        // const sum = bufferLeiturasValidas.reduce((a,b)=>a+b,0); const media = sum/bufferLeiturasValidas.length;
+        
+        // Vou usar a MEDIANA pois filtra picos errados melhor que a média.
+        nivelFinal = mediana; 
+        isSimulado = false;
+
+        // 3. Salva no Firebase (com debounce de 1 min)
+        // "Sempre deixe o maior numero gravado": Se o buffer tiver oscilando, a mediana segura.
+        // Se a leitura for consistente, salvamos.
+        const agora = Date.now();
+        if (agora - lastSavedValidTime > 60000) {
+            // Verifica se vale a pena salvar (evita salvar zeros ou quedas bruscas irreais se tivermos histórico)
+            // Mas como é leitura válida confirmada pelo buffer, confiamos nela.
+            salvarUltimaLeituraValida(nivelFinal, agora);
+            lastSavedValidTime = agora;
+        }
+        
+        // Salvar histórico normal
+        const horaAtual = new Date().getHours(); 
+        if ((horaAtual !== ultimoHorarioSalvo || (agora - ultimoTempoSalvo > 300000)) && nivelFinal > 0) { 
+            await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real'); 
+            ultimoHorarioSalvo = horaAtual; 
+            ultimoTempoSalvo = agora; 
+            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
+        }
+
+    } else {
+        // LEITURA INVÁLIDA (0% ou Null) -> ENTRA MODO EMERGÊNCIA
+        isSimulado = true;
+        let baseNivel = 0;
+        let baseTime = 0;
+
+        // 1. Tenta usar o buffer local (memória RAM)
+        if (bufferLeiturasValidas.length > 0) {
+            // Usa a última mediana válida do buffer
+            const sorted = [...bufferLeiturasValidas].sort((a, b) => a - b);
+            baseNivel = sorted[Math.floor(sorted.length / 2)];
+            baseTime = Date.now(); 
+        } else {
+            // 2. Se buffer vazio (ex: F5 na página), busca do Firebase
+            const backup = await buscarBackupUltimaValidaFirebase();
+            if (backup) {
+                baseNivel = backup.nivel;
+                baseTime = backup.timestamp;
+            } else {
+                // 3. Se nem no Firebase tem, tenta o histórico do dia
+                const hist = await buscarBackupHistorico();
+                if (hist) {
+                    baseNivel = hist.pct;
+                    baseTime = hist.time;
+                }
+            }
+        }
+
+        // Se conseguiu alguma base válida, calcula a simulação
+        if (baseNivel > 0) {
+            nivelFinal = calcularNivelSimuladoLatch(baseNivel, baseTime);
+        } else {
+            // Se realmente não tem nada, mantemos 0 (raro)
+            nivelFinal = 0; 
+        }
+    }
+
+    renderNivel(nivelFinal, isSimulado);
+    ultimoUpdateEmMs = Date.now();
+
+  } catch (e) {
+    // Falha silenciosa, watchdog cuida
+  }
+}
+
+function iniciarWatchdog() {
+  if (watchdogInterval) clearInterval(watchdogInterval);
+  watchdogInterval = setInterval(() => {
+    // se ficou > 10s sem atualizar, força nova tentativa
+    if (Date.now() - ultimoUpdateEmMs > 10000) {
+      loopDeAtualizacao();
+    }
+  }, 5000);
+}
+
+function iniciarAtualizacao() {
+  loopDeAtualizacao(); // imediato
+  if (loopInterval) clearInterval(loopInterval);
+  loopInterval = setInterval(loopDeAtualizacao, UPDATE_MS);
+  iniciarWatchdog();
+}
+
+// ===== INICIALIZAÇÃO ROBUSTA (Página 2) =====
 window.addEventListener('load', function() {
-    const views = { caixa: document.getElementById('caixa-view'), grafico: document.getElementById('grafico-container'), abastecimento: document.getElementById('abastecimento-view'), consumo: document.getElementById('consumo-view'), config: document.getElementById('config-view') }; 
-    const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; 
+    // === 1. CONFIGURAÇÃO DE VIEW E BOTÕES (PRIORIDADE ALTA) ===
+    // Configura botões imediatamente para navegação funcionar mesmo se gráficos falharem
+    const views = { 
+        caixa: document.getElementById('caixa-view'), 
+        grafico: document.getElementById('grafico-container'), 
+        abastecimento: document.getElementById('abastecimento-view'), 
+        consumo: document.getElementById('consumo-view'), 
+        config: document.getElementById('config-view') 
+    }; 
+    const btns = { 
+        caixa: document.getElementById('btn-view-caixa'), 
+        grafico: document.getElementById('btn-view-grafico'), 
+        abastecimento: document.getElementById('btn-view-abastecimento'), 
+        consumo: document.getElementById('btn-view-consumo'), 
+        config: document.getElementById('btn-view-config') 
+    }; 
     const dateControls = document.getElementById('date-controls'); 
     const btnAt = document.getElementById('btnAtualizar');
+
+    // ========== NOVO: LÓGICA DE EXIBIÇÃO POR ID ==========
     const currentAppId = '__APP_ID__';
     const whitelistNovoContato = ['pp7', 'sau11', 'sau13'];
+    
+    // Se o ID não estiver na whitelist, remove o card de Novo Contato e a lista de contatos
     if (!whitelistNovoContato.includes(currentAppId)) {
         const cardContato = document.getElementById('card-novo-contato');
         const cardLista = document.getElementById('card-lista-contatos');
         if (cardContato) cardContato.style.display = 'none';
         if (cardLista) cardLista.style.display = 'none';
     }
-    function switchView(viewName) { activeTab = viewName; for (const key in views) { if(views[key]) views[key].style.display = 'none'; } if (views[viewName]) { views[viewName].style.display = 'flex'; } document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); if (btns[viewName]) { btns[viewName].classList.add('active'); } if(dateControls) dateControls.style.display = 'none'; try { if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); } else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); } if (viewName === 'grafico' && typeof chartLinha !== 'undefined') { chartLinha.resize(); chartBlocos.resize(); } else if (viewName === 'consumo' && typeof chartConsumoBloco !== 'undefined') { chartConsumoBloco.resize(); chartConsumoLinha.resize(); } else if (viewName === 'abastecimento' && typeof chartAbastecimento !== 'undefined') { chartAbastecimento.resize(); } } catch(e) { console.log('Erro ao carregar dados da view', e); } } 
+    // ====================================================
+
+    function switchView(viewName) { 
+        activeTab = viewName; 
+        for (const key in views) { if(views[key]) views[key].style.display = 'none'; } 
+        if (views[viewName]) { views[viewName].style.display = 'flex'; } 
+        
+        document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active')); 
+        if (btns[viewName]) { btns[viewName].classList.add('active'); } 
+        
+        if(dateControls) dateControls.style.display = 'none'; 
+        
+        // Carrega dados específicos da view com proteção
+        try {
+            if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } 
+            else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); } 
+            else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); }
+            
+            // Redimensiona gráficos se existirem
+            if (viewName === 'grafico' && typeof chartLinha !== 'undefined') { chartLinha.resize(); chartBlocos.resize(); }
+            else if (viewName === 'consumo' && typeof chartConsumoBloco !== 'undefined') { chartConsumoBloco.resize(); chartConsumoLinha.resize(); }
+            else if (viewName === 'abastecimento' && typeof chartAbastecimento !== 'undefined') { chartAbastecimento.resize(); }
+        } catch(e) { console.log('Erro ao carregar dados da view', e); }
+    } 
+
+    // Vincula Event Listeners dos Botões
     if(btns.caixa) btns.caixa.addEventListener('click', () => switchView('caixa')); 
     if(btns.grafico) btns.grafico.addEventListener('click', () => switchView('grafico')); 
     if(btns.abastecimento) btns.abastecimento.addEventListener('click', () => switchView('abastecimento')); 
     if(btns.consumo) btns.consumo.addEventListener('click', () => switchView('consumo')); 
     if(btns.config) btns.config.addEventListener('click', () => switchView('config')); 
-    document.querySelectorAll('.view-selector .view-btn').forEach(btn => { btn.addEventListener('click', (e) => { const parent = e.target.parentElement; parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); if (e.target.dataset.view) { currentView = e.target.dataset.view; const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; if(btnAt) btnAt.click(); } }); });
+    
+    // Outros listeners de UI
+    document.querySelectorAll('.view-selector .view-btn').forEach(btn => { 
+        btn.addEventListener('click', (e) => { 
+            const parent = e.target.parentElement; 
+            parent.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); 
+            e.target.classList.add('active'); 
+            if (e.target.dataset.view) { 
+                currentView = e.target.dataset.view; 
+                const pickers = { diario: 'diario-picker', mensal: 'mensal-picker', intervalo: 'intervalo-picker' }; 
+                for(const k in pickers) document.getElementById(pickers[k]).style.display = 'none'; 
+                if (pickers[currentView]) document.getElementById(pickers[currentView]).style.display = 'flex'; 
+                if(btnAt) btnAt.click(); 
+            } 
+        }); 
+    });
+    
+    // === 2. INICIALIZAÇÕES SECUNDÁRIAS (COM PROTEÇÃO) ===
     try { checkAutoTheme(); } catch(e){}
     try { setupAudio(); } catch(e){}
+    
+    // Setup de data
     const hoje = new Date(); 
     const mesAtual = getLocalISODate(hoje).substring(0, 7); 
     const elMesAbast = document.getElementById('mesAbastecimento'); 
     if(elMesAbast) { elMesAbast.value = mesAtual; } 
+    
     const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); 
     if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; }
+    
     if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; 
+    
+    // Listeners de Modal e Configuração
     const modalBtn = document.getElementById('modal-close-btn'); if(modalBtn) modalBtn.addEventListener('click', confirmarAlerta);
-    const idsBotoes = [ ['btn-salvar-abastecimento', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)], ['btn-salvar-capacidade', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))], ['btn-salvar-altura', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))], ['btn-add-contato', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)], ['btn-salvar-nivel-alerta', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))] ];
-    idsBotoes.forEach(pair => { const b = document.getElementById(pair[0]); if(b) b.addEventListener('click', pair[1]); });
+    
+    const idsBotoes = [
+        ['btn-salvar-abastecimento', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)],
+        ['btn-salvar-capacidade', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))],
+        ['btn-salvar-altura', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))],
+        ['btn-add-contato', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)],
+        ['btn-salvar-nivel-alerta', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))]
+    ];
+    idsBotoes.forEach(pair => {
+        const b = document.getElementById(pair[0]);
+        if(b) b.addEventListener('click', pair[1]);
+    });
+
     const lstContatos = document.getElementById('lista-contatos');
-    if(lstContatos) lstContatos.addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } } }); 
+    if(lstContatos) lstContatos.addEventListener('click', (e) => { 
+        if (e.target.closest('button')) { 
+            const btn = e.target.closest('button'); 
+            const id = btn.dataset.id; 
+            if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } 
+            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } 
+        } 
+    }); 
     const lstAbast = document.getElementById('lista-abastecimentos');
-    if(lstAbast) lstAbast.addEventListener('click', (e) => { if (e.target.closest('button')) { const btn = e.target.closest('button'); const id = btn.dataset.id; if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } } });
+    if(lstAbast) lstAbast.addEventListener('click', (e) => { 
+        if (e.target.closest('button')) { 
+            const btn = e.target.closest('button'); 
+            const id = btn.dataset.id; 
+            if (btn.dataset.confirming) { removerAbastecimento(id); btn.dataset.confirming = ''; } 
+            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-times"></i>'; }, 2000); } 
+        } 
+    });
+
     function despertarAudio() { if (audioContext && audioContext.state === 'suspended') audioContext.resume(); } 
     document.body.addEventListener('click', despertarAudio, { once: true }); 
     document.body.addEventListener('touchstart', despertarAudio, { once: true }); 
-    
-    // =========================================================
-    // CORREÇÃO CRÍTICA: BOTÕES TELEGRAM E MAPS
-    // =========================================================
-    // A lógica anterior tentava pegar os botões antes deles existirem ou
-    // no escopo errado (fora do iframe). Agora, eles estão no lugar certo:
-    // dentro do script que roda APÓS o template carregar.
-    
-    // 1. Botão do Telegram
-    const btnTel = document.getElementById('btn-telegram-action');
-    if(btnTel) {
-        btnTel.addEventListener('click', (e) => {
-            e.preventDefault();
-            // Dispara a URL com esquema 'tg://'. 
-            // O bloco 'WebViewer.BeforeNavigate' no Kodular vai capturar isso.
-            const url = "tg://resolve?domain=Caixadguap7_bot&start=start";
-            
-            // Tenta redirecionar a janela para ativar o evento de navegação
-            window.location.href = url;
-        });
-    }
-
-    // 2. Botão do Maps (ícone de localização no topo)
-    // Note: No template original, o link era um <a> simples.
-    // Aqui garantimos que ele tenha um listener.
-    // O template HTML acima foi ajustado para ter id="btn-maps-action" no link do Maps.
-    const btnMaps = document.getElementById('btn-maps-action'); // Adicionado ID no HTML do template
-    if (btnMaps) {
-        // Pega as coordenadas que foram substituídas no __MAPS_COORDS__
-        // O link original já tem o href do Google Maps web como fallback
-        btnMaps.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            // Pega a URL do href original (que contém as coordenadas) ou constrói
-            // Como é um link <a>, podemos pegar o href
-            let targetUrl = btnMaps.href;
-            
-            // Tenta detectar se é mobile para usar esquema geo:
-            const ua = navigator.userAgent || navigator.vendor || window.opera;
-            const isAndroid = /android/i.test(ua);
-            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-            
-            // Se o link tiver query param, extrai
-            // Ex: https://www.google.com/maps/search/?api=1&query=-19.601319, -44.221978
-            if(targetUrl.includes('query=')) {
-                const coords = targetUrl.split('query=')[1];
-                if(isAndroid) {
-                    targetUrl = `geo:${coords}?q=${coords}`;
-                } else if(isIOS) {
-                    targetUrl = `maps:?q=${coords}`;
-                }
-            }
-            
-            // Dispara a navegação para o Kodular interceptar
-            window.location.href = targetUrl;
-        });
-    }
-    // =========================================================
-
     verificacaoInicialConcluida = true; 
-    try { criarGraficos(); } catch(e) { console.log('Erro ao criar graficos', e); }
-    const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); 
+
+    // === 3. CARREGAMENTO DE GRÁFICOS (RISCO MÉDIO) ===
+    try {
+        criarGraficos(); 
+    } catch(e) { console.log('Erro ao criar graficos', e); }
+
+    // === 4. INICIALIZAÇÃO DE DADOS (DADOS MOCADOS OU VAZIOS SE FALHAR) ===
+    const dataFim = getLocalISODate(hoje); const mesFim = dataFim.substring(0, 7); 
+    hoje.setDate(hoje.getDate() - 59); const dataIni = getLocalISODate(hoje); 
+    
     const elDataEsc = document.getElementById('dataEscolhida'); if(elDataEsc) elDataEsc.value = dataFim; 
     const elDataEscConsumo = document.getElementById('dataEscolhidaConsumo'); if(elDataEscConsumo) elDataEscConsumo.value = dataFim; 
     const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; 
     const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; 
     const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; 
+    
+    // Inicia na aba Caixa
     switchView('caixa'); 
+    
     try { carregarConfiguracoesGerais(); } catch(e){}
     try { carregarHistoricoEConsumo(); } catch(e){}
+    
+    // === 5. INICIAR LOOP DE ATUALIZAÇÃO (CRÍTICO) ===
+    // Aqui usamos a lógica do seu snippet para atualizar o nível
     iniciarAtualizacao();
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) { iniciarAtualizacao(); try { carregarHistoricoEConsumo(); } catch(e){} } });
+    
+    // VISIBILITY CHANGE (MIT costuma pausar timers)
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        iniciarAtualizacao(); // ao voltar a ficar visível, força atualização
+        try { carregarHistoricoEConsumo(); } catch(e){}
+      }
+    });
 });
 </script>
 </body>
 </html>
 </textarea>
+
+<!-- ========================================================================= -->
+<!-- SCRIPT DO DASHBOARD PRINCIPAL (E LÓGICA DE ABERTURA DOS APPS)             -->
+<!-- ========================================================================= -->
 <script>
+// --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
-const listPP = [ { id: 'pp1', name: 'PP 01', active: true, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'PP 01 - Paracatu/MG', coords: '-17.098233, -47.026486' }, { id: 'pp2', name: 'PP 02', active: true, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'PP 02 - Lagoa Grande/MG', coords: '-17.505925, -46.564761' }, { id: 'pp3', name: 'PP 03', active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'PP 03 - João Pinheiro/MG', coords: '-17.945544, -46.037600' }, { id: 'pp4', name: 'PP 04', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'PP 04 - São Gonçalo do Abaeté/MG', coords: '-18.132631, -45.417289' }, { id: 'pp5', name: 'PP 05', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'PP 05 - Felixlândia/MG', coords: '-18.565369, -45.020900' }, { id: 'pp6', name: 'PP 06', active: true, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'PP 06 - Curvelo/MG', coords: '-19.079333, -44.655247' }, { id: 'pp7', name: 'PP 07', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'PP 07 - Capim Branco/MG', coords: '-19.601319, -44.221978' } ];
-const listSAU = [ { id: 'sau01', name: 'SAU 01', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01 - Cristalina/GO', coords: '-17.007067, -47.422869' }, { id: 'sau02', name: 'SAU 02', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02 - Cristalina/GO', coords: '-17.007036, -47.222869' }, { id: 'sau03', name: 'SAU 03', active: true, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03 - Paracatu/MG', coords: '-17.226303, -46.860847' }, { id: 'sau04', name: 'SAU 04', active: true, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04 - Paracatu/MG', coords: '-17.489497, -46.606253' }, { id: 'sau05', name: 'SAU 05', active: true, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05 - João Pinheiro/MG', coords: '-17.707331, -46.279814' }, { id: 'sau06', name: 'SAU 06', active: true, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06 - João Pinheiro/MG', coords: '-17.945833, -46.030556' }, { id: 'sau07', name: 'SAU 07', active: true, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07 - João Pinheiro/MG', coords: '-17.978008, -45.620039' }, { id: 'sau08', name: 'SAU 08', active: true, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08 - São Gonçalo do Abaeté/MG', coords: '-18.185247, -45.261031' }, { id: 'sau09', name: 'SAU 09', active: true, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09 - Três Marias/MG', coords: '-18.473639, -45.061050' }, { id: 'sau10', name: 'SAU 10', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10 - Felixlândia/MG', coords: '-18.764300, -44.837728' }, { id: 'sau11', name: 'SAU 11', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11 - Curvelo/MG', coords: '-19.076286, -44.654950' }, { id: 'sau12', name: 'SAU 12', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12 - Caetanópolis/MG', coords: '-19.300567, -44.378692' }, { id: 'sau13', name: 'SAU 13', active: true, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13 - Capim Branco/MG', coords: '-19.608456, -44.218711' }, { id: 'sau14', name: 'SAU 14', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14 - Contagem/MG', coords: '-19.885817, -44.050631' } ];
-function renderGrid(containerId, list, iconClass) { const container = document.getElementById(containerId); container.innerHTML = ''; list.forEach(item => { const cls = item.active ? '' : 'inactive'; const action = item.active ? `onclick="prepararAbertura('${item.id}')"` : ''; container.innerHTML += `<div class="card ${cls}" id="card-${item.id}" ${action} title="${item.title}"><div class="card-water-bg" id="bg-${item.id}"></div><div class="card-content"><div class="live-dot"></div><div class="simulated-badge" title="Valor Estimado">!</div><i class="${iconClass} card-icon"></i><div class="card-title">${item.name}</div><div class="card-level" id="lvl-${item.id}">--%</div><div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div></div></div>`; }); }
-function findItemById(id) { let item = listPP.find(i => i.id === id); if(!item) item = listSAU.find(i => i.id === id); return item; }
+
+// Lista de Praças (PP) - Atualizada com Coordenadas e Cidades
+const listPP = [
+    { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', active: true, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
+    { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', active: true, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
+    { id: 'pp3', name: 'PP 03', city: 'João Pinheiro', coords: '-17.945544,-46.037600', active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
+    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
+    { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
+    { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', active: true, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
+    { id: 'pp7', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'Praça de Pedágio 07' }
+];
+
+// Lista de SAUs - Atualizada com Coordenadas e Cidades
+const listSAU = [
+    { id: 'sau01', name: 'SAU 01', city: 'Cristalina', coords: 'geo:0,0?q=SAU+01+Via+040+Cristalina', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01' },
+    { id: 'sau02', name: 'SAU 02', city: 'Cristalina', coords: '-17.007036,-47.222869', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02' },
+    { id: 'sau03', name: 'SAU 03', city: 'Paracatu', coords: '-17.226303,-46.860847', active: true, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03' },
+    { id: 'sau04', name: 'SAU 04', city: 'Paracatu', coords: '-17.489497,-46.606253', active: true, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04' },
+    { id: 'sau05', name: 'SAU 05', city: 'João Pinheiro', coords: '-17.707331,-46.279814', active: true, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05' },
+    { id: 'sau06', name: 'SAU 06', city: 'João Pinheiro', coords: '-17.945833,-46.030556', active: true, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06' },
+    { id: 'sau07', name: 'SAU 07', city: 'João Pinheiro', coords: '-17.978008,-45.620039', active: true, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07' },
+    { id: 'sau08', name: 'SAU 08', city: 'São Gonçalo do Abaete', coords: '-18.185247,-45.261031', active: true, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08' },
+    { id: 'sau09', name: 'SAU 09', city: 'Três Marias', coords: '-18.473639,-45.061050', active: true, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09' },
+    { id: 'sau10', name: 'SAU 10', city: 'Felixlândia', coords: '-18.764300,-44.837728', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10' },
+    { id: 'sau11', name: 'SAU 11', city: 'Curvelo', coords: '-19.076286,-44.654950', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11' },
+    { id: 'sau12', name: 'SAU 12', city: 'Caetanópolis', coords: '-19.300567,-44.378692', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12' },
+    { id: 'sau13', name: 'SAU 13', city: 'Capim Branco', coords: '-19.608456,-44.218711', active: true, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13' },
+    { id: 'sau14', name: 'SAU 14', city: 'Contagem', coords: '-19.885817,-44.050631', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
+];
+
+// --- RENDERIZAR CARDS NO DASHBOARD ---
+function renderGrid(containerId, list, iconClass) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    
+    list.forEach(item => {
+        const cls = item.active ? '' : 'inactive';
+        const action = item.active 
+            ? `onclick="prepararAbertura('${item.id}')"` 
+            : '';
+        
+        container.innerHTML += `
+            <div class="card ${cls}" id="card-${item.id}" ${action}>
+                <div class="card-water-bg" id="bg-${item.id}"></div>
+                <div class="card-content">
+                    <div class="live-dot"></div>
+                    <div class="simulated-badge" title="Valor Estimado">!</div>
+                    <i class="${iconClass} card-icon"></i>
+                    <div class="card-title">${item.name}</div>
+                    <div class="card-level" id="lvl-${item.id}">--%</div>
+                    <div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function findItemById(id) {
+    let item = listPP.find(i => i.id === id);
+    if(!item) item = listSAU.find(i => i.id === id);
+    return item;
+}
+
+// --- LÓGICA DE ABERTURA DE APPS ---
 let dashboardInterval = null;
-function prepararAbertura(id) { const item = findItemById(id); if (!item) return; let rawHTML = document.getElementById('app-template').value; rawHTML = rawHTML.replace(/__APP_TITLE__/g, item.title); rawHTML = rawHTML.replace(/__APP_ID__/g, item.id); rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath); rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath); rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath); rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); rawHTML = rawHTML.replace(/__MAPS_COORDS__/g, item.coords || ''); abrirApp(rawHTML); }
-function abrirApp(htmlContent) { const overlay = document.getElementById('app-overlay'); const iframe = document.getElementById('app-frame'); iframe.srcdoc = htmlContent; overlay.classList.add('active'); if(dashboardInterval) clearInterval(dashboardInterval); }
-function fecharApp() { const overlay = document.getElementById('app-overlay'); const iframe = document.getElementById('app-frame'); iframe.srcdoc = ""; overlay.classList.remove('active'); updateDashboardData(); dashboardInterval = setInterval(updateDashboardData, 10000); }
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) { const agora = Date.now(); let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60); let nivelSimulado = nivelInicial; let quedasAplicadas = 0; while (horasPassadas > 0 && nivelSimulado > 0) { let duracaoBloco = 2; quedasAplicadas++; if (quedasAplicadas <= 4) { duracaoBloco = 8; } else if (quedasAplicadas <= 6) { duracaoBloco = 6; } else if (quedasAplicadas <= 8) { duracaoBloco = 4; } else { duracaoBloco = 2; } if (horasPassadas >= duracaoBloco) { nivelSimulado -= 5; horasPassadas -= duracaoBloco; } else { break; } } if (nivelSimulado < 0) nivelSimulado = 0; return nivelSimulado; }
-function cleanFirebaseUrl(baseUrl, path) { let cleanBase = baseUrl.trim(); if(cleanBase.endsWith('/')) cleanBase = cleanBase.slice(0, -1); let cleanPath = path.trim(); if(!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath; return `${cleanBase}${cleanPath}?nocache=${Date.now()}`; }
-async function safeFetchDashboard(url) { let controller = null; let signal = null; let id = null; if (typeof AbortController !== 'undefined') { controller = new AbortController(); id = setTimeout(() => controller.abort(), 4000); signal = controller.signal; } const options = { cache: 'no-store' }; if (signal) options.signal = signal; try { const response = await fetch(url, options); if(id) clearTimeout(id); if(!response.ok) return null; return response.json(); } catch(e) { if(id) clearTimeout(id); return null; } }
-async function updateDashboardData() { const activeItems = [...listPP, ...listSAU].filter(i => i.active); for (const item of activeItems) { try { const urlReal = cleanFirebaseUrl(DB_BASE, item.firebaseDataPath); const d = await safeFetchDashboard(urlReal); let lvl = 0; let isSimulated = false; let rawLvl = 0; if(d) { if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct); else if(d.nivel !== undefined) rawLvl = Number(d.nivel); else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual); } if (rawLvl > 0) { lvl = rawLvl; isSimulated = false; } else { let lastValidPct = 0; let lastValidTime = 0; if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) { lastValidPct = d.ultima_valida_pct; lastValidTime = d.ultima_valida_time; } if (lastValidPct === 0) { try { const urlBackup = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`); const backup = await safeFetchDashboard(urlBackup); if(backup && backup.nivel) { lastValidPct = backup.nivel; lastValidTime = backup.timestamp; } } catch(e2){} } if (lastValidPct > 0) { lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime); isSimulated = true; } else { lvl = 0; } } const card = document.getElementById(`card-${item.id}`); const elLvl = document.getElementById(`lvl-${item.id}`); const elBg = document.getElementById(`bg-${item.id}`); if(card && elLvl) { elLvl.innerText = `${lvl}%`; if(elBg) elBg.style.height = `${lvl}%`; const dot = card.querySelector('.live-dot'); const badge = card.querySelector('.simulated-badge'); if (rawLvl > 0) { dot.style.display = 'block'; badge.style.display = 'none'; } else { dot.style.display = 'none'; if (isSimulated && lvl > 0) badge.style.display = 'flex'; else badge.style.display = 'none'; } card.removeAttribute('data-status'); if (isSimulated && lvl > 0) { card.setAttribute('data-status', 'simulated'); elLvl.style.color = '#d97706'; } else { if(lvl > 60) { card.setAttribute('data-status', 'ok'); elLvl.style.color = 'var(--level-ok)'; } else if (lvl > 30) { card.setAttribute('data-status', 'warn'); elLvl.style.color = 'var(--level-warn)'; } else { card.setAttribute('data-status', 'danger'); elLvl.style.color = 'var(--level-danger)'; } } } } catch(e) { console.log("Erro ao atualizar card " + item.id); } } }
+
+function prepararAbertura(id) {
+    const item = findItemById(id);
+    if (!item) return;
+
+    let rawHTML = document.getElementById('app-template').value;
+
+    // Constrói o título combinando o código e a cidade (ex: "PP 01 - Paracatu")
+    let displayTitle = item.city ? `${item.name} - ${item.city}` : item.title;
+    
+    // Constrói o botão de mapa (se houver coordenadas)
+    let mapsButton = '';
+    if (item.coords) {
+        mapsButton = `
+            <button onclick="abrirAppExterno('maps', '${item.coords}')" class="nav-button-icon-only" title="Ver Localização" style="width:32px; height:32px; font-size:0.9rem; background: var(--input-bg);">
+                <i class="fas fa-map-marker-alt" style="color: #ef4444;"></i>
+            </button>
+        `;
+    }
+
+    rawHTML = rawHTML.replace(/__APP_TITLE__/g, displayTitle);
+    rawHTML = rawHTML.replace('__MAPS_BTN__', mapsButton);
+    rawHTML = rawHTML.replace(/__APP_ID__/g, item.id); 
+    rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
+    rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
+    rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath);
+    rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); 
+
+    abrirApp(rawHTML);
+}
+
+function abrirApp(htmlContent) {
+    const overlay = document.getElementById('app-overlay');
+    const iframe = document.getElementById('app-frame');
+    iframe.srcdoc = htmlContent;
+    overlay.classList.add('active');
+    // Para a atualização do dashboard para economizar recursos
+    if(dashboardInterval) clearInterval(dashboardInterval);
+}
+
+function fecharApp() {
+    const overlay = document.getElementById('app-overlay');
+    const iframe = document.getElementById('app-frame');
+    iframe.srcdoc = "";
+    overlay.classList.remove('active');
+    updateDashboardData();
+    // Reativa o loop do dashboard
+    dashboardInterval = setInterval(updateDashboardData, 10000); // 10s para não saturar
+}
+
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
+    const agora = Date.now();
+    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
+    let nivelSimulado = nivelInicial;
+    let quedasAplicadas = 0;
+
+    while (horasPassadas > 0 && nivelSimulado > 0) {
+        let duracaoBloco = 2;
+        quedasAplicadas++;
+        if (quedasAplicadas <= 4) { duracaoBloco = 8; }
+        else if (quedasAplicadas <= 6) { duracaoBloco = 6; }
+        else if (quedasAplicadas <= 8) { duracaoBloco = 4; }
+        else { duracaoBloco = 2; }
+
+        if (horasPassadas >= duracaoBloco) {
+            nivelSimulado -= 5;
+            horasPassadas -= duracaoBloco;
+        } else {
+            break;
+        }
+    }
+    if (nivelSimulado < 0) nivelSimulado = 0;
+    return nivelSimulado;
+}
+
+// --- FETCH OTIMIZADO PARA DASHBOARD (SEQUENCIAL) ---
+// Função auxiliar para limpar URLs e garantir barra correta
+function cleanFirebaseUrl(baseUrl, path) {
+    let cleanBase = baseUrl.trim();
+    if(cleanBase.endsWith('/')) cleanBase = cleanBase.slice(0, -1);
+    
+    let cleanPath = path.trim();
+    if(!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+    
+    // Adiciona nocache para evitar dados velhos
+    return `${cleanBase}${cleanPath}?nocache=${Date.now()}`;
+}
+
+async function safeFetchDashboard(url) {
+    let controller = null;
+    let signal = null;
+    let id = null;
+
+    if (typeof AbortController !== 'undefined') {
+        controller = new AbortController();
+        id = setTimeout(() => controller.abort(), 4000); 
+        signal = controller.signal;
+    }
+
+    const options = { cache: 'no-store' };
+    if (signal) options.signal = signal;
+
+    try {
+        const response = await fetch(url, options);
+        if(id) clearTimeout(id);
+        if(!response.ok) return null;
+        return response.json();
+    } catch(e) {
+        if(id) clearTimeout(id);
+        return null;
+    }
+}
+
+// --- UPDATE DASHBOARD SEQUENCIAL (ANTI-TRAVAMENTO & COM BACKUP) ---
+async function updateDashboardData() {
+    const activeItems = [...listPP, ...listSAU].filter(i => i.active);
+    
+    // Loop sequencial
+    for (const item of activeItems) {
+        try {
+            // 1. Tenta pegar o valor realtime
+            const urlReal = cleanFirebaseUrl(DB_BASE, item.firebaseDataPath);
+            const d = await safeFetchDashboard(urlReal);
+            
+            let lvl = 0;
+            let isSimulated = false;
+            let rawLvl = 0;
+
+            if(d) {
+                if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
+                else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
+                else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
+            }
+            
+            if (rawLvl > 0) {
+                lvl = rawLvl;
+                isSimulated = false;
+            } else {
+                // 2. Se realtime falhou (0%), busca a última válida no config para simular
+                let lastValidPct = 0;
+                let lastValidTime = 0;
+
+                // Tenta do realtime se tiver (legado)
+                if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
+                      lastValidPct = d.ultima_valida_pct;
+                      lastValidTime = d.ultima_valida_time;
+                } 
+                
+                // Se não achou, tenta no JSON de backup (O NOVO MÉTODO)
+                if (lastValidPct === 0) {
+                    try {
+                        const urlBackup = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
+                        const backup = await safeFetchDashboard(urlBackup);
+                        if(backup && backup.nivel) {
+                            lastValidPct = backup.nivel;
+                            lastValidTime = backup.timestamp;
+                        }
+                    } catch(e2){}
+                }
+
+                if (lastValidPct > 0) {
+                    lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime);
+                    isSimulated = true;
+                } else {
+                    lvl = 0; 
+                }
+            }
+            
+            // Atualiza DOM imediatamente
+            const card = document.getElementById(`card-${item.id}`);
+            const elLvl = document.getElementById(`lvl-${item.id}`);
+            const elBg = document.getElementById(`bg-${item.id}`);
+            
+            if(card && elLvl) {
+                elLvl.innerText = `${lvl}%`;
+                if(elBg) elBg.style.height = `${lvl}%`;
+
+                const dot = card.querySelector('.live-dot');
+                const badge = card.querySelector('.simulated-badge');
+                
+                if (rawLvl > 0) {
+                    dot.style.display = 'block';
+                    badge.style.display = 'none';
+                } else {
+                    dot.style.display = 'none';
+                    if (isSimulated && lvl > 0) badge.style.display = 'flex';
+                    else badge.style.display = 'none';
+                }
+                
+                card.removeAttribute('data-status');
+                
+                if (isSimulated && lvl > 0) {
+                    card.setAttribute('data-status', 'simulated');
+                    elLvl.style.color = '#d97706';
+                } else {
+                    if(lvl > 60) {
+                        card.setAttribute('data-status', 'ok');
+                        elLvl.style.color = 'var(--level-ok)';
+                    } else if (lvl > 30) {
+                        card.setAttribute('data-status', 'warn');
+                        elLvl.style.color = 'var(--level-warn)';
+                    } else {
+                        card.setAttribute('data-status', 'danger');
+                        elLvl.style.color = 'var(--level-danger)';
+                    }
+                }
+            }
+        } catch(e) {
+            console.log("Erro ao atualizar card " + item.id);
+        }
+    }
+}
+
 let isDark = false;
-function toggleTheme() { isDark = !isDark; if(isDark) { document.body.setAttribute('data-theme', 'dark'); document.querySelector('.theme-toggle i').classList.replace('fa-moon', 'fa-sun'); } else { document.body.removeAttribute('data-theme'); document.querySelector('.theme-toggle i').classList.replace('fa-sun', 'fa-moon'); } }
-window.onload = () => { renderGrid('grid-pp', listPP, 'fas fa-road'); renderGrid('grid-sau', listSAU, 'fas fa-home'); updateDashboardData(); dashboardInterval = setInterval(updateDashboardData, 10000); };
+function toggleTheme() {
+    isDark = !isDark;
+    if(isDark) {
+        document.body.setAttribute('data-theme', 'dark');
+        document.querySelector('.theme-toggle i').classList.replace('fa-moon', 'fa-sun');
+    } else {
+        document.body.removeAttribute('data-theme');
+        document.querySelector('.theme-toggle i').classList.replace('fa-sun', 'fa-moon');
+    }
+}
+
+window.onload = () => {
+    renderGrid('grid-pp', listPP, 'fas fa-road'); 
+    renderGrid('grid-sau', listSAU, 'fas fa-home'); 
+    updateDashboardData();
+    // Intervalo mais longo (10s) para evitar travamento
+    dashboardInterval = setInterval(updateDashboardData, 10000); 
+};
 </script>
 </body>
 </html>
