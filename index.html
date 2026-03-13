@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#0f172a">
 <title>Monitoramento Via Cristais - Central</title>
 
-<!-- Fontes e Ícones -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -174,7 +173,6 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 </head>
 <body>
 
-<!-- POP-UP DE MANUTENÇÃO -->
 <div id="maintenance-popup">
     <div class="m-box">
         <div class="m-icon-anim"><i class="fas fa-cog"></i></div>
@@ -187,7 +185,6 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
     </div>
 </div>
 
-<!-- DASHBOARD VISÍVEL INICIALMENTE -->
 <div id="dashboard-container">
     <div class="header">
         <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
@@ -202,16 +199,10 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
     <div class="grid" id="grid-sau"></div>
 </div>
 
-<!-- OVERLAY PARA EXIBIR OS APPS ORIGINAIS -->
-<!-- Sandbox ajustado para permitir navegação no topo -->
 <div id="app-overlay">
     <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
 </div>
 
-<!-- ========================================================================= -->
-<!-- TEMPLATE UNIVERSAL ÚNICO (Para TODAS as Caixas)                           -->
-<!-- Este código é injetado no iframe, substituindo as variáveis __VARS__        -->
-<!-- ========================================================================= -->
 <textarea id="app-template" style="display:none;">
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -332,12 +323,9 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
-<!-- Botão Voltar (Movido para cá) -->
 <button class="nav-button-icon-only" onclick="window.parent.fecharApp()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
-<!-- Botões de Tema e Atualizar -->
 <button class="nav-button-icon-only" onclick="window.toggleTheme()" title="Alternar Tema"><i class="fas fa-moon"></i></button>
 <button class="nav-button-icon-only" onclick="window.location.reload(true)" title="Atualizar"><i class="fas fa-sync-alt"></i></button>
-<!-- Botões de Navegação -->
 <button id="btn-view-caixa" class="nav-button active"><i class="fas fa-water"></i> <span>Caixa D'água</span></button>
 <button id="btn-view-grafico" class="nav-button"><i class="fas fa-chart-line"></i> <span>Histórico</span></button>
 <button id="btn-view-abastecimento" class="nav-button"><i class="fas fa-truck-droplet"></i> <span>Abastecimento</span></button>
@@ -348,14 +336,12 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div id="caixa-view">
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais">
 
-<!-- Título Específico da Caixa com Botão de Mapa ao Lado -->
 <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 5px 0 10px 0;">
     <h2 style="margin:0; font-size: 1rem; color: var(--text-sec); font-weight: 600;">__APP_TITLE__</h2>
     __MAPS_BTN__
 </div>
 
 <div id="status-display" class="glass-panel">
-<!-- Indicador LED dentro do quadro branco -->
 <div class="status-indicator-box">
 <div id="live-indicator" class="live-indicator offline" title="Status Conexão"></div>
 </div>
@@ -509,12 +495,10 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
 </div>
 
-<!-- CARD DO TELEGRAM BOT - MODIFICADO PARA INTENT -->
 <div class="config-card glass-panel" id="card-telegram-bot">
 <h2>Telegram Bot</h2>
 <div class="form-group">
 <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:10px;">Receba alertas no seu celular.</p>
-<!-- Botão alterado para chamar a função JS e disparar o protocolo tg:// -->
 <button onclick="abrirAppExterno('telegram', 'Caixadguap7_bot')" class="modern-button" style="background-color:#229ED9; color:white; width:100%; display:flex; align-items:center; justify-content:center;">
 <i class="fab fa-telegram-plane"></i> Iniciar Bot
 </button>
@@ -1146,40 +1130,37 @@ window.addEventListener('load', function() {
 </html>
 </textarea>
 
-<!-- ========================================================================= -->
-<!-- SCRIPT DO DASHBOARD PRINCIPAL (E LÓGICA DE ABERTURA DOS APPS)             -->
-<!-- ========================================================================= -->
 <script>
 // --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
-// Lista de Praças (PP) - Atualizada com Coordenadas e Cidades
+// Lista de Praças (PP) - PP03, PP05 e PP07 ativas, as outras falsas
 const listPP = [
-    { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', active: true, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
-    { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', active: true, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
+    { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', active: false, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
+    { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', active: false, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
     { id: 'pp3', name: 'PP 03', city: 'João Pinheiro', coords: '-17.945544,-46.037600', active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
-    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
+    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', active: false, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
     { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
-    { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', active: true, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
+    { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', active: false, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
     { id: 'pp7', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'Praça de Pedágio 07' }
 ];
 
-// Lista de SAUs - Atualizada com Coordenadas e Cidades
+// Lista de SAUs - Todas falsas por enquanto
 const listSAU = [
-    { id: 'sau01', name: 'SAU 01', city: 'Cristalina', coords: 'geo:0,0?q=SAU+01+Via+040+Cristalina', active: true, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01' },
-    { id: 'sau02', name: 'SAU 02', city: 'Cristalina', coords: '-17.007036,-47.222869', active: true, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02' },
-    { id: 'sau03', name: 'SAU 03', city: 'Paracatu', coords: '-17.226303,-46.860847', active: true, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03' },
-    { id: 'sau04', name: 'SAU 04', city: 'Paracatu', coords: '-17.489497,-46.606253', active: true, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04' },
-    { id: 'sau05', name: 'SAU 05', city: 'João Pinheiro', coords: '-17.707331,-46.279814', active: true, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05' },
-    { id: 'sau06', name: 'SAU 06', city: 'João Pinheiro', coords: '-17.945833,-46.030556', active: true, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06' },
-    { id: 'sau07', name: 'SAU 07', city: 'João Pinheiro', coords: '-17.978008,-45.620039', active: true, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07' },
-    { id: 'sau08', name: 'SAU 08', city: 'São Gonçalo do Abaete', coords: '-18.185247,-45.261031', active: true, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08' },
-    { id: 'sau09', name: 'SAU 09', city: 'Três Marias', coords: '-18.473639,-45.061050', active: true, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09' },
-    { id: 'sau10', name: 'SAU 10', city: 'Felixlândia', coords: '-18.764300,-44.837728', active: true, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10' },
-    { id: 'sau11', name: 'SAU 11', city: 'Curvelo', coords: '-19.076286,-44.654950', active: true, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11' },
-    { id: 'sau12', name: 'SAU 12', city: 'Caetanópolis', coords: '-19.300567,-44.378692', active: true, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12' },
-    { id: 'sau13', name: 'SAU 13', city: 'Capim Branco', coords: '-19.608456,-44.218711', active: true, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13' },
-    { id: 'sau14', name: 'SAU 14', city: 'Contagem', coords: '-19.885817,-44.050631', active: true, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
+    { id: 'sau01', name: 'SAU 01', city: 'Cristalina', coords: 'geo:0,0?q=SAU+01+Via+040+Cristalina', active: false, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01' },
+    { id: 'sau02', name: 'SAU 02', city: 'Cristalina', coords: '-17.007036,-47.222869', active: false, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02' },
+    { id: 'sau03', name: 'SAU 03', city: 'Paracatu', coords: '-17.226303,-46.860847', active: false, firebaseDataPath: '/SAU03.json', firebaseConfigPath: '/SAU03_config', firebaseHistPath: '/SAU03_historico', title: 'SAU 03' },
+    { id: 'sau04', name: 'SAU 04', city: 'Paracatu', coords: '-17.489497,-46.606253', active: false, firebaseDataPath: '/SAU04.json', firebaseConfigPath: '/SAU04_config', firebaseHistPath: '/SAU04_historico', title: 'SAU 04' },
+    { id: 'sau05', name: 'SAU 05', city: 'João Pinheiro', coords: '-17.707331,-46.279814', active: false, firebaseDataPath: '/SAU05.json', firebaseConfigPath: '/SAU05_config', firebaseHistPath: '/SAU05_historico', title: 'SAU 05' },
+    { id: 'sau06', name: 'SAU 06', city: 'João Pinheiro', coords: '-17.945833,-46.030556', active: false, firebaseDataPath: '/SAU06.json', firebaseConfigPath: '/SAU06_config', firebaseHistPath: '/SAU06_historico', title: 'SAU 06' },
+    { id: 'sau07', name: 'SAU 07', city: 'João Pinheiro', coords: '-17.978008,-45.620039', active: false, firebaseDataPath: '/SAU07.json', firebaseConfigPath: '/SAU07_config', firebaseHistPath: '/SAU07_historico', title: 'SAU 07' },
+    { id: 'sau08', name: 'SAU 08', city: 'São Gonçalo do Abaete', coords: '-18.185247,-45.261031', active: false, firebaseDataPath: '/SAU08.json', firebaseConfigPath: '/SAU08_config', firebaseHistPath: '/SAU08_historico', title: 'SAU 08' },
+    { id: 'sau09', name: 'SAU 09', city: 'Três Marias', coords: '-18.473639,-45.061050', active: false, firebaseDataPath: '/SAU09.json', firebaseConfigPath: '/SAU09_config', firebaseHistPath: '/SAU09_historico', title: 'SAU 09' },
+    { id: 'sau10', name: 'SAU 10', city: 'Felixlândia', coords: '-18.764300,-44.837728', active: false, firebaseDataPath: '/SAU10.json', firebaseConfigPath: '/SAU10_config', firebaseHistPath: '/SAU10_historico', title: 'SAU 10' },
+    { id: 'sau11', name: 'SAU 11', city: 'Curvelo', coords: '-19.076286,-44.654950', active: false, firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11' },
+    { id: 'sau12', name: 'SAU 12', city: 'Caetanópolis', coords: '-19.300567,-44.378692', active: false, firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12' },
+    { id: 'sau13', name: 'SAU 13', city: 'Capim Branco', coords: '-19.608456,-44.218711', active: false, firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13' },
+    { id: 'sau14', name: 'SAU 14', city: 'Contagem', coords: '-19.885817,-44.050631', active: false, firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
 ];
 
 // --- RENDERIZAR CARDS NO DASHBOARD ---
@@ -1193,16 +1174,21 @@ function renderGrid(containerId, list, iconClass) {
             ? `onclick="prepararAbertura('${item.id}')"` 
             : '';
         
+        // Define o texto centralizado do nível
+        const initialLevel = item.active ? '--%' : '-';
+        // Define o texto do status embaixo do card
+        const statusText = item.active ? 'Online' : 'Offline';
+        
         container.innerHTML += `
             <div class="card ${cls}" id="card-${item.id}" ${action}>
                 <div class="card-water-bg" id="bg-${item.id}"></div>
                 <div class="card-content">
-                    <div class="live-dot"></div>
-                    <div class="simulated-badge" title="Valor Estimado">!</div>
+                    <div class="live-dot" style="display: ${item.active ? 'none' : 'none'};"></div>
+                    <div class="simulated-badge" title="Valor Estimado" style="display: none;">!</div>
                     <i class="${iconClass} card-icon"></i>
                     <div class="card-title">${item.name}</div>
-                    <div class="card-level" id="lvl-${item.id}">--%</div>
-                    <div class="card-status">${item.active ? 'Clique para abrir' : 'Offline'}</div>
+                    <div class="card-level" id="lvl-${item.id}">${initialLevel}</div>
+                    <div class="card-status">${statusText}</div>
                 </div>
             </div>
         `;
@@ -1332,6 +1318,7 @@ async function safeFetchDashboard(url) {
 
 // --- UPDATE DASHBOARD SEQUENCIAL (ANTI-TRAVAMENTO & COM BACKUP) ---
 async function updateDashboardData() {
+    // Busca APENAS os itens configurados como active: true (PP03, PP05 e PP07)
     const activeItems = [...listPP, ...listSAU].filter(i => i.active);
     
     // Loop sequencial
