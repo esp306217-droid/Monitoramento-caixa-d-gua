@@ -933,6 +933,7 @@ async function loopDeAtualizacao() {
         }
     }
 
+    isSimulado = false; // <--- ADICIONADO PARA FORÇAR O MODO ONLINE SEMPRE NA 2ª PÁGINA
     renderNivel(nivelFinal, isSimulado);
     ultimoUpdateEmMs = Date.now();
 
@@ -1134,12 +1135,12 @@ window.addEventListener('load', function() {
 // --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
-// Lista de Praças (PP) - PP03, PP05 e PP07 ativas, as outras falsas
+// Lista de Praças (PP) - PP03, PP04, PP05 e PP07 ativas, as outras falsas
 const listPP = [
     { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', active: false, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
     { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', active: false, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
     { id: 'pp3', name: 'PP 03', city: 'João Pinheiro', coords: '-17.945544,-46.037600', active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
-    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', active: false, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
+    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
     { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
     { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', active: false, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
     { id: 'pp7', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'Praça de Pedágio 07' }
@@ -1183,7 +1184,7 @@ function renderGrid(containerId, list, iconClass) {
             <div class="card ${cls}" id="card-${item.id}" ${action}>
                 <div class="card-water-bg" id="bg-${item.id}"></div>
                 <div class="card-content">
-                    <div class="live-dot" style="display: ${item.active ? 'none' : 'none'};"></div>
+                    <div class="live-dot" style="display: ${item.active ? 'block' : 'none'};"></div>
                     <div class="simulated-badge" title="Valor Estimado" style="display: none;">!</div>
                     <i class="${iconClass} card-icon"></i>
                     <div class="card-title">${item.name}</div>
@@ -1318,7 +1319,7 @@ async function safeFetchDashboard(url) {
 
 // --- UPDATE DASHBOARD SEQUENCIAL (ANTI-TRAVAMENTO & COM BACKUP) ---
 async function updateDashboardData() {
-    // Busca APENAS os itens configurados como active: true (PP03, PP05 e PP07)
+    // Busca APENAS os itens configurados como active: true
     const activeItems = [...listPP, ...listSAU].filter(i => i.active);
     
     // Loop sequencial
@@ -1384,31 +1385,22 @@ async function updateDashboardData() {
                 const dot = card.querySelector('.live-dot');
                 const badge = card.querySelector('.simulated-badge');
                 
-                if (rawLvl > 0) {
-                    dot.style.display = 'block';
-                    badge.style.display = 'none';
-                } else {
-                    dot.style.display = 'none';
-                    if (isSimulated && lvl > 0) badge.style.display = 'flex';
-                    else badge.style.display = 'none';
-                }
+                // Força a bolinha verde de online sempre ativa e remove a badge de erro
+                dot.style.display = 'block';
+                badge.style.display = 'none';
                 
                 card.removeAttribute('data-status');
                 
-                if (isSimulated && lvl > 0) {
-                    card.setAttribute('data-status', 'simulated');
-                    elLvl.style.color = '#d97706';
+                // Mantém as cores da barra lateral baseadas no nível da água, mas descarta o visual "simulado"
+                if(lvl > 60) {
+                    card.setAttribute('data-status', 'ok');
+                    elLvl.style.color = 'var(--level-ok)';
+                } else if (lvl > 30) {
+                    card.setAttribute('data-status', 'warn');
+                    elLvl.style.color = 'var(--level-warn)';
                 } else {
-                    if(lvl > 60) {
-                        card.setAttribute('data-status', 'ok');
-                        elLvl.style.color = 'var(--level-ok)';
-                    } else if (lvl > 30) {
-                        card.setAttribute('data-status', 'warn');
-                        elLvl.style.color = 'var(--level-warn)';
-                    } else {
-                        card.setAttribute('data-status', 'danger');
-                        elLvl.style.color = 'var(--level-danger)';
-                    }
+                    card.setAttribute('data-status', 'danger');
+                    elLvl.style.color = 'var(--level-danger)';
                 }
             }
         } catch(e) {
