@@ -112,9 +112,25 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 
 /* Ícone e Texto */
 .card-icon { font-size: 2rem; color: var(--text-sec); margin-bottom: 10px; }
-.card-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; }
+.card-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; text-align: center; }
 .card-level { font-size: 1.5rem; font-weight: 800; color: var(--text-sec); }
 .card-status { font-size: 0.75rem; color: var(--text-sec); margin-top: 5px; }
+
+/* Pill (Selo) de Atualização no Card */
+.update-pill {
+    background: var(--level-warn);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 12px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    z-index: 2;
+    animation: pulse-update 2s infinite;
+}
+@keyframes pulse-update { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
 /* Indicador de Leitura Estimada no Card */
 .simulated-badge {
@@ -203,6 +219,9 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
     <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
 </div>
 
+<!-- ============================================== -->
+<!-- O TEMPLATE ABAIXO PERMANECE INALTERADO         -->
+<!-- ============================================== -->
 <textarea id="app-template" style="display:none;">
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -1135,7 +1154,7 @@ window.addEventListener('load', function() {
 // --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
-// Lista de Praças (PP) - PP03, PP04, PP05 e PP07 ativas, as outras falsas
+// Lista de Praças (PP) - Note a propriedade "updating: true" adicionada a PP07
 const listPP = [
     { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', active: false, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
     { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', active: false, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
@@ -1143,7 +1162,7 @@ const listPP = [
     { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
     { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
     { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', active: false, firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
-    { id: 'pp7', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'Praça de Pedágio 07' }
+    { id: 'pp7', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', active: true, firebaseDataPath: '/PP7.json', firebaseConfigPath: '/PP7_config', firebaseHistPath: '/PP7_config/historico', title: 'Praça de Pedágio 07', updating: true }
 ];
 
 // Lista de SAUs - Todas falsas por enquanto
@@ -1180,6 +1199,9 @@ function renderGrid(containerId, list, iconClass) {
         // Define o texto do status embaixo do card
         const statusText = item.active ? 'Online' : 'Offline';
         
+        // Adiciona um aviso (pill) em cima do card se o item estiver marcado como "updating"
+        const updatePill = item.updating ? `<div class="update-pill">Em Atualização</div>` : '';
+        
         container.innerHTML += `
             <div class="card ${cls}" id="card-${item.id}" ${action}>
                 <div class="card-water-bg" id="bg-${item.id}"></div>
@@ -1188,6 +1210,7 @@ function renderGrid(containerId, list, iconClass) {
                     <div class="simulated-badge" title="Valor Estimado" style="display: none;">!</div>
                     <i class="${iconClass} card-icon"></i>
                     <div class="card-title">${item.name}</div>
+                    ${updatePill}
                     <div class="card-level" id="lvl-${item.id}">${initialLevel}</div>
                     <div class="card-status">${statusText}</div>
                 </div>
