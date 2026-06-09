@@ -1086,10 +1086,10 @@ window.addEventListener('load', function() {
 // --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
-// Lista de Praças (PP) - PP03, PP04, PP05, PP06 E PP07 COM monitor: true
+// Lista de Praças (PP) - PP01 E PP02 ADICIONADOS COM MANUTENÇÃO ATIVA E MONITOR=TRUE
 const listPP = [
-    { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', monitor: false, active: false, firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
-    { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', monitor: false, active: false, firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
+    { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
+    { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
     { id: 'pp3', name: 'PP 03', city: 'João Pinheiro', coords: '-17.945544,-46.037600', monitor: true, active: true, firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
     { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', monitor: true, active: true, firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
     { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', monitor: true, active: true, firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
@@ -1122,12 +1122,13 @@ function renderGrid(containerId, list, iconClass) {
     list.forEach(item => {
         const cls = item.active ? '' : 'inactive';
         const action = item.active ? `onclick="prepararAbertura('${item.id}')"` : '';
-        const initialLevel = item.active ? '--%' : '-';
-        const statusText = item.active ? 'Online' : 'Offline';
+        const initialLevel = item.maintenance ? '0%' : (item.active ? '--%' : '-');
+        const statusText = item.maintenance ? 'Em manutenção' : (item.active ? 'Online' : 'Offline');
         
         let pillHtml = '';
         if (item.customPill) {
-            pillHtml = `<div class="update-pill" style="background: #3b82f6;">${item.customPill}</div>`;
+            let pillColor = item.maintenance ? '#f59e0b' : '#3b82f6';
+            pillHtml = `<div class="update-pill" style="background: ${pillColor};">${item.customPill}</div>`;
         } else if (item.updating) {
             pillHtml = `<div class="update-pill">Em Atualização</div>`;
         }
@@ -1136,7 +1137,7 @@ function renderGrid(containerId, list, iconClass) {
             <div class="card ${cls}" id="card-${item.id}" ${action}>
                 <div class="card-water-bg" id="bg-${item.id}"></div>
                 <div class="card-content">
-                    <div class="live-dot" style="display: ${item.active ? 'block' : 'none'};"></div>
+                    <div class="live-dot" style="display: ${item.active && !item.maintenance ? 'block' : 'none'};"></div>
                     <div class="simulated-badge" title="Valor Estimado" style="display: none;">!</div>
                     <i class="${iconClass} card-icon"></i>
                     <div class="card-title">${item.name}</div>
@@ -1247,6 +1248,24 @@ async function updateDashboardData() {
         const dot = card ? card.querySelector('.live-dot') : null;
         const badge = card ? card.querySelector('.simulated-badge') : null;
 
+        // Lógica Exclusiva de Manutenção
+        if (item.maintenance) {
+            item.active = true;
+            if(card) {
+                card.classList.remove('inactive');
+                card.setAttribute('onclick', `prepararAbertura('${item.id}')`);
+                card.setAttribute('data-status', 'warn'); 
+                
+                if(statusTxt) statusTxt.innerText = 'Em manutenção';
+                if(dot) dot.style.display = 'none';
+                if(badge) badge.style.display = 'none';
+                
+                if(elLvl) { elLvl.innerText = '0%'; elLvl.style.color = 'var(--text-sec)'; }
+                if(elBg) elBg.style.height = `0%`;
+            }
+            continue; // Pula o fetch no Firebase para não sobreescrever
+        }
+
         // SE A CAIXA NÃO ESTIVER MARCADA PARA MONITORAR, FORÇA OFFLINE E IGNORA O FIREBASE
         if (!item.monitor) {
             item.active = false;
@@ -1260,7 +1279,7 @@ async function updateDashboardData() {
                 if(elLvl) { elLvl.innerText = '--%'; elLvl.style.color = 'var(--text-sec)'; }
                 if(elBg) elBg.style.height = `0%`;
             }
-            continue; // Pula para a próxima caixa sem gastar dados com o Firebase
+            continue; 
         }
 
         try {
