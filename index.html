@@ -591,11 +591,20 @@ function abrirAppExterno(protocolo, valor) {
     let urlFinal = '';
     if (protocolo === 'telegram') {
         let usuario = valor.replace('@', '').replace('https://t.me/', '');
-        urlFinal = 'tg://resolve?domain=' + usuario;
+        urlFinal = 'https://t.me/' + usuario;
+        window.open(urlFinal, '_blank');
     } 
-    else if (protocolo === 'maps') { urlFinal = 'geo:' + valor; }
-    else { urlFinal = protocolo; }
-    window.top.location.href = urlFinal;
+    else if (protocolo === 'maps') {
+        if (valor.startsWith('geo:')) {
+            window.top.location.href = valor;
+        } else {
+            urlFinal = 'https://maps.google.com/?q=' + valor;
+            window.open(urlFinal, '_blank');
+        }
+    }
+    else {
+        window.open(protocolo, '_blank');
+    }
 }
 
 const API_KEY = ""; 
@@ -659,7 +668,32 @@ function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alerta
 function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
 function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
 function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
-function interpolacaoLinear(arr) { let filled = [...arr]; let indices = []; for(let i = 0; i < filled.length; i++) { if(filled[i] !== null) indices.push(i); } if(indices.length === 0) return filled; for(let k = 0; k < indices.length - 1; k++) { let startIdx = indices[k]; let endIdx = indices[k+1]; let startVal = filled[startIdx]; let endVal = filled[endIdx]; let steps = endIdx - startIdx; if (endVal > startVal + 30) { for(let j = 1; j < steps; j++) { filled[startIdx + j] = startVal; } } else { for(let j = 1; j < steps; j++) { let val = startVal + (endVal - startVal) * (j / steps); filled[startIdx + j] = Math.round(val); } } } if(filled[0] === null) { let firstVal = filled[indices[0]]; for(let i = 0; i < indices[0]; i++) filled[i] = firstVal; } return filled; }
+
+function interpolacaoLinear(arr) { 
+    let filled = [...arr]; 
+    let firstValidIdx = -1; 
+    
+    for(let i=0; i<filled.length; i++){ 
+        if(filled[i] !== null){ 
+            firstValidIdx = i; 
+            break; 
+        } 
+    } 
+    
+    if(firstValidIdx === -1) return filled; 
+    
+    let lastVal = filled[firstValidIdx]; 
+    for(let i=0; i<firstValidIdx; i++) filled[i] = lastVal; 
+    
+    for(let i=firstValidIdx; i<filled.length; i++){ 
+        if(filled[i] !== null) { 
+            lastVal = filled[i]; 
+        } else { 
+            filled[i] = lastVal; 
+        } 
+    } 
+    return filled; 
+}
 
 function atualizarGraficosHistorico(result) { if (!chartLinha || !chartBlocos) return; if (!result || !result.labels) return; let displayLabels = result.labels || []; let displayNiveis = result.niveis || []; chartLinha.data.labels = displayLabels; chartLinha.data.datasets[0].data = displayNiveis; chartLinha.update(); chartBlocos.data.labels = displayLabels; chartBlocos.data.datasets[0].data = displayNiveis; const cores = 'rgba(6, 182, 212, 0.85)'; chartBlocos.data.datasets[0].backgroundColor = cores; chartBlocos.update(); }
 
@@ -670,7 +704,6 @@ function atualizarGraficosConsumo(result) {
     const consumoData = result.consumo || []; 
     const consumoLabels = result.labels || []; 
     
-    // Atualiza Gráficos
     chartConsumoBloco.data.labels = consumoLabels; 
     chartConsumoBloco.data.datasets[0].data = consumoData; 
     chartConsumoBloco.data.datasets[0].backgroundColor = '#0ea5e9'; 
@@ -680,7 +713,6 @@ function atualizarGraficosConsumo(result) {
     chartConsumoLinha.data.datasets[0].data = consumoData; 
     chartConsumoLinha.update(); 
     
-    // ATUALIZA KPIs DE CONSUMO
     const elTotal = document.getElementById('kpi-consumo-total');
     const elPico = document.getElementById('kpi-consumo-pico');
     const elStatus = document.getElementById('kpi-consumo-status');
@@ -696,7 +728,6 @@ function atualizarGraficosConsumo(result) {
             lblTotal.innerText = "Total no Dia";
             elPico.innerText = picoConsumo.toFixed(0) + ' L/h';
             
-            // Regra de Status baseada na capacidade da caixa
             if (totalConsumo > (capacidadeTotal * 0.8)) {
                 elStatus.innerText = "Risco (Alto/Vazamento)";
                 elStatus.style.color = "var(--level-danger)";
@@ -719,7 +750,50 @@ function atualizarGraficosConsumo(result) {
     }
 }
 
-function criarGraficos() { Chart.register(ChartDataLabels); const isDark = document.body.getAttribute('data-theme') === 'dark'; const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; const textColor = isDark ? '#94a3b8' : '#64748b'; const zoomOptions = { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' } }; const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, maxTicksLimit: 6, color: textColor }, grid: { display: true, color: gridColor } }; if(document.getElementById('chartLinha')) { const ctxL = document.getElementById('chartLinha').getContext('2d'); const gradL = ctxL.createLinearGradient(0, 0, 0, 300); gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)'); gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)'); if(chartLinha) chartLinha.destroy(); chartLinha = new Chart(ctxL, { type: 'line', data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 3, spanGaps: true }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartBlocos')) { const ctxB = document.getElementById('chartBlocos').getContext('2d'); if(chartBlocos) chartBlocos.destroy(); chartBlocos = new Chart(ctxB, { type: 'bar', data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartConsumoBloco')) { const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d'); if(chartConsumoBloco) chartConsumoBloco.destroy(); chartConsumoBloco = new Chart(ctxCB, { type: 'bar', data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round, font: { size: 10 } } }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, suggestedMax: 2000, grid: { color: gridColor } } }, layout: { padding: { top: 20 } } } }); } if(document.getElementById('chartConsumoLinha')) { const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d'); if(chartConsumoLinha) chartConsumoLinha.destroy(); chartConsumoLinha = new Chart(ctxCL, { type: 'line', data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.3, pointRadius: 3, borderWidth: 2 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); } if(document.getElementById('chartAbastecimento')) { const ctxA = document.getElementById('chartAbastecimento').getContext('2d'); if(chartAbastecimento) chartAbastecimento.destroy(); chartAbastecimento = new Chart(ctxA, { type: 'bar', data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, scales: { x: { ticks: { color: textColor }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } } } }); } }
+function criarGraficos() { 
+    Chart.register(ChartDataLabels); 
+    const isDark = document.body.getAttribute('data-theme') === 'dark'; 
+    const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; 
+    const textColor = isDark ? '#94a3b8' : '#64748b'; 
+    const zoomOptions = { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' } }; 
+    const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, maxTicksLimit: 6, color: textColor }, grid: { display: true, color: gridColor } }; 
+    
+    if(document.getElementById('chartLinha')) { 
+        const ctxL = document.getElementById('chartLinha').getContext('2d'); 
+        const gradL = ctxL.createLinearGradient(0, 0, 0, 300); 
+        gradL.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.4)' : 'rgba(6,182,212,0.4)'); 
+        gradL.addColorStop(1, isDark ? 'rgba(34, 211, 238, 0.0)' : 'rgba(6,182,212,0.0)'); 
+        if(chartLinha) chartLinha.destroy(); 
+        chartLinha = new Chart(ctxL, { 
+            type: 'line', 
+            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0, pointRadius: 3, borderWidth: 3, spanGaps: true }] }, 
+            options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
+    } 
+    if(document.getElementById('chartBlocos')) { 
+        const ctxB = document.getElementById('chartBlocos').getContext('2d'); 
+        if(chartBlocos) chartBlocos.destroy(); 
+        chartBlocos = new Chart(ctxB, { type: 'bar', data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
+    } 
+    if(document.getElementById('chartConsumoBloco')) { 
+        const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d'); 
+        if(chartConsumoBloco) chartConsumoBloco.destroy(); 
+        chartConsumoBloco = new Chart(ctxCB, { type: 'bar', data: { labels: [], datasets: [{ label: 'Litros', data: [], borderRadius: 6 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, zoom: zoomOptions, datalabels: { color: textColor, anchor: 'end', align: 'top', formatter: Math.round, font: { size: 10 } } }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, suggestedMax: 2000, grid: { color: gridColor } } }, layout: { padding: { top: 20 } } } }); 
+    } 
+    if(document.getElementById('chartConsumoLinha')) { 
+        const ctxCL = document.getElementById('chartConsumoLinha').getContext('2d'); 
+        if(chartConsumoLinha) chartConsumoLinha.destroy(); 
+        chartConsumoLinha = new Chart(ctxCL, { 
+            type: 'line', 
+            data: { labels: [], datasets: [{ label: 'Litros', data: [], fill: true, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.2)' : 'rgba(6,182,212,0.2)', borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0, pointRadius: 3, borderWidth: 2 }] }, 
+            options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 3000, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
+    } 
+    if(document.getElementById('chartAbastecimento')) { 
+        const ctxA = document.getElementById('chartAbastecimento').getContext('2d'); 
+        if(chartAbastecimento) chartAbastecimento.destroy(); 
+        chartAbastecimento = new Chart(ctxA, { type: 'bar', data: { labels: [], datasets: [{ label: 'Entrada (L)', data: [], borderRadius: 4, backgroundColor: isDark ? 'rgba(34, 211, 238, 0.7)' : 'rgba(6,182,212,0.7)' }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: textColor, anchor: 'end', align: 'top' } }, scales: { x: { ticks: { color: textColor }, grid: { display: false } }, y: { ticks: { color: textColor }, grid: { color: gridColor }, beginAtZero: true } } } }); 
+    } 
+}
+
 async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') { if (nivel === null || nivel === undefined) return; if (tipo === 'real' && nivel <= 0) return; const d = new Date(timestamp); const localDate = getLocalISODate(d); const horaKey = String(d.getHours()).padStart(2, '0'); const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} }
 
 async function carregarHistoricoEConsumo() { if (currentView === 'semanal') return; let url = ''; let processData; let result = { labels: [], niveis: [], consumo: [], refillIndex: -1 }; if (currentView === 'diario') { const dataEl = document.getElementById('dataEscolhida'); if(!dataEl) return result; const data = dataEl.value; if (!data) return result; const dataParts = data.split('-'); const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); dateObj.setDate(dateObj.getDate() - 1); const dataAnterior = getLocalISODate(dateObj); url = `${PATH_HISTORICO}/${data}.json`; const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; processData = (dadosHoje, dadosOntem) => { const labelsFixed = []; const niveisFixed = new Array(24).fill(null); const consumoFinal = new Array(24).fill(0); for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; if (dadosOntem) { const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); if (horariosOntem.length > 0) { const lastKey = horariosOntem[horariosOntem.length - 1]; const leitura = dadosOntem[lastKey]; const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; previousVal = valRaw !== null ? Number(valRaw) : null; } } if (dadosHoje) { const keysSorted = Object.keys(dadosHoje).sort((a, b) => { const [hA, mA] = a.split(':').map(Number); const [hB, mB] = b.split(':').map(Number); return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); }); keysSorted.forEach(key => { const horaInt = parseInt(key.split(':')[0]); const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; const val = valRaw !== null ? Number(valRaw) : null; if (horaInt >= 0 && horaInt < 24) { if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; } if (val !== null && previousVal !== null) { if (val > previousVal + 5) { detectedRefillIdx = horaInt; } if (previousVal > val) { const volAnterior = calcularVolumeLitros(previousVal); const volAtual = calcularVolumeLitros(val); const diff = volAnterior - volAtual; if(diff < 800) { const gap = Math.max(1, horaInt - lastHoraInt); const valPerBin = diff / gap; for(let h = lastHoraInt + 1; h <= horaInt; h++) { if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; } } } } if (val !== null) { previousVal = val; lastHoraInt = horaInt; } }); if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; const niveisInterpolados = interpolacaoLinear(niveisFixed); for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h]; } else if (previousVal !== null) { for(let h=0; h<24; h++) niveisFixed[h] = previousVal; } return { labels: labelsFixed, niveis: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; }; try { let dadosHoje = null; try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = rHoje; } catch(e) {} let dadosOntem = null; try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = rOntem; } catch(e) {} result = processData(dadosHoje, dadosOntem); atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } else { let dataInicio, dataFim; if (currentView === 'mensal') { const mesEl = document.getElementById('mesEscolhido'); if (!mesEl) return result; const mesAno = mesEl.value; if (!mesAno) return result; dataInicio = `${mesAno}-01`; const [ano, mes] = mesAno.split('-'); const ultimoDia = new Date(ano, mes, 0).getDate(); dataFim = `${mesAno}-${ultimoDia}`; } else if (currentView === 'intervalo') { const dataI = document.getElementById('dataInicio'); const dataF = document.getElementById('dataFim'); if(!dataI || !dataF) return result; dataInicio = dataI.value; dataFim = dataF.value; if (!dataInicio || !dataFim) return result; } url = `${PATH_HISTORICO}.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`; processData = (dados) => { const dailyConsumption = {}; const dailyLevels = {}; const dateKeys = Object.keys(dados).sort(); for (const dateKey in dados) { const dailyReadings = dados[dateKey]; const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b)); if(times.length === 0) continue; let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null; for (let i = 0; i < times.length; i++) { const tCurrent = times[i]; const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0; const valCurrent = Number(valRaw); if(valCurrent > 0) { somaNiveis += valCurrent; countNiveis++; if (lastValidLevelForDay !== null) { if (lastValidLevelForDay > valCurrent) { const volAnterior = calcularVolumeLitros(lastValidLevelForDay); const volAtual = calcularVolumeLitros(valCurrent); const diff = volAnterior - volAtual; if(diff < 800) consumoDia += diff; } } lastValidLevelForDay = valCurrent; } } dailyConsumption[dateKey] = consumoDia; dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0; } if (currentView === 'mensal') { const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0]; for (const dateKey in dailyConsumption) { const day = parseInt(dateKey.split('-')[2]); let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3)); weeks[idx] += dailyConsumption[dateKey]; if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; } } const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0); return { labels: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveis: finalLevels, consumo: weeks }; } const labels = Object.keys(dailyConsumption).sort(); const consumo = labels.map(key => dailyConsumption[key]); const niveis = labels.map(key => dailyLevels[key]); const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; }); return { labels: displayLabels, niveis: niveis, consumo: consumo }; }; try { let dados = null; try { const r = await safeFetch(url); if (r) dados = r; } catch(e) {} result = dados ? processData(dados) : { labels: [], niveis: [], consumo: [] }; atualizarGraficosHistorico(result); atualizarGraficosConsumo(result); } catch (e) {} } }
@@ -730,7 +804,7 @@ async function salvarAbastecimento(litros) { if (!litros || litros <= 0) return;
 async function salvarConfig(endpoint, valor) { try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {} }
 async function salvarCapacidade(valor) { if(!valor || valor <= 0) return; await salvarConfig('capacidade', valor); capacidadeTotal = valor; animarBotaoSucesso('btn-salvar-capacidade'); }
 async function salvarAltura(valor) { if(!valor || valor <= 0) return; await salvarConfig('altura', valor); alturaCaixa = valor; animarBotaoSucesso('btn-salvar-altura'); }
-async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = valor; animarBotaoSucesso('btn-salvar-nivel-alerta'); }
+async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = parseInt(valor); animarBotaoSucesso('btn-salvar-nivel-alerta'); }
 async function carregarConfiguracoesGerais() { try { let config = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) config = r; } catch(e) {} if(config) { if (config.nivel_alerta) { document.getElementById('nivel-alerta-valor').value = config.nivel_alerta; nivelAlertaConfigurado = parseInt(config.nivel_alerta); } else if (config.nivel_critico_pct) { document.getElementById('nivel-alerta-valor').value = config.nivel_critico_pct; nivelAlertaConfigurado = parseInt(config.nivel_critico_pct); } if (config.capacidade) { document.getElementById('capacidade-total-valor').value = config.capacidade; capacidadeTotal = parseInt(config.capacidade); } else if (config.capacidade_total_litros) { document.getElementById('capacidade-total-valor').value = config.capacidade_total_litros; capacidadeTotal = parseInt(config.capacidade_total_litros); } if (config.altura) { document.getElementById('altura-caixa-valor').value = config.altura; alturaCaixa = parseInt(config.altura); } else if (config.altura_tanque_cm) { document.getElementById('altura-caixa-valor').value = config.altura_tanque_cm; alturaCaixa = parseInt(config.altura_tanque_cm); } } } catch (e) {} }
 async function adicionarContato(valor, tipo) { if (!valor) return; const novoContato = { valor, tipo }; try { await fetch(`${PATH_CONFIG_BASE}/contatos.json`, { method: 'POST', body: JSON.stringify(novoContato) }); document.getElementById('contato-valor').value = ''; carregarContatos(); animarBotaoSucesso('btn-add-contato'); } catch (e) {} }
 async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
@@ -1086,7 +1160,6 @@ window.addEventListener('load', function() {
 // --- CONFIGURAÇÃO ---
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
-// Lista de Praças (PP) - PP01 E PP02 ADICIONADOS COM MANUTENÇÃO ATIVA E MONITOR=TRUE
 const listPP = [
     { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
     { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
@@ -1097,7 +1170,6 @@ const listPP = [
     { id: 'pp07', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', monitor: true, active: true, firebaseDataPath: '/PP07.json', firebaseConfigPath: '/PP07_config', firebaseHistPath: '/PP07_historico', title: 'Praça de Pedágio 07' }
 ];
 
-// Lista de SAUs - TODAS COM monitor: false
 const listSAU = [
     { id: 'sau01', name: 'SAU 01', city: 'Cristalina', coords: 'geo:0,0?q=SAU+01+Via+040+Cristalina', monitor: false, active: false, firebaseDataPath: '/SAU01.json', firebaseConfigPath: '/SAU01_config', firebaseHistPath: '/SAU01_historico', title: 'SAU 01' },
     { id: 'sau02', name: 'SAU 02', city: 'Cristalina', coords: '-17.007036,-47.222869', monitor: false, active: false, firebaseDataPath: '/SAU02.json', firebaseConfigPath: '/SAU02_config', firebaseHistPath: '/SAU02_historico', title: 'SAU 02' },
@@ -1263,10 +1335,9 @@ async function updateDashboardData() {
                 if(elLvl) { elLvl.innerText = '0%'; elLvl.style.color = 'var(--text-sec)'; }
                 if(elBg) elBg.style.height = `0%`;
             }
-            continue; // Pula o fetch no Firebase para não sobreescrever
+            continue; 
         }
 
-        // SE A CAIXA NÃO ESTIVER MARCADA PARA MONITORAR, FORÇA OFFLINE E IGNORA O FIREBASE
         if (!item.monitor) {
             item.active = false;
             if(card) {
