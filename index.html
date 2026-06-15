@@ -531,26 +531,14 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div id="status-altura" class="small" style="font-weight:bold;"></div>
 </div>
 <div class="config-card glass-panel" id="card-novo-contato">
-<h2>Novo Contato</h2>
+<h2>Novo E-mail de Alerta</h2>
 <div class="form-group">
-<input type="text" id="contato-valor" placeholder="Email ou Telegram">
-<select id="contato-tipo">
-<option value="email">Email</option>
-<option value="telegram">Telegram</option>
-</select>
-<button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i></button>
+<input type="email" id="contato-valor" placeholder="exemplo@email.com">
+<input type="hidden" id="contato-tipo" value="email">
+<button id="btn-add-contato" class="modern-button"><i class="fas fa-plus"></i> Adicionar</button>
 </div>
-<div id="status-contato" class="small" style="font-weight:bold; margin-top: 10px;"></div>
-</div>
-
-<div class="config-card glass-panel" id="card-telegram-bot">
-<h2>Telegram Bot</h2>
-<div class="form-group">
-<p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:10px;">Receba alertas no seu celular.</p>
-<button onclick="abrirAppExterno('telegram', '__TELEGRAM_BOT__')" class="modern-button" style="background-color:#229ED9; color:white; width:100%; display:flex; align-items:center; justify-content:center;">
-<i class="fab fa-telegram-plane"></i> Iniciar Bot
-</button>
-</div>
+<p style="font-size:0.7rem; color:var(--text-sec); margin-top:5px;">Receberá alertas de nível crítico.</p>
+<div id="status-contato" class="small" style="font-weight:bold; margin-top: 5px;"></div>
 </div>
 
 <div class="config-card glass-panel">
@@ -750,12 +738,12 @@ async function fetchMediaSemanalEValidar(totalConsumoHoje, elStatus) {
         }
         let media = diasContados > 0 ? (consumoTotal7Dias / diasContados) : 0;
         
-        if (media > 0 && totalConsumoHoje > media * 1.4) {
+        if (totalConsumoHoje > (capacidadeTotal * 0.9)) {
+            elStatus.innerText = "Risco (Possível Vazamento)";
+            elStatus.style.color = "var(--level-danger)";
+        } else if (media > 0 && totalConsumoHoje > media * 1.8 && totalConsumoHoje > (capacidadeTotal * 0.5)) {
             elStatus.innerText = "Alto Consumo (Acima da Média)";
-            elStatus.style.color = "var(--level-danger)";
-        } else if (totalConsumoHoje > (capacidadeTotal * 0.8)) {
-            elStatus.innerText = "Risco (Alto/Vazamento)";
-            elStatus.style.color = "var(--level-danger)";
+            elStatus.style.color = "var(--level-warn)";
         } else if (totalConsumoHoje === 0 && new Date().getHours() > 8) {
             elStatus.innerText = "Sem Medição";
             elStatus.style.color = "var(--text-sec)";
@@ -920,7 +908,8 @@ async function carregarHistoricoEConsumo() {
                                 const volAnterior = calcularVolumeLitros(previousVal); 
                                 const volAtual = calcularVolumeLitros(val); 
                                 const diff = volAnterior - volAtual; 
-                                if(diff < 800) { 
+                                const limiteMaxDiff = capacidadeTotal * 0.15; 
+                                if(diff < limiteMaxDiff && diff > 0) { 
                                     const gap = Math.max(1, horaInt - lastHoraInt); 
                                     const valPerBin = diff / gap; 
                                     for(let h = lastHoraInt + 1; h <= horaInt; h++) { 
@@ -996,7 +985,8 @@ async function carregarHistoricoEConsumo() {
                                 const volAnterior = calcularVolumeLitros(lastValidLevelForDay); 
                                 const volAtual = calcularVolumeLitros(valCurrent); 
                                 const diff = volAnterior - volAtual; 
-                                if(diff < 800) consumoDia += diff; 
+                                const limiteMaxDiff = capacidadeTotal * 0.15; 
+                                if(diff < limiteMaxDiff && diff > 0) consumoDia += diff; 
                             } 
                         } 
                         lastValidLevelForDay = valCurrent; 
@@ -1337,14 +1327,7 @@ window.addEventListener('load', function() {
     const dateControls = document.getElementById('date-controls'); 
     const btnAt = document.getElementById('btnAtualizar');
 
-    const whitelistNovoContato = ['pp07', 'sau11', 'sau13'];
-    
-    if (!whitelistNovoContato.includes(currentAppId.toLowerCase())) {
-        const cardContato = document.getElementById('card-novo-contato');
-        const cardLista = document.getElementById('card-lista-contatos');
-        if (cardContato) cardContato.style.display = 'none';
-        if (cardLista) cardLista.style.display = 'none';
-    }
+    // Contatos de email liberados para todas as caixas
 
     function switchView(viewName) { 
         activeTab = viewName; 
@@ -1466,12 +1449,12 @@ window.addEventListener('load', function() {
 const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 
 const listPP = [
-    { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', telegramBot: 'Bot_Da_PP01', firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
-    { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', telegramBot: 'Bot_Da_PP02', firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
-    { id: 'pp3', name: 'PP 03', city: 'João Pinheiro', coords: '-17.945544,-46.037600', monitor: true, active: true, telegramBot: 'Bot_Da_PP03', firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
-    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', monitor: true, active: true, telegramBot: 'Bot_Da_PP04', firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
-    { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', monitor: true, active: true, telegramBot: 'Bot_Da_PP05', firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
-    { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', monitor: true, active: true, customPill: 'Em instalação', telegramBot: 'Bot_Da_PP06', firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
+    { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', telegramBot: 'Caixadguap1_bot', firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
+    { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', telegramBot: 'Caixadguap2_bot', firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
+    { id: 'pp3', name: 'PP 03', city: 'João Pinheiro', coords: '-17.945544,-46.037600', monitor: true, active: true, telegramBot: 'Caixadguap3_bot', firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
+    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', monitor: true, active: true, telegramBot: 'Caixadguap4_bot', firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
+    { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', monitor: true, active: true, telegramBot: 'Caixadguap5_bot', firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
+    { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', monitor: true, active: true, customPill: 'Em instalação', telegramBot: 'Caixadguap6_bot', firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
     { id: 'pp07', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', monitor: true, active: true, telegramBot: 'Caixadguap7_bot', firebaseDataPath: '/PP07.json', firebaseConfigPath: '/PP07_config', firebaseHistPath: '/PP07_historico', title: 'Praça de Pedágio 07' }
 ];
 
