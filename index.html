@@ -634,7 +634,7 @@ function abrirBotERegistrar() {
         if (el) { el.innerText = 'Bot não configurado para esta caixa.'; el.style.color = 'var(--level-warn)'; }
         return;
     }
-    const url = `https://t.me/${TELEGRAM_BOT_NAME}?start=iniciar`;
+    const url = `https://t.me/${TELEGRAM_BOT_NAME}?start=${currentAppId}`;
     window.open(url, '_blank');
     const el = document.getElementById('telegram-info');
     if (el) { el.innerText = '⏳ Envie /start no bot e volte aqui...'; el.style.color = 'var(--level-warn)'; }
@@ -661,23 +661,34 @@ async function tgRegistrarNovosUsuarios() {
         for (const update of data.result) {
             tgLastUpdateId = update.update_id + 1;
             if (update.message && update.message.text && update.message.text.includes('/start')) {
+                const text = update.message.text;
+                const partes = text.split(' ');
+                const param = partes.length > 1 ? partes[1].toLowerCase() : null;
+
                 const chatId = String(update.message.chat.id);
                 const nome = update.message.chat.first_name || 'Usuário';
                 const jaExiste = Object.values(existentes || {}).some(u => String(u.chat_id) === chatId);
-                if (!jaExiste) {
+                
+                const originouAqui = (param === currentAppId.toLowerCase());
+                const fallbackAqui = (!param && currentAppId === 'pp07');
+
+                if ((originouAqui || fallbackAqui) && !jaExiste) {
                     await fetch(`${PATH_TG_USERS}.json`, {
                         method: 'POST',
                         body: JSON.stringify({ chat_id: chatId, nome: nome, data: Date.now() })
                     });
-                    // Enviar mensagem de boas-vindas
+                    
                     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: chatId,
-                            text: `CADASTRADO COM SUCESSO VC RECEBERA O STATUS DA ESTAÇÃO ${currentAppId.toUpperCase()} a cada 30 minutos Monitoramento Caixad'água.`
+                            text: `✅ *CADASTRADO COM SUCESSO!*\n\n📡 Você receberá o status da *ESTAÇÃO ${currentAppId.toUpperCase()}* a cada 60 minutos.\n\n💧 _Monitoramento Caixa D'água_`,
+                            parse_mode: 'Markdown'
                         })
                     });
+                    
+                    tgEnviarStatusParaChat(chatId);
                     novos++;
                 }
             }
@@ -703,6 +714,31 @@ async function tgAtualizarContador() {
     } catch(e) {}
 }
 
+async function tgEnviarStatusParaChat(chatId) {
+    const nivel = nivelAtual || 0;
+    if (nivel <= 0) return; 
+
+    const litros = calcularVolumeLitros(nivel);
+    const hora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    let msg = '';
+
+    if (nivel <= limiteAlerta) {
+        msg = `🚨 *ALERTA DE NÍVEL MÍNIMO!* 🚨\n\n🛣️ *${currentAppId.toUpperCase()}*\n📊 Nível: *${Math.round(nivel)}%* (Abaixo de ${limiteAlerta}%)\n💧 Volume: *${litros}L*\n🕑 ${hora}\n\n⚠️ *AÇÃO REQUERIDA:* Solicitar abastecimento urgente!`;
+    } else {
+        const icone = nivel > 60 ? '✅' : '⚠️';
+        const status = nivel > 60 ? 'Normal' : 'Atenção';
+        msg = `🛣️ *${currentAppId.toUpperCase()}*\n📊 Nível: *${Math.round(nivel)}%*\n💧 Volume: *${litros}L*\n${icone} Status: ${status}\n🕑 ${hora}`;
+    }
+
+    try {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
+        });
+    } catch(e) {}
+}
+
 async function tgEnviarStatusParaTodos() {
     if (!tgDisponivel()) return;
     try {
@@ -711,27 +747,9 @@ async function tgEnviarStatusParaTodos() {
         const users = Object.values(r);
         if (users.length === 0) return;
 
-        const nivel = nivelAtual || 0;
-        const litros = calcularVolumeLitros(nivel);
-        const hora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-        const icone = nivel > 60 ? '✅' : nivel > 30 ? '⚠️' : '🚨';
-        const status = nivel > 60 ? 'Normal' : nivel > 30 ? 'Atenção' : 'CRÍTICO - Solicitar Abastecimento!';
-
-        const msg = `🛣️ ${currentAppId.toUpperCase()}\n` +
-                   `📊 Nível: ${Math.round(nivel)}%\n` +
-                   `💧 Volume: ${litros}L\n` +
-                   `${icone} ${status}\n` +
-                   `🕑 ${hora}`;
-
         for (const user of users) {
             if (user.chat_id) {
-                try {
-                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: user.chat_id, text: msg })
-                    });
-                } catch(e) {}
+                await tgEnviarStatusParaChat(user.chat_id);
             }
         }
     } catch(e) {}
@@ -740,8 +758,8 @@ async function tgEnviarStatusParaTodos() {
 function tgIniciarEnvioPeriodico() {
     if (!tgDisponivel()) return;
     if (tgEnvioInterval) clearInterval(tgEnvioInterval);
-    // Enviar a cada 30 minutos (1800000 ms)
-    tgEnvioInterval = setInterval(tgEnviarStatusParaTodos, 1800000);
+    // Enviar a cada 60 minutos (3600000 ms)
+    tgEnvioInterval = setInterval(tgEnviarStatusParaTodos, 3600000);
     // Primeiro envio após 1 minuto (dar tempo de carregar nível)
     setTimeout(tgEnviarStatusParaTodos, 60000);
 }
