@@ -271,8 +271,7 @@ body { font-family: 'Poppins', sans-serif; text-align: center; background: var(-
 #caixa-view, #grafico-container, #config-view, #abastecimento-view, #consumo-view { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 0.5rem; overflow-y: auto; min-height: calc(100vh - 70px); }
 .logo { width: 140px; margin-bottom: 5px; opacity: 0.95; display: block; margin-left: auto; margin-right: auto; mix-blend-mode: multiply; transition: all 0.3s ease; }
 [data-theme="dark"] .logo { filter: invert(1) hue-rotate(180deg) brightness(2) contrast(1.2); mix-blend-mode: screen; opacity: 1; margin-bottom: 10px; }
-#emergency-badge { position: fixed; top: 80px; right: 20px; width: 50px; height: 50px; background-color: var(--level-danger); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.6); z-index: 1500; animation: pulse-red 1.5s infinite; cursor: help; }
-@keyframes pulse-red { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
 
 /* KPIs de Consumo */
 .kpi-board { display: flex; gap: 15px; width: 100%; max-width: 800px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
@@ -347,7 +346,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 </style>
 </head>
 <body>
-<div id="emergency-badge" title="Sem Sinal">!</div>
+
 
 <div class="main-header glass-panel" style="border-radius: 0 0 20px 20px; border-top: none;">
 <div class="nav-group">
@@ -1341,7 +1340,7 @@ function renderNivel(nivelPct, isSimulado = false) {
         if (isSimulado) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); } 
         else { liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online'); }
     }
-    document.getElementById('emergency-badge').style.display = 'none'; 
+
     if (simIndicator) { simIndicator.style.display = isSimulado ? 'inline-flex' : 'none'; }
 
     let bloquearAlarme = (isSimulado && nivelPct <= 0);
