@@ -987,8 +987,9 @@ async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
     const d = new Date(timestamp); 
     const localDate = getLocalISODate(d); 
     const h = String(d.getHours()).padStart(2, '0'); 
-    const m = String(d.getMinutes()).padStart(2, '0');
-    const horaKey = `${h}:${m}`; 
+    const minBucket = Math.floor(d.getMinutes() / 5) * 5;
+    const minStr = String(minBucket).padStart(2, '0');
+    const horaKey = `${h}:${minStr}`; 
     const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; 
     const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; 
     try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} 
@@ -1014,11 +1015,13 @@ async function carregarHistoricoEConsumo() {
         const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; 
         
         processData = (dadosHoje, dadosOntem) => { 
-            const labelsFixed = []; const niveisFixed = new Array(24).fill(null); 
-            const consumoFinal = new Array(24).fill(0); 
+            const isToday = (getLocalISODate(new Date()) === data);
+            const maxHour = isToday ? new Date().getHours() : 23;
+            const labelsFixed = []; const niveisFixed = new Array(maxHour + 1).fill(null); 
+            const consumoFinal = new Array(maxHour + 1).fill(0); 
             const lLine = []; const nLine = [];
             
-            for(let h = 0; h < 24; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); 
+            for(let h = 0; h <= maxHour; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); 
             let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; 
             let currentLineVal = null;
 
@@ -1039,17 +1042,25 @@ async function carregarHistoricoEConsumo() {
                 }); 
                 keysSorted.forEach(key => { 
                     const horaInt = parseInt(key.split(':')[0]); 
-                    const valRaw = dadosHoje[key].nivel_pct ?? dadosHoje[key].nivel ?? null; 
+                    const leitura = dadosHoje[key];
+                    const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; 
+                    const ts = leitura.timestamp;
                     const val = valRaw !== null ? Number(valRaw) : null; 
                     
                     if (val !== null) {
-                        let timeStr = key.length === 2 ? key + ':00' : key;
+                        let timeStr;
+                        if (ts) {
+                           let dt = new Date(ts);
+                           timeStr = String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
+                        } else {
+                           timeStr = key.length === 2 ? key + ':00' : key;
+                        }
                         
                         lLine.push(timeStr);
                         nLine.push(val);
                         currentLineVal = val;
 
-                        if (horaInt >= 0 && horaInt < 24) { 
+                        if (horaInt >= 0 && horaInt <= maxHour) { 
                             if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; 
                         } 
                         
@@ -1064,7 +1075,7 @@ async function carregarHistoricoEConsumo() {
                                     const gap = Math.max(1, horaInt - lastHoraInt); 
                                     const valPerBin = diff / gap; 
                                     for(let h = lastHoraInt + 1; h <= horaInt; h++) { 
-                                        if(h >= 0 && h < 24) consumoFinal[h] += valPerBin; 
+                                        if(h >= 0 && h <= maxHour) consumoFinal[h] += valPerBin; 
                                     } 
                                 } 
                             } 
@@ -1075,7 +1086,7 @@ async function carregarHistoricoEConsumo() {
 
                 if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; 
                 const niveisInterpolados = interpolacaoLinear(niveisFixed); 
-                for(let h=0; h<24; h++) niveisFixed[h] = niveisInterpolados[h]; 
+                for(let h=0; h<=maxHour; h++) niveisFixed[h] = niveisInterpolados[h]; 
                 
                 if (getLocalISODate(new Date()) === data && currentLineVal !== null) {
                     let nowH = new Date().getHours().toString().padStart(2,'0') + ':' + new Date().getMinutes().toString().padStart(2,'0');
@@ -1083,7 +1094,7 @@ async function carregarHistoricoEConsumo() {
                     nLine.push(currentLineVal);
                 }
             } else if (previousVal !== null) { 
-                for(let h=0; h<24; h++) niveisFixed[h] = previousVal; 
+                for(let h=0; h<=maxHour; h++) niveisFixed[h] = previousVal; 
             } 
             return { labelsBar: labelsFixed, niveisBar: niveisFixed, labelsLine: lLine, niveisLine: nLine, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
         }; 
@@ -1687,7 +1698,7 @@ function prepararAbertura(id) {
         mapsButton = `<button onclick="abrirAppExterno('maps', '${item.coords}')" class="nav-button-icon-only" title="Ver Localização" style="width:32px; height:32px; font-size:0.9rem; background: var(--input-bg);"><i class="fas fa-map-marker-alt" style="color: #ef4444;"></i></button>`;
     }
     
-    let telegramBotName = item.telegramBot ? item.telegramBot : '';
+    let telegramBotName = 'Caixadguap7_bot';
     let telegramBotToken = item.telegramBotToken ? item.telegramBotToken : '';
     let isMaintenanceMode = item.maintenance === true ? 'true' : 'false';
 
