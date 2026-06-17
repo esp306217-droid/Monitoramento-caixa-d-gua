@@ -541,6 +541,17 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div id="status-contato" class="small" style="font-weight:bold; margin-top: 5px;"></div>
 </div>
 
+<div class="config-card glass-panel" id="card-telegram-bot" style="display:none;">
+<h2><i class="fab fa-telegram-plane" style="color:#229ED9;"></i> Notificações Telegram</h2>
+<div class="form-group" style="flex-direction:column; gap:10px;">
+<p style="font-size:0.75rem; color:var(--text-sec);">Receba o status desta caixa a cada 30 min no Telegram.</p>
+<button onclick="abrirBotERegistrar()" class="modern-button" style="background-color:#229ED9; color:white; width:100%;">
+<i class="fab fa-telegram-plane"></i> Iniciar Bot no Telegram
+</button>
+<p id="telegram-info" style="font-size:0.7rem; color:var(--level-ok); margin:0;"></p>
+</div>
+</div>
+
 <div class="config-card glass-panel">
 <h2>Nível Alerta (%)</h2>
 <div class="form-group">
@@ -602,6 +613,135 @@ function abrirAppExterno(protocolo, valor) {
     else {
         window.open(protocolo, '_blank');
     }
+}
+
+// === TELEGRAM: Registro automático + envio periódico de status ===
+const TELEGRAM_BOT_TOKEN = '__TELEGRAM_BOT_TOKEN__';
+const TELEGRAM_BOT_NAME = '__TELEGRAM_BOT__';
+const PATH_TG_USERS = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__/telegram_users`;
+let tgLastUpdateId = 0;
+let tgEnvioInterval = null;
+
+function tgDisponivel() {
+    return TELEGRAM_BOT_TOKEN && TELEGRAM_BOT_TOKEN.length > 10 && !TELEGRAM_BOT_TOKEN.includes('__');
+}
+
+function abrirBotERegistrar() {
+    if (!tgDisponivel()) {
+        const el = document.getElementById('telegram-info');
+        if (el) { el.innerText = 'Bot não configurado para esta caixa.'; el.style.color = 'var(--level-warn)'; }
+        return;
+    }
+    const url = `https://t.me/${TELEGRAM_BOT_NAME}?start=iniciar`;
+    window.open(url, '_blank');
+    const el = document.getElementById('telegram-info');
+    if (el) { el.innerText = '⏳ Envie /start no bot e volte aqui...'; el.style.color = 'var(--level-warn)'; }
+    // Verificar registro a cada 5s por 2 minutos
+    let checks = 0;
+    const checkInterval = setInterval(async () => {
+        checks++;
+        const novos = await tgRegistrarNovosUsuarios();
+        if (novos > 0 || checks >= 24) clearInterval(checkInterval);
+    }, 5000);
+}
+
+async function tgRegistrarNovosUsuarios() {
+    if (!tgDisponivel()) return 0;
+    try {
+        const resp = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${tgLastUpdateId}&limit=50&allowed_updates=["message"]`);
+        const data = await resp.json();
+        if (!data.ok || !data.result || data.result.length === 0) return 0;
+
+        let existentes = {};
+        try { const r = await safeFetch(`${PATH_TG_USERS}.json`); if (r) existentes = r; } catch(e) {}
+
+        let novos = 0;
+        for (const update of data.result) {
+            tgLastUpdateId = update.update_id + 1;
+            if (update.message && update.message.text && update.message.text.includes('/start')) {
+                const chatId = String(update.message.chat.id);
+                const nome = update.message.chat.first_name || 'Usuário';
+                const jaExiste = Object.values(existentes || {}).some(u => String(u.chat_id) === chatId);
+                if (!jaExiste) {
+                    await fetch(`${PATH_TG_USERS}.json`, {
+                        method: 'POST',
+                        body: JSON.stringify({ chat_id: chatId, nome: nome, data: Date.now() })
+                    });
+                    // Enviar mensagem de boas-vindas
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: `✅ Cadastrado com sucesso!\n\nVocê receberá o status da caixa ${currentAppId.toUpperCase()} a cada 30 minutos.\n\n💧 Monitoramento Caixa D'Água`
+                        })
+                    });
+                    novos++;
+                }
+            }
+        }
+        tgAtualizarContador();
+        return novos;
+    } catch(e) { return 0; }
+}
+
+async function tgAtualizarContador() {
+    const el = document.getElementById('telegram-info');
+    if (!el) return;
+    try {
+        const r = await safeFetch(`${PATH_TG_USERS}.json`);
+        const total = r ? Object.keys(r).length : 0;
+        if (total > 0) {
+            el.innerText = `✅ ${total} celular(es) recebendo status a cada 30 min`;
+            el.style.color = 'var(--level-ok)';
+        } else {
+            el.innerText = 'Clique no botão acima e envie /start no Telegram';
+            el.style.color = 'var(--text-sec)';
+        }
+    } catch(e) {}
+}
+
+async function tgEnviarStatusParaTodos() {
+    if (!tgDisponivel()) return;
+    try {
+        const r = await safeFetch(`${PATH_TG_USERS}.json`);
+        if (!r) return;
+        const users = Object.values(r);
+        if (users.length === 0) return;
+
+        const nivel = nivelAtual || 0;
+        const litros = calcularVolumeLitros(nivel);
+        const hora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        const icone = nivel > 60 ? '✅' : nivel > 30 ? '⚠️' : '🚨';
+        const status = nivel > 60 ? 'Normal' : nivel > 30 ? 'Atenção' : 'CRÍTICO - Solicitar Abastecimento!';
+
+        const msg = `🛣️ ${currentAppId.toUpperCase()}\n` +
+                   `📊 Nível: ${Math.round(nivel)}%\n` +
+                   `💧 Volume: ${litros}L\n` +
+                   `${icone} ${status}\n` +
+                   `🕑 ${hora}`;
+
+        for (const user of users) {
+            if (user.chat_id) {
+                try {
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: user.chat_id, text: msg })
+                    });
+                } catch(e) {}
+            }
+        }
+    } catch(e) {}
+}
+
+function tgIniciarEnvioPeriodico() {
+    if (!tgDisponivel()) return;
+    if (tgEnvioInterval) clearInterval(tgEnvioInterval);
+    // Enviar a cada 30 minutos (1800000 ms)
+    tgEnvioInterval = setInterval(tgEnviarStatusParaTodos, 1800000);
+    // Primeiro envio após 1 minuto (dar tempo de carregar nível)
+    setTimeout(tgEnviarStatusParaTodos, 60000);
 }
 
 const API_KEY = ""; 
@@ -1329,6 +1469,20 @@ window.addEventListener('load', function() {
 
     // Contatos de email liberados para todas as caixas
 
+    // Telegram - mostrar para PP03-PP07 e iniciar envio periódico
+    const telegramAllowed = ['pp3', 'pp4', 'pp5', 'pp6', 'pp07'];
+    const cardTelegram = document.getElementById('card-telegram-bot');
+    if (cardTelegram) {
+        if (telegramAllowed.includes(currentAppId.toLowerCase()) && tgDisponivel()) {
+            cardTelegram.style.display = '';
+            tgAtualizarContador();
+            tgRegistrarNovosUsuarios();
+            tgIniciarEnvioPeriodico();
+        } else {
+            cardTelegram.style.display = 'none';
+        }
+    }
+
     function switchView(viewName) { 
         activeTab = viewName; 
         for (const key in views) { if(views[key]) views[key].style.display = 'none'; } 
@@ -1451,11 +1605,11 @@ const DB_BASE = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com"
 const listPP = [
     { id: 'pp1', name: 'PP 01', city: 'Paracatu', coords: '-17.098233,-47.026486', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', telegramBot: 'Caixadguap1_bot', firebaseDataPath: '/PP01.json', firebaseConfigPath: '/PP01_config', firebaseHistPath: '/PP01_historico', title: 'Praça de Pedágio 01' },
     { id: 'pp2', name: 'PP 02', city: 'Lagoa Grande', coords: '-17.505925,-46.564761', monitor: true, active: true, maintenance: true, customPill: 'Em manutenção', telegramBot: 'Caixadguap2_bot', firebaseDataPath: '/PP02.json', firebaseConfigPath: '/PP02_config', firebaseHistPath: '/PP02_historico', title: 'Praça de Pedágio 02' },
-    { id: 'pp3', name: 'PP 03', city: 'João Pinheiro', coords: '-17.945544,-46.037600', monitor: true, active: true, telegramBot: 'Caixadguap3_bot', firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
-    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', monitor: true, active: true, telegramBot: 'Caixadguap4_bot', firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
-    { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', monitor: true, active: true, telegramBot: 'Caixadguap5_bot', firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
-    { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', monitor: true, active: true, customPill: 'Em instalação', telegramBot: 'Caixadguap6_bot', firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
-    { id: 'pp07', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', monitor: true, active: true, telegramBot: 'Caixadguap7_bot', firebaseDataPath: '/PP07.json', firebaseConfigPath: '/PP07_config', firebaseHistPath: '/PP07_historico', title: 'Praça de Pedágio 07' }
+    { id: 'pp3', name: 'PP 03', city: 'João Pinheiro', coords: '-17.945544,-46.037600', monitor: true, active: true, telegramBot: 'Caixadguap3_bot', telegramBotToken: '7362277748:AAF6-CgtqCkxbkH9mTrjJZyxAH5Kat4OIzo', firebaseDataPath: '/PP03.json', firebaseConfigPath: '/PP03_config', firebaseHistPath: '/PP03_historico', title: 'Praça de Pedágio 03' },
+    { id: 'pp4', name: 'PP 04', city: 'São Gonçalo do Abaete', coords: '-18.132631,-45.417289', monitor: true, active: true, telegramBot: 'Caixadguap4_bot', telegramBotToken: '7362277748:AAF6-CgtqCkxbkH9mTrjJZyxAH5Kat4OIzo', firebaseDataPath: '/PP04.json', firebaseConfigPath: '/PP04_config', firebaseHistPath: '/PP04_historico', title: 'Praça de Pedágio 04' },
+    { id: 'pp5', name: 'PP 05', city: 'Felixlândia', coords: '-18.565369,-45.020900', monitor: true, active: true, telegramBot: 'Caixadguap5_bot', telegramBotToken: '7362277748:AAF6-CgtqCkxbkH9mTrjJZyxAH5Kat4OIzo', firebaseDataPath: '/PP05.json', firebaseConfigPath: '/PP05_config', firebaseHistPath: '/PP05_historico', title: 'Praça de Pedágio 05' },
+    { id: 'pp6', name: 'PP 06', city: 'Curvelo', coords: '-19.079333,-44.655247', monitor: true, active: true, telegramBot: 'Caixadguap6_bot', telegramBotToken: '7362277748:AAF6-CgtqCkxbkH9mTrjJZyxAH5Kat4OIzo', firebaseDataPath: '/PP06.json', firebaseConfigPath: '/PP06_config', firebaseHistPath: '/PP06_historico', title: 'Praça de Pedágio 06' },
+    { id: 'pp07', name: 'PP 07', city: 'Capim Branco', coords: '-19.601319,-44.221978', monitor: true, active: true, telegramBot: 'Caixadguap7_bot', telegramBotToken: '7362277748:AAF6-CgtqCkxbkH9mTrjJZyxAH5Kat4OIzo', firebaseDataPath: '/PP07.json', firebaseConfigPath: '/PP07_config', firebaseHistPath: '/PP07_historico', title: 'Praça de Pedágio 07' }
 ];
 
 const listSAU = [
@@ -1531,12 +1685,14 @@ function prepararAbertura(id) {
     }
     
     let telegramBotName = item.telegramBot ? item.telegramBot : '';
+    let telegramBotToken = item.telegramBotToken ? item.telegramBotToken : '';
     let isMaintenanceMode = item.maintenance === true ? 'true' : 'false';
 
     rawHTML = rawHTML.replace(/__APP_TITLE__/g, displayTitle);
     rawHTML = rawHTML.replace('__MAPS_BTN__', mapsButton);
     rawHTML = rawHTML.replace(/__APP_ID__/g, item.id); 
-    rawHTML = rawHTML.replace(/__TELEGRAM_BOT__/g, telegramBotName); 
+    rawHTML = rawHTML.replace(/__TELEGRAM_BOT__/g, telegramBotName);
+    rawHTML = rawHTML.replace(/__TELEGRAM_BOT_TOKEN__/g, telegramBotToken); 
     rawHTML = rawHTML.replace(/__IS_MAINTENANCE__/g, isMaintenanceMode);
     rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
     rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
