@@ -615,6 +615,8 @@ function abrirAppExterno(protocolo, valor) {
     }
 }
 
+const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
+
 // === TELEGRAM: Registro automático + envio periódico de status ===
 const TELEGRAM_BOT_TOKEN = '__TELEGRAM_BOT_TOKEN__';
 const TELEGRAM_BOT_NAME = '__TELEGRAM_BOT__';
@@ -745,7 +747,6 @@ function tgIniciarEnvioPeriodico() {
 }
 
 const API_KEY = ""; 
-const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
 const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`; 
 const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`; 
 const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; 
@@ -1685,9 +1686,9 @@ function prepararAbertura(id) {
     rawHTML = rawHTML.replace(/__TELEGRAM_BOT__/g, telegramBotName);
     rawHTML = rawHTML.replace(/__TELEGRAM_BOT_TOKEN__/g, telegramBotToken); 
     rawHTML = rawHTML.replace(/__IS_MAINTENANCE__/g, isMaintenanceMode);
-    rawHTML = rawHTML.replace('__FIREBASE_DATA_PATH__', item.firebaseDataPath);
-    rawHTML = rawHTML.replace('__FIREBASE_CONFIG_PATH__', item.firebaseConfigPath);
-    rawHTML = rawHTML.replace('__FIREBASE_HIST_PATH__', item.firebaseHistPath);
+    rawHTML = rawHTML.replace(/__FIREBASE_DATA_PATH__/g, item.firebaseDataPath);
+    rawHTML = rawHTML.replace(/__FIREBASE_CONFIG_PATH__/g, item.firebaseConfigPath);
+    rawHTML = rawHTML.replace(/__FIREBASE_HIST_PATH__/g, item.firebaseHistPath);
     rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); 
 
     abrirApp(rawHTML);
