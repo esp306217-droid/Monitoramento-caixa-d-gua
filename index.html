@@ -654,9 +654,6 @@ async function tgRegistrarNovosUsuarios() {
         const data = await resp.json();
         if (!data.ok || !data.result || data.result.length === 0) return 0;
 
-        let existentes = {};
-        try { const r = await safeFetch(`${PATH_TG_USERS}.json`); if (r) existentes = r; } catch(e) {}
-
         let novos = 0;
         for (const update of data.result) {
             tgLastUpdateId = update.update_id + 1;
@@ -664,16 +661,18 @@ async function tgRegistrarNovosUsuarios() {
                 const text = update.message.text;
                 const partes = text.split(' ');
                 const param = partes.length > 1 ? partes[1].toLowerCase() : null;
-
+                
+                const targetAppId = param ? param : currentAppId.toLowerCase();
                 const chatId = String(update.message.chat.id);
                 const nome = update.message.chat.first_name || 'Usuário';
-                const jaExiste = Object.values(existentes || {}).some(u => String(u.chat_id) === chatId);
                 
-                const originouAqui = (param === currentAppId.toLowerCase());
-                const fallbackAqui = (!param && currentAppId === 'pp07');
+                const targetPath = `${DATABASE_URL}/${targetAppId.toUpperCase()}_config/telegram_users`;
+                let existentesAlvo = {};
+                try { const r = await safeFetch(`${targetPath}.json`); if (r) existentesAlvo = r; } catch(e) {}
+                const jaExiste = Object.values(existentesAlvo || {}).some(u => String(u.chat_id) === chatId);
 
-                if ((originouAqui || fallbackAqui) && !jaExiste) {
-                    await fetch(`${PATH_TG_USERS}.json`, {
+                if (!jaExiste) {
+                    await fetch(`${targetPath}.json`, {
                         method: 'POST',
                         body: JSON.stringify({ chat_id: chatId, nome: nome, data: Date.now() })
                     });
@@ -683,12 +682,29 @@ async function tgRegistrarNovosUsuarios() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             chat_id: chatId,
-                            text: `✅ *CADASTRADO COM SUCESSO!*\n\n📡 Você receberá o status da *ESTAÇÃO ${currentAppId.toUpperCase()}* a cada 60 minutos.\n\n💧 _Monitoramento Caixa D'água_`,
+                            text: `✅ *CADASTRADO COM SUCESSO!*\n\n📡 Você receberá o status da *ESTAÇÃO ${targetAppId.toUpperCase()}* a cada 60 minutos.\n\n💧 _Monitoramento Caixa D'água_`,
                             parse_mode: 'Markdown'
                         })
                     });
                     
-                    tgEnviarStatusParaChat(chatId);
+                    let targetNivel = 0;
+                    try {
+                        const rData = await safeFetch(`${DATABASE_URL}/${targetAppId.toUpperCase()}.json`);
+                        if (rData) targetNivel = Number(rData.nivel_pct ?? rData.nivel ?? 0);
+                    } catch(e) {}
+
+                    if (targetNivel > 0) {
+                        const hora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                        let icone = targetNivel > 60 ? '✅' : targetNivel > 30 ? '⚠️' : '🚨';
+                        let statusText = targetNivel > 60 ? 'Normal' : targetNivel > 30 ? 'Atenção' : 'CRÍTICO!';
+                        let msg = `🛣️ *${targetAppId.toUpperCase()}*\n📊 Nível: *${Math.round(targetNivel)}%*\n${icone} Status: ${statusText}\n🕑 ${hora}`;
+                        
+                        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
+                        });
+                    }
                     novos++;
                 }
             }
