@@ -258,7 +258,7 @@ body { font-family: 'Poppins', sans-serif; text-align: center; background: var(-
 .nav-button-icon-only:active { background: var(--accent); color: white; transform: translateY(2px); }
 
 /* Ajuste da Barra de Tarefas (Sidebar Esquerda) */
-.main-header { position: fixed; top: 0; left: 0; height: 100vh; width: 60px; background-color: var(--header-bg); backdrop-filter: blur(10px); box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; z-index: 1000; transition: background-color 0.3s ease; gap: 15px; padding: 20px 0; margin: 0; border-radius: 0 15px 15px 0 !important; } 
+.main-header { position: fixed; top: 50%; transform: translateY(-50%); left: 0; height: auto; padding: 15px 0; width: 60px; background-color: var(--header-bg); backdrop-filter: blur(10px); box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; z-index: 1000; transition: background-color 0.3s ease; gap: 15px; margin: 0; border-radius: 0 15px 15px 0 !important; } 
 .nav-group { display: flex; flex-direction: column; gap: 15px; width: 100%; align-items: center; }
 
 /* Indicador Live */
@@ -1390,14 +1390,7 @@ async function loopDeAtualizacao() {
     let isSimulado = false;
 
     if (nivelCru !== null && nivelCru > 0) {
-        bufferLeiturasValidas.push(nivelCru);
-        if (bufferLeiturasValidas.length > 5) bufferLeiturasValidas.shift(); 
-        
-        const sorted = [...bufferLeiturasValidas].sort((a, b) => a - b);
-        const mid = Math.floor(sorted.length / 2);
-        const mediana = sorted.length > 0 ? sorted[mid] : nivelCru;
-
-        nivelFinal = mediana; 
+        nivelFinal = nivelCru; 
         isSimulado = false;
 
         checkAutoRefill(nivelFinal);
@@ -1421,9 +1414,8 @@ async function loopDeAtualizacao() {
         let baseNivel = 0;
         let baseTime = 0;
 
-        if (bufferLeiturasValidas.length > 0) {
-            const sorted = [...bufferLeiturasValidas].sort((a, b) => a - b);
-            baseNivel = sorted[Math.floor(sorted.length / 2)];
+        if (nivelCru !== null && nivelCru > 0) {
+            baseNivel = nivelCru;
             baseTime = Date.now(); 
         } else {
             const backup = await buscarBackupUltimaValidaFirebase();
