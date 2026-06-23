@@ -661,10 +661,25 @@ async function tgRegistrarNovosUsuarios() {
                 const text = update.message.text;
                 const partes = text.split(' ');
                 const param = partes.length > 1 ? partes[1].toLowerCase() : null;
-                
-                const targetAppId = param ? param : currentAppId.toLowerCase();
                 const chatId = String(update.message.chat.id);
                 const nome = update.message.chat.first_name || 'Usuário';
+
+                if (!param) {
+                    try {
+                        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: chatId,
+                                text: `⚠️ *Atenção!*\nPara se cadastrar, você precisa especificar qual estação deseja monitorar.\n\n👉 Por favor, digite:\n\`/start pp06\`\n*(Troque pp06 pela caixa que você quer: pp03, pp04, etc.)*`,
+                                parse_mode: 'Markdown'
+                            })
+                        });
+                    } catch(e) {}
+                    continue;
+                }
+                
+                const targetAppId = param;
                 
                 const targetPath = `${DATABASE_URL}/${targetAppId.toUpperCase()}_config/telegram_users`;
                 let existentesAlvo = {};
@@ -868,21 +883,22 @@ function interpolacaoLinear(arr) {
 function atualizarGraficosHistorico(result) { 
     if (!chartLinha || !chartBlocos) return; 
     
-    let displayLabelsLine = result.labelsLine || result.labels || []; 
-    let displayNiveisLine = result.niveisLine || result.niveis || []; 
-    chartLinha.data.labels = displayLabelsLine; 
-    chartLinha.data.datasets[0].data = displayNiveisLine; 
+    // Usar os dados agrupados por hora (niveisBar e labelsBar)
+    // para gerar as 24 leituras horárias também no gráfico de linha
+    let displayLabels = result.labelsBar || result.labels || []; 
+    let displayNiveis = result.niveisBar || result.niveis || []; 
     
-    // Gráfico de linha diagonal e suavizada
+    chartLinha.data.labels = displayLabels; 
+    chartLinha.data.datasets[0].data = displayNiveis; 
+    
     if (chartLinha.options && chartLinha.options.elements && chartLinha.options.elements.line) {
         chartLinha.options.elements.line.stepped = false; 
+        chartLinha.options.elements.line.tension = 0.4; // Ajuste para suavizar a subida/descida
     }
     chartLinha.update(); 
     
-    let displayLabelsBar = result.labelsBar || result.labels || []; 
-    let displayNiveisBar = result.niveisBar || result.niveis || []; 
-    chartBlocos.data.labels = displayLabelsBar; 
-    chartBlocos.data.datasets[0].data = displayNiveisBar; 
+    chartBlocos.data.labels = displayLabels; 
+    chartBlocos.data.datasets[0].data = displayNiveis; 
     const cores = 'rgba(6, 182, 212, 0.85)'; 
     chartBlocos.data.datasets[0].backgroundColor = cores; 
     chartBlocos.update(); 
@@ -986,7 +1002,7 @@ function criarGraficos() {
         if(chartLinha) chartLinha.destroy(); 
         chartLinha = new Chart(ctxL, { 
             type: 'line', 
-            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.2, pointRadius: 3, borderWidth: 3, spanGaps: true }] }, 
+            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.4, pointRadius: 0, borderWidth: 3, spanGaps: false }] }, 
             options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
     } 
     if(document.getElementById('chartBlocos')) { 
@@ -1050,14 +1066,14 @@ async function carregarHistoricoEConsumo() {
         
         processData = (dadosHoje, dadosOntem) => { 
             const isToday = (getLocalISODate(new Date()) === data);
-            const maxHour = isToday ? new Date().getHours() : 23;
-            const labelsFixed = []; const niveisFixed = new Array(maxHour + 1).fill(null); 
-            const consumoFinal = new Array(maxHour + 1).fill(0); 
-            const lLine = []; const nLine = [];
+            const currentHour = isToday ? new Date().getHours() : 23;
+            const labelsFixed = []; const niveisFixed = new Array(24).fill(null); 
+            const consumoFinal = new Array(24).fill(0); 
             
-            for(let h = 0; h <= maxHour; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); 
+            // Garantir que as labels sejam criadas das 00:00 as 23:00 sempre
+            for(let h = 0; h <= 23; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); 
+            
             let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; 
-            let currentLineVal = null;
 
             if (dadosOntem) { 
                 const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); 
@@ -1068,6 +1084,7 @@ async function carregarHistoricoEConsumo() {
                     previousVal = valRaw !== null ? Number(valRaw) : null; 
                 } 
             } 
+            
             if (dadosHoje) { 
                 const keysSorted = Object.keys(dadosHoje).sort((a, b) => { 
                     const [hA, mA] = a.split(':').map(Number); 
@@ -1078,24 +1095,12 @@ async function carregarHistoricoEConsumo() {
                     const horaInt = parseInt(key.split(':')[0]); 
                     const leitura = dadosHoje[key];
                     const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; 
-                    const ts = leitura.timestamp;
                     const val = valRaw !== null ? Number(valRaw) : null; 
                     
                     if (val !== null) {
-                        let timeStr;
-                        if (ts) {
-                           let dt = new Date(ts);
-                           timeStr = String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0');
-                        } else {
-                           timeStr = key.length === 2 ? key + ':00' : key;
-                        }
-                        
-                        lLine.push(timeStr);
-                        nLine.push(val);
-                        currentLineVal = val;
-
-                        if (horaInt >= 0 && horaInt <= maxHour) { 
-                            if (niveisFixed[horaInt] === null) niveisFixed[horaInt] = val; 
+                        if (horaInt >= 0 && horaInt <= 23) { 
+                            // Guarda o último valor lido em cada hora
+                            if (niveisFixed[horaInt] === null || horaInt === currentHour) niveisFixed[horaInt] = val; 
                         } 
                         
                         if (previousVal !== null) { 
@@ -1109,7 +1114,7 @@ async function carregarHistoricoEConsumo() {
                                     const gap = Math.max(1, horaInt - lastHoraInt); 
                                     const valPerBin = diff / gap; 
                                     for(let h = lastHoraInt + 1; h <= horaInt; h++) { 
-                                        if(h >= 0 && h <= maxHour) consumoFinal[h] += valPerBin; 
+                                        if(h >= 0 && h <= 23) consumoFinal[h] += valPerBin; 
                                     } 
                                 } 
                             } 
@@ -1119,18 +1124,25 @@ async function carregarHistoricoEConsumo() {
                 }); 
 
                 if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; 
-                const niveisInterpolados = interpolacaoLinear(niveisFixed); 
-                for(let h=0; h<=maxHour; h++) niveisFixed[h] = niveisInterpolados[h]; 
                 
-                if (getLocalISODate(new Date()) === data && currentLineVal !== null) {
-                    let nowH = new Date().getHours().toString().padStart(2,'0') + ':' + new Date().getMinutes().toString().padStart(2,'0');
-                    lLine.push(nowH);
-                    nLine.push(currentLineVal);
+                // Interpolar os dados vazios (apenas até a hora atual para o dia de hoje, ou 23 se for dia anterior)
+                let limitHour = isToday ? currentHour : 23;
+                let arrayParaInterpolar = niveisFixed.slice(0, limitHour + 1);
+                const niveisInterpolados = interpolacaoLinear(arrayParaInterpolar); 
+                
+                for(let h=0; h<=23; h++) {
+                    if (h <= limitHour) {
+                        niveisFixed[h] = niveisInterpolados[h];
+                    } else {
+                        niveisFixed[h] = null; // Mantém nulo as horas futuras
+                    }
                 }
+                
             } else if (previousVal !== null) { 
-                for(let h=0; h<=maxHour; h++) niveisFixed[h] = previousVal; 
+                let limitHour = isToday ? currentHour : 23;
+                for(let h=0; h<=limitHour; h++) niveisFixed[h] = previousVal; 
             } 
-            return { labelsBar: labelsFixed, niveisBar: niveisFixed, labelsLine: lLine, niveisLine: nLine, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
+            return { labelsBar: labelsFixed, niveisBar: niveisFixed, labelsLine: labelsFixed, niveisLine: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
         }; 
         
         try { 
@@ -1351,17 +1363,6 @@ function renderNivel(nivelPct, isSimulado = false) {
         else elBarra.style.background = 'linear-gradient(to top, #ff3333, #990000)';
     }
 
-    if (typeof chartLinha !== 'undefined' && currentView === 'diario' && activeTab === 'grafico') {
-        let dataArr = chartLinha.data.datasets[0].data;
-        let lastVal = dataArr.length > 0 ? dataArr[dataArr.length - 1] : null;
-        if (lastVal !== Math.round(nivelPct)) {
-            const timeStr = new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-            chartLinha.data.labels.push(timeStr);
-            chartLinha.data.datasets[0].data.push(Math.round(nivelPct));
-            chartLinha.update();
-        }
-    }
-
     const statusDisplay = document.getElementById('status-display');
     if (statusDisplay) {
         statusDisplay.classList.remove('level-ok', 'level-warn', 'level-danger');
@@ -1514,8 +1515,6 @@ window.addEventListener('load', function() {
     const btns = { caixa: document.getElementById('btn-view-caixa'), grafico: document.getElementById('btn-view-grafico'), abastecimento: document.getElementById('btn-view-abastecimento'), consumo: document.getElementById('btn-view-consumo'), config: document.getElementById('btn-view-config') }; 
     const dateControls = document.getElementById('date-controls'); 
     const btnAt = document.getElementById('btnAtualizar');
-
-    // Contatos de email liberados para todas as caixas
 
     // Telegram - mostrar para PP03-PP07 e iniciar envio periódico
     const telegramAllowed = ['pp3', 'pp4', 'pp5', 'pp6', 'pp07'];
