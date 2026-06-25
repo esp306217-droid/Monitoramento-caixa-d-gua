@@ -864,22 +864,6 @@ function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaMo
 function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
 function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
 
-function interpolacaoLinear(arr) { 
-    let filled = [...arr]; 
-    let firstValidIdx = -1; 
-    for(let i=0; i<filled.length; i++){ 
-        if(filled[i] !== null){ firstValidIdx = i; break; } 
-    } 
-    if(firstValidIdx === -1) return filled; 
-    let lastVal = filled[firstValidIdx]; 
-    for(let i=0; i<firstValidIdx; i++) filled[i] = lastVal; 
-    for(let i=firstValidIdx; i<filled.length; i++){ 
-        if(filled[i] !== null) { lastVal = filled[i]; } 
-        else { filled[i] = lastVal; } 
-    } 
-    return filled; 
-}
-
 /* --- STREAMING_CHUNK:Atualização de gráficos e Chart.js --- */
 function atualizarGraficosHistorico(result) { 
     if (!chartLinha || !chartBlocos) return; 
@@ -1003,7 +987,7 @@ function criarGraficos() {
         if(chartLinha) chartLinha.destroy(); 
         chartLinha = new Chart(ctxL, { 
             type: 'line', 
-            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.4, pointRadius: 0, borderWidth: 3, spanGaps: false }] }, 
+            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.4, pointRadius: 0, borderWidth: 3, spanGaps: true }] }, 
             options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
     } 
     if(document.getElementById('chartBlocos')) { 
@@ -1066,12 +1050,9 @@ async function carregarHistoricoEConsumo() {
         const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; 
         
         processData = (dadosHoje, dadosOntem) => { 
-            const isToday = (getLocalISODate(new Date()) === data);
-            const currentHour = isToday ? new Date().getHours() : 23;
             const labelsFixed = []; const niveisFixed = new Array(24).fill(null); 
             const consumoFinal = new Array(24).fill(0); 
             
-            // Garantir que as labels sejam criadas das 00:00 as 23:00 sempre
             for(let h = 0; h <= 23; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); 
             
             let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; 
@@ -1086,6 +1067,8 @@ async function carregarHistoricoEConsumo() {
                 } 
             } 
             
+            let valOntem = previousVal;
+
             if (dadosHoje) { 
                 const keysSorted = Object.keys(dadosHoje).sort((a, b) => { 
                     const [hA, mA] = a.split(':').map(Number); 
@@ -1100,8 +1083,7 @@ async function carregarHistoricoEConsumo() {
                     
                     if (val !== null) {
                         if (horaInt >= 0 && horaInt <= 23) { 
-                            // Guarda o último valor lido em cada hora
-                            if (niveisFixed[horaInt] === null || horaInt === currentHour) niveisFixed[horaInt] = val; 
+                            niveisFixed[horaInt] = val; 
                         } 
                         
                         if (previousVal !== null) { 
@@ -1112,9 +1094,11 @@ async function carregarHistoricoEConsumo() {
                                 const diff = volAnterior - volAtual; 
                                 const limiteMaxDiff = capacidadeTotal * 0.50; 
                                 if(diff < limiteMaxDiff && diff > 0) { 
-                                    const gap = Math.max(1, horaInt - lastHoraInt); 
+                                    let calcGap = lastHoraInt === -1 ? horaInt : (horaInt - lastHoraInt);
+                                    let gap = Math.max(1, calcGap); 
                                     const valPerBin = diff / gap; 
-                                    for(let h = lastHoraInt + 1; h <= horaInt; h++) { 
+                                    let startH = lastHoraInt === -1 ? 0 : lastHoraInt + 1;
+                                    for(let h = startH; h <= horaInt; h++) { 
                                         if(h >= 0 && h <= 23) consumoFinal[h] += valPerBin; 
                                     } 
                                 } 
@@ -1124,24 +1108,12 @@ async function carregarHistoricoEConsumo() {
                     }
                 }); 
 
-                if (niveisFixed[0] === null && previousVal !== null && lastHoraInt === -1) niveisFixed[0] = previousVal; 
-                
-                // Interpolar os dados vazios (apenas até a hora atual para o dia de hoje, ou 23 se for dia anterior)
-                let limitHour = isToday ? currentHour : 23;
-                let arrayParaInterpolar = niveisFixed.slice(0, limitHour + 1);
-                const niveisInterpolados = interpolacaoLinear(arrayParaInterpolar); 
-                
-                for(let h=0; h<=23; h++) {
-                    if (h <= limitHour) {
-                        niveisFixed[h] = niveisInterpolados[h];
-                    } else {
-                        niveisFixed[h] = null; // Mantém nulo as horas futuras
-                    }
+                if (niveisFixed[0] === null && valOntem !== null) {
+                    niveisFixed[0] = valOntem;
                 }
                 
-            } else if (previousVal !== null) { 
-                let limitHour = isToday ? currentHour : 23;
-                for(let h=0; h<=limitHour; h++) niveisFixed[h] = previousVal; 
+            } else if (valOntem !== null) { 
+                niveisFixed[0] = valOntem; 
             } 
             return { labelsBar: labelsFixed, niveisBar: niveisFixed, labelsLine: labelsFixed, niveisLine: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
         }; 
