@@ -871,19 +871,19 @@ function atualizarGraficosHistorico(result) {
     // Usar os dados agrupados por hora (niveisBar e labelsBar)
     // para gerar as 24 leituras horárias também no gráfico de linha
     let displayLabels = result.labelsBar || result.labels || []; 
-    let displayNiveis = result.niveisBar || result.niveis || []; 
+    let displayNiveis = result.niveisLine || result.niveis || []; 
     
     chartLinha.data.labels = displayLabels; 
     chartLinha.data.datasets[0].data = displayNiveis; 
     
     if (chartLinha.options && chartLinha.options.elements && chartLinha.options.elements.line) {
         chartLinha.options.elements.line.stepped = false; 
-        chartLinha.options.elements.line.tension = 0.4; // Ajuste para suavizar a subida/descida
+        chartLinha.options.elements.line.tension = 0.1; // Ajuste para suavizar a subida/descida
     }
     chartLinha.update(); 
     
     chartBlocos.data.labels = displayLabels; 
-    chartBlocos.data.datasets[0].data = displayNiveis; 
+    chartBlocos.data.datasets[0].data = result.niveisBar || result.niveis || []; 
     const cores = 'rgba(6, 182, 212, 0.85)'; 
     chartBlocos.data.datasets[0].backgroundColor = cores; 
     chartBlocos.update(); 
@@ -977,7 +977,9 @@ function criarGraficos() {
     const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; 
     const textColor = isDark ? '#94a3b8' : '#64748b'; 
     const zoomOptions = { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' } }; 
-    const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 0, minRotation: 0, maxTicksLimit: 6, color: textColor }, grid: { display: true, color: gridColor } }; 
+    
+    /* Alterado maxTicksLimit para 24 para garantir a exibição das 24 horas no gráfico de linha */
+    const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 45, minRotation: 0, maxTicksLimit: 24, color: textColor }, grid: { display: true, color: gridColor } }; 
     
     if(document.getElementById('chartLinha')) { 
         const ctxL = document.getElementById('chartLinha').getContext('2d'); 
@@ -987,7 +989,7 @@ function criarGraficos() {
         if(chartLinha) chartLinha.destroy(); 
         chartLinha = new Chart(ctxL, { 
             type: 'line', 
-            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.4, pointRadius: 0, borderWidth: 3, spanGaps: true }] }, 
+            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.2, pointRadius: 0, borderWidth: 3, spanGaps: true }] }, 
             options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
     } 
     if(document.getElementById('chartBlocos')) { 
@@ -1050,7 +1052,11 @@ async function carregarHistoricoEConsumo() {
         const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; 
         
         processData = (dadosHoje, dadosOntem) => { 
-            const labelsFixed = []; const niveisFixed = new Array(24).fill(null); 
+            const isToday = (getLocalISODate(new Date()) === data);
+            const currentHour = isToday ? new Date().getHours() : 23;
+            const labelsFixed = []; 
+            const niveisLine = new Array(24).fill(null); 
+            const niveisBar = new Array(24).fill(null); 
             const consumoFinal = new Array(24).fill(0); 
             
             for(let h = 0; h <= 23; h++) labelsFixed.push(String(h).padStart(2, '0') + ":00"); 
@@ -1075,6 +1081,7 @@ async function carregarHistoricoEConsumo() {
                     const [hB, mB] = b.split(':').map(Number); 
                     return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); 
                 }); 
+                
                 keysSorted.forEach(key => { 
                     const horaInt = parseInt(key.split(':')[0]); 
                     const leitura = dadosHoje[key];
@@ -1083,7 +1090,7 @@ async function carregarHistoricoEConsumo() {
                     
                     if (val !== null) {
                         if (horaInt >= 0 && horaInt <= 23) { 
-                            niveisFixed[horaInt] = val; 
+                            niveisLine[horaInt] = val; 
                         } 
                         
                         if (previousVal !== null) { 
@@ -1107,15 +1114,55 @@ async function carregarHistoricoEConsumo() {
                         previousVal = val; lastHoraInt = horaInt; 
                     }
                 }); 
+            }
 
-                if (niveisFixed[0] === null && valOntem !== null) {
-                    niveisFixed[0] = valOntem;
+            // --- LÓGICA DE PREENCHIMENTO E INTERPOLAÇÃO DE TODAS AS HORAS ---
+            let limitHour = isToday ? currentHour : 23;
+            
+            // 1. Se não houver leitura à meia-noite, traz o último valor de ontem
+            if (niveisLine[0] === null && valOntem !== null) {
+                niveisLine[0] = valOntem;
+            }
+
+            // 2. Interpola as horas vazias entre as horas com leitura (Cria a rampa de descida/subida)
+            let lastValidIdx = -1;
+            for (let i = 0; i <= limitHour; i++) {
+                if (niveisLine[i] !== null) {
+                    if (lastValidIdx === -1) {
+                        // Preenche retroativamente caso as primeiras horas do dia estejam vazias
+                        for (let j = 0; j < i; j++) niveisLine[j] = niveisLine[i];
+                    } else if (i - lastValidIdx > 1) {
+                        // Interpola a rampa (descida ou subida contínua)
+                        let startV = niveisLine[lastValidIdx];
+                        let endV = niveisLine[i];
+                        let diffPorHora = (endV - startV) / (i - lastValidIdx);
+                        for (let j = lastValidIdx + 1; j < i; j++) {
+                            niveisLine[j] = Math.round(startV + diffPorHora * (j - lastValidIdx));
+                        }
+                    }
+                    lastValidIdx = i;
                 }
-                
-            } else if (valOntem !== null) { 
-                niveisFixed[0] = valOntem; 
-            } 
-            return { labelsBar: labelsFixed, niveisBar: niveisFixed, labelsLine: labelsFixed, niveisLine: niveisFixed, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
+            }
+
+            // 3. Se da última leitura até a hora limite não houver leitura nova, arrasta o último valor válido
+            if (lastValidIdx !== -1 && lastValidIdx < limitHour) {
+                let lastV = niveisLine[lastValidIdx];
+                for (let i = lastValidIdx + 1; i <= limitHour; i++) {
+                    niveisLine[i] = lastV;
+                }
+            }
+
+            // 4. Se o dia inteiro estiver sem leitura, mas havia valor de ontem, preenche tudo com o valor de ontem
+            if (lastValidIdx === -1 && valOntem !== null) {
+                for (let i = 0; i <= limitHour; i++) niveisLine[i] = valOntem;
+            }
+
+            // 5. Garante que os gráficos de barras espelhem a mesma regra
+            for (let h = 0; h <= limitHour; h++) {
+                niveisBar[h] = niveisLine[h];
+            }
+
+            return { labelsBar: labelsFixed, niveisBar: niveisBar, labelsLine: labelsFixed, niveisLine: niveisLine, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
         }; 
         
         try { 
