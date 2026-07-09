@@ -817,7 +817,7 @@ let currentView = 'diario'; let activeTab = 'caixa';
 let nivelAtual = 0; let nivelAlertaConfigurado = 30; let capacidadeTotal = 8000; let alturaCaixa = 0; 
 let alertaModalMostrado = false; let verificacaoInicialConcluida = false;
 let emailEnviadoNessaSessao = false; let alertaConfirmadoPeloUsuario = false; 
-let ultimoHorarioSalvo = -1; let ultimoTempoSalvo = 0; 
+let ultimoHorarioSalvo = -1; let ultimoTempoSalvo = 0; let backfillRealizado = false;
 let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
 let snoozeCount = 0, snoozeUntil = 0; 
 const SNOOZE_DURATION_MINUTES = 10; const AUTO_SNOOZE_SECONDS = 30; 
@@ -1032,6 +1032,40 @@ async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
     try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} 
 }
 
+async function preencherHorasFaltantesNoFirebase(dadosHoje, nivelAtual) {
+    if (!nivelAtual || nivelAtual <= 0) return;
+    const d = new Date();
+    const currentHour = d.getHours();
+    const localDate = getLocalISODate(d);
+    let horasSalvas = new Set();
+    
+    if (dadosHoje) {
+        Object.keys(dadosHoje).forEach(key => {
+            const h = parseInt(key.split(':')[0]);
+            horasSalvas.add(h);
+        });
+    }
+
+    let promises = [];
+    for (let h = 0; h <= currentHour; h++) {
+        if (!horasSalvas.has(h)) {
+            const hStr = String(h).padStart(2, '0');
+            const horaKey = `${hStr}:00`;
+            const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; 
+            
+            let retroTimestamp = new Date(d);
+            retroTimestamp.setHours(h, 0, 0, 0);
+            const dados = { nivel_pct: nivelAtual, timestamp: retroTimestamp.getTime(), tipo: 'backfill' }; 
+            promises.push(fetch(url, { method: 'PUT', body: JSON.stringify(dados) }).catch(e => {}));
+        }
+    }
+    if (promises.length > 0) {
+        await Promise.all(promises);
+        return true; 
+    }
+    return false;
+}
+
 async function carregarHistoricoEConsumo() { 
     if (currentView === 'semanal') return; 
     let url = ''; let processData; 
@@ -1136,9 +1170,7 @@ async function carregarHistoricoEConsumo() {
             let lastValidIdxBar = -1;
             for (let i = 0; i <= currentBinIdxBar; i++) {
                 if (niveisBar[i] !== null) {
-                    if (lastValidIdxBar === -1) {
-                        for (let j = 0; j < i; j++) niveisBar[j] = niveisBar[i];
-                    } else if (i - lastValidIdxBar > 1) {
+                    if (lastValidIdxBar !== -1 && i - lastValidIdxBar > 1) {
                         let startV = niveisBar[lastValidIdxBar];
                         let endV = niveisBar[i];
                         let diffPerBin = (endV - startV) / (i - lastValidIdxBar);
@@ -1153,18 +1185,13 @@ async function carregarHistoricoEConsumo() {
                 let lastV = niveisBar[lastValidIdxBar];
                 for (let i = lastValidIdxBar + 1; i <= currentBinIdxBar; i++) niveisBar[i] = lastV;
             }
-            if (lastValidIdxBar === -1 && valOntem !== null) {
-                for (let i = 0; i <= currentBinIdxBar; i++) niveisBar[i] = valOntem;
-            }
 
             // --- INTERPOLAÇÃO LINHA (24 pontos - 60 em 60 min) ---
             if (niveisLine[0] === null && valOntem !== null) niveisLine[0] = valOntem;
             let lastValidIdxLine = -1;
             for (let i = 0; i <= currentHour; i++) {
                 if (niveisLine[i] !== null) {
-                    if (lastValidIdxLine === -1) {
-                        for (let j = 0; j < i; j++) niveisLine[j] = niveisLine[i];
-                    } else if (i - lastValidIdxLine > 1) {
+                    if (lastValidIdxLine !== -1 && i - lastValidIdxLine > 1) {
                         let startV = niveisLine[lastValidIdxLine];
                         let endV = niveisLine[i];
                         let diffPerBin = (endV - startV) / (i - lastValidIdxLine);
@@ -1178,9 +1205,6 @@ async function carregarHistoricoEConsumo() {
             if (lastValidIdxLine !== -1 && lastValidIdxLine < currentHour) {
                 let lastV = niveisLine[lastValidIdxLine];
                 for (let i = lastValidIdxLine + 1; i <= currentHour; i++) niveisLine[i] = lastV;
-            }
-            if (lastValidIdxLine === -1 && valOntem !== null) {
-                for (let i = 0; i <= currentHour; i++) niveisLine[i] = valOntem;
             }
 
             return { labelsBar: labelsBar, niveisBar: niveisBar, labelsLine: labelsLine, niveisLine: niveisLine, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
@@ -1559,6 +1583,18 @@ async function loopDeAtualizacao() {
             ultimoHorarioSalvo = horaAtual; 
             ultimoTempoSalvo = agora; 
             if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
+        }
+
+        if (!backfillRealizado) {
+            backfillRealizado = true;
+            try {
+                const urlHoje = `${PATH_HISTORICO}/${getLocalISODate(new Date())}.json`;
+                const rHoje = await safeFetch(urlHoje);
+                const preencheu = await preencherHorasFaltantesNoFirebase(rHoje, nivelFinal);
+                if (preencheu && currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) {
+                    carregarHistoricoEConsumo();
+                }
+            } catch(e) {}
         }
 
     } else {
