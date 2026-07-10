@@ -426,10 +426,33 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div id="intervalo-picker" style="display:none;"><input type="date" id="dataInicio"><span>até</span><input type="date" id="dataFim"></div>
 <button id="btnAtualizar" class="modern-button" style="padding:10px 15px;"><i class="fas fa-sync-alt"></i></button>
 </div>
+<style>
+@media (max-width: 900px) {
+    .charts-with-insights { grid-template-columns: 1fr !important; }
+}
+</style>
 <div class="board">
-<div class="charts">
-<div class="chart-card glass-panel"><strong>Variação de Nível (%)</strong><canvas id="chartLinha"></canvas></div>
-<div class="chart-card glass-panel"><strong>Nível Médio por Hora (%)</strong><canvas id="chartBlocos"></canvas></div>
+<div class="charts-with-insights" style="display: grid; grid-template-columns: 2.5fr 1fr; gap: 20px; align-items: stretch; width: 100%;">
+<div class="chart-card glass-panel" style="min-height: 400px; display: flex; flex-direction: column;">
+    <strong>Nível Contínuo (15 em 15 min)</strong>
+    <div style="flex: 1; position: relative;"><canvas id="chartLinha"></canvas></div>
+</div>
+<div class="insights-panel" style="display: flex; flex-direction: column; gap: 15px;">
+    <div class="config-card glass-panel" style="margin:0; text-align:center; padding: 20px; display:flex; flex-direction:column; justify-content:center;">
+        <h3 style="color: var(--accent); margin: 0 0 10px 0;"><i class="fas fa-chart-pie"></i> Variação na Última Hora</h3>
+        <div id="insight-ultima-hora" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">--</div>
+        <div id="insight-consumo-hora" class="small text-muted">Aguardando dados...</div>
+    </div>
+    <div class="config-card glass-panel" style="margin:0; text-align:center; padding: 20px; display:flex; flex-direction:column; justify-content:center;">
+        <h3 style="color: var(--accent); margin: 0 0 10px 0;"><i class="fas fa-truck-droplet"></i> Último Abastecimento</h3>
+        <div id="insight-ultimo-abast" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">Buscando...</div>
+        <div id="insight-abast-status" class="small text-muted">Baseado na estabilidade de 3 min</div>
+    </div>
+    <div class="config-card glass-panel" style="margin:0; text-align:center; padding: 20px; display:flex; flex-direction:column; justify-content:center; flex-grow: 1;">
+        <h3 style="color: var(--accent); margin: 0 0 10px 0;"><i class="fas fa-info-circle"></i> Status Atual</h3>
+        <div id="insight-status" style="font-size: 1.2rem; font-weight: bold;">--</div>
+    </div>
+</div>
 </div>
 </div>
 </div>
@@ -866,12 +889,10 @@ function controlarAlarme(play) { if (!audioContext) return; if (audioContext.sta
 
 /* --- STREAMING_CHUNK:Atualização de gráficos e Chart.js --- */
 function atualizarGraficosHistorico(result) { 
-    if (!chartLinha || !chartBlocos) return; 
+    if (!chartLinha) return; 
     
     let displayLabelsLine = result.labelsLine || result.labels || []; 
     let displayNiveisLine = result.niveisLine || result.niveis || []; 
-    let displayLabelsBar = result.labelsBar || result.labels || []; 
-    let displayNiveisBar = result.niveisBar || result.niveis || []; 
     
     chartLinha.data.labels = displayLabelsLine; 
     chartLinha.data.datasets[0].data = displayNiveisLine; 
@@ -881,12 +902,6 @@ function atualizarGraficosHistorico(result) {
         chartLinha.options.elements.line.tension = 0.1; 
     }
     chartLinha.update(); 
-    
-    chartBlocos.data.labels = displayLabelsBar; 
-    chartBlocos.data.datasets[0].data = displayNiveisBar; 
-    const cores = 'rgba(6, 182, 212, 0.85)'; 
-    chartBlocos.data.datasets[0].backgroundColor = cores; 
-    chartBlocos.update(); 
 }
 
 async function fetchMediaSemanalEValidar(totalConsumoHoje, elStatus) {
@@ -992,11 +1007,7 @@ function criarGraficos() {
             data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.2, pointRadius: 0, pointHoverRadius: 0, pointHitRadius: 0, borderWidth: 3, spanGaps: true }] }, 
             options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
     } 
-    if(document.getElementById('chartBlocos')) { 
-        const ctxB = document.getElementById('chartBlocos').getContext('2d'); 
-        if(chartBlocos) chartBlocos.destroy(); 
-        chartBlocos = new Chart(ctxB, { type: 'bar', data: { labels: [], datasets: [{ data: [], borderRadius: 4 }] }, options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
-    } 
+
     if(document.getElementById('chartConsumoBloco')) { 
         const ctxCB = document.getElementById('chartConsumoBloco').getContext('2d'); 
         if(chartConsumoBloco) chartConsumoBloco.destroy(); 
@@ -1092,15 +1103,11 @@ async function carregarHistoricoEConsumo() {
             const currentBinIdxBar = isToday ? currentHour * 12 + Math.floor(currentMin / 5) : 287;
             
             const labelsLine = []; 
-            const niveisLine = new Array(24).fill(null); 
+            const niveisLine = new Array(96).fill(null); 
             const consumoFinal = new Array(24).fill(0); 
-            for(let h = 0; h <= 23; h++) labelsLine.push(String(h).padStart(2, '0') + ":00"); 
-            
-            const labelsBar = [];
-            const niveisBar = new Array(288).fill(null);
             for(let h = 0; h <= 23; h++) {
-                for(let m = 0; m < 60; m += 5) {
-                    labelsBar.push(String(h).padStart(2, '0') + ":" + String(m).padStart(2, '0'));
+                for(let m = 0; m < 60; m += 15) {
+                    labelsLine.push(String(h).padStart(2, '0') + ":" + String(m).padStart(2, '0')); 
                 }
             }
             
@@ -1118,6 +1125,7 @@ async function carregarHistoricoEConsumo() {
             
             let valOntem = previousVal;
 
+            let ultimoAbastecimentoTime = null;
             if (dadosHoje) { 
                 const keysSorted = Object.keys(dadosHoje).sort((a, b) => { 
                     const [hA, mA] = a.split(':').map(Number); 
@@ -1129,67 +1137,29 @@ async function carregarHistoricoEConsumo() {
                     const [hStr, mStr] = key.split(':');
                     const horaInt = parseInt(hStr); 
                     const minInt = mStr ? parseInt(mStr) : 0;
-                    const binIdxBar = horaInt * 12 + Math.floor(minInt / 5);
+                    const binIdxLine = horaInt * 4 + Math.floor(minInt / 15);
                     const leitura = dadosHoje[key];
                     const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; 
                     const val = valRaw !== null ? Number(valRaw) : null; 
                     
                     if (val !== null) {
-                        if (binIdxBar >= 0 && binIdxBar <= 287) { 
-                            niveisBar[binIdxBar] = val; 
-                        } 
-                        if (horaInt >= 0 && horaInt <= 23) {
-                            niveisLine[horaInt] = val;
+                        if (binIdxLine >= 0 && binIdxLine <= 95) {
+                            niveisLine[binIdxLine] = val;
                         }
-                        
-                        if (previousVal !== null) { 
-                            if (val > previousVal + 5) { detectedRefillIdx = horaInt; } 
-                            if (previousVal > val) { 
-                                const volAnterior = calcularVolumeLitros(previousVal); 
-                                const volAtual = calcularVolumeLitros(val); 
-                                const diff = volAnterior - volAtual; 
-                                const limiteMaxDiff = capacidadeTotal * 0.50; 
-                                if(diff < limiteMaxDiff && diff > 0) { 
-                                    let calcGap = lastHoraInt === -1 ? horaInt : (horaInt - lastHoraInt);
-                                    let gap = Math.max(1, calcGap); 
-                                    const valPerBin = diff / gap; 
-                                    let startH = lastHoraInt === -1 ? 0 : lastHoraInt + 1;
-                                    for(let h = startH; h <= horaInt; h++) { 
-                                        if(h >= 0 && h <= 23) consumoFinal[h] += valPerBin; 
-                                    } 
-                                } 
-                            } 
-                        } 
+                        if (previousVal !== null && val > previousVal + 5) {
+                            ultimoAbastecimentoTime = key;
+                            detectedRefillIdx = horaInt;
+                        }
                         previousVal = val; lastHoraInt = horaInt; 
                     }
                 }); 
             }
 
-            // --- INTERPOLAÇÃO BARRA (288 blocos - 5 em 5 min) ---
-            if (niveisBar[0] === null && valOntem !== null) niveisBar[0] = valOntem;
-            let lastValidIdxBar = -1;
-            for (let i = 0; i <= currentBinIdxBar; i++) {
-                if (niveisBar[i] !== null) {
-                    if (lastValidIdxBar !== -1 && i - lastValidIdxBar > 1) {
-                        let startV = niveisBar[lastValidIdxBar];
-                        let endV = niveisBar[i];
-                        let diffPerBin = (endV - startV) / (i - lastValidIdxBar);
-                        for (let j = lastValidIdxBar + 1; j < i; j++) {
-                            niveisBar[j] = Math.round(startV + diffPerBin * (j - lastValidIdxBar));
-                        }
-                    }
-                    lastValidIdxBar = i;
-                }
-            }
-            if (lastValidIdxBar !== -1 && lastValidIdxBar < currentBinIdxBar) {
-                let lastV = niveisBar[lastValidIdxBar];
-                for (let i = lastValidIdxBar + 1; i <= currentBinIdxBar; i++) niveisBar[i] = lastV;
-            }
-
-            // --- INTERPOLAÇÃO LINHA (24 pontos - 60 em 60 min) ---
+            // --- INTERPOLAÇÃO LINHA (96 pontos - 15 em 15 min) ---
+            const currentBinIdxLine = isToday ? currentHour * 4 + Math.floor(currentMin / 15) : 95;
             if (niveisLine[0] === null && valOntem !== null) niveisLine[0] = valOntem;
             let lastValidIdxLine = -1;
-            for (let i = 0; i <= currentHour; i++) {
+            for (let i = 0; i <= currentBinIdxLine; i++) {
                 if (niveisLine[i] !== null) {
                     if (lastValidIdxLine !== -1 && i - lastValidIdxLine > 1) {
                         let startV = niveisLine[lastValidIdxLine];
@@ -1202,12 +1172,76 @@ async function carregarHistoricoEConsumo() {
                     lastValidIdxLine = i;
                 }
             }
-            if (lastValidIdxLine !== -1 && lastValidIdxLine < currentHour) {
+            if (lastValidIdxLine !== -1 && lastValidIdxLine < currentBinIdxLine) {
                 let lastV = niveisLine[lastValidIdxLine];
-                for (let i = lastValidIdxLine + 1; i <= currentHour; i++) niveisLine[i] = lastV;
+                for (let i = lastValidIdxLine + 1; i <= currentBinIdxLine; i++) niveisLine[i] = lastV;
             }
 
-            return { labelsBar: labelsBar, niveisBar: niveisBar, labelsLine: labelsLine, niveisLine: niveisLine, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
+            // --- CÁLCULO DE CONSUMO (HORA EM HORA) ---
+            // Usa as leituras no início de cada hora (índices 0, 4, 8, 12, etc.)
+            let ultimaHoraComValor = -1;
+            for (let h = 0; h <= 23; h++) {
+                let idxAtual = h * 4;
+                let valAtual = niveisLine[idxAtual];
+                let valAnterior = (h === 0) ? valOntem : niveisLine[(h-1)*4];
+                
+                if (valAtual !== null && valAnterior !== null && valAtual <= currentBinIdxLine) {
+                    // Verifica se houve queda real
+                    if (valAnterior > valAtual) {
+                        let diffLitros = calcularVolumeLitros(valAnterior) - calcularVolumeLitros(valAtual);
+                        if (diffLitros > 0 && diffLitros < (capacidadeTotal * 0.50)) {
+                            consumoFinal[h] = diffLitros;
+                        }
+                    }
+                    ultimaHoraComValor = h;
+                }
+            }
+
+            // Atualiza os Painéis de Insights se for o dia de hoje
+            if (isToday) {
+                try {
+                    // 1. Insight: Última Hora
+                    let hAtual = currentHour;
+                    let idxUltimaHora = hAtual * 4; 
+                    let idxHoraAnterior = (hAtual > 0) ? (hAtual - 1) * 4 : 0;
+                    
+                    let nivelAgora = niveisLine[lastValidIdxLine] || 0;
+                    let nivelAntes = niveisLine[idxHoraAnterior] || 0;
+                    
+                    let elUltimaHora = document.getElementById('insight-ultima-hora');
+                    let elConsumoHora = document.getElementById('insight-consumo-hora');
+                    let elStatus = document.getElementById('insight-status');
+                    
+                    if (elUltimaHora && elConsumoHora) {
+                        let diffPct = nivelAgora - nivelAntes;
+                        if (diffPct < 0) {
+                            let litrosCaiu = calcularVolumeLitros(nivelAntes) - calcularVolumeLitros(nivelAgora);
+                            elUltimaHora.innerHTML = `<span style="color:var(--level-warn)"><i class="fas fa-arrow-down"></i> ${Math.abs(diffPct).toFixed(1)}%</span>`;
+                            elConsumoHora.innerText = `Consumo: ~${litrosCaiu} Litros`;
+                            elStatus.innerHTML = '<span style="color:var(--level-warn)">Consumindo</span>';
+                        } else if (diffPct > 0) {
+                            elUltimaHora.innerHTML = `<span style="color:var(--level-ok)"><i class="fas fa-arrow-up"></i> ${diffPct.toFixed(1)}%</span>`;
+                            elConsumoHora.innerText = 'Ganhando volume';
+                            elStatus.innerHTML = '<span style="color:var(--level-ok)">Abastecendo</span>';
+                        } else {
+                            elUltimaHora.innerHTML = `<span style="color:var(--text-sec)">0%</span>`;
+                            elConsumoHora.innerText = 'Estável';
+                            elStatus.innerHTML = '<span style="color:var(--text-sec)">Estável</span>';
+                        }
+                    }
+                    
+                    let elUltAbast = document.getElementById('insight-ultimo-abast');
+                    if (elUltAbast) {
+                        if (ultimoAbastecimentoTime) {
+                            elUltAbast.innerText = `Hoje às ${ultimoAbastecimentoTime}`;
+                        } else {
+                            elUltAbast.innerText = 'Sem dados hoje';
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            return { labelsLine: labelsLine, niveisLine: niveisLine, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
         }; 
         
         try { 
@@ -1297,7 +1331,9 @@ async function carregarHistoricoEConsumo() {
 
 /* --- STREAMING_CHUNK:Lógica de Abastecimento e Contatos --- */
 async function removerAbastecimento(id) { try { await fetch(`${PATH_ABASTECIMENTO.replace('.json', '')}/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {} }
-async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = r; } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); const idsParaLista = ids.slice(0, 5); if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; idsParaLista.forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); let labelsGrafico = []; let dadosGrafico = []; let titulo = "Comparativo Semanal (Litros)"; if (semanaFiltro === 'todas') { titulo = "Comparativo Semanal (Litros)"; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); let idx = 0; if (dia <= 7) idx = 0; else if (dia <= 14) idx = 1; else if (dia <= 21) idx = 2; else idx = 3; totaisSemana[idx] += parseInt(item.litros || 0); } }); labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana']; dadosGrafico = totaisSemana; } else { titulo = `Detalhes: Semana ${semanaFiltro}`; const diasMap = {}; let diaInicio = 1, diaFim = 7; if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; } if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; } if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; } Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); if (dia >= diaInicio && dia <= diaFim) { const labelDia = `Dia ${String(dia).padStart(2, '0')}`; if (!diasMap[labelDia]) diasMap[labelDia] = 0; diasMap[labelDia] += parseInt(item.litros || 0); } } }); labelsGrafico = Object.keys(diasMap).sort(); dadosGrafico = labelsGrafico.map(l => diasMap[l]); if (labelsGrafico.length === 0) { labelsGrafico = ["Sem dados"]; dadosGrafico = [0]; } } if(document.getElementById('tituloGraficoAbastecimento')) { document.getElementById('tituloGraficoAbastecimento').innerText = titulo; } if(chartAbastecimento) { chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = dadosGrafico; chartAbastecimento.update(); } } else if(listaUL) { listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; } } catch (e) { console.error(e); } }
+async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = r; } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); 
+if (ids.length > 0) { const ultimo = dados[ids[0]]; const dUlt = new Date(ultimo.timestamp); } 
+const idsParaLista = ids.slice(0, 5); if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; idsParaLista.forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); let labelsGrafico = []; let dadosGrafico = []; let titulo = "Comparativo Semanal (Litros)"; if (semanaFiltro === 'todas') { titulo = "Comparativo Semanal (Litros)"; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); let idx = 0; if (dia <= 7) idx = 0; else if (dia <= 14) idx = 1; else if (dia <= 21) idx = 2; else idx = 3; totaisSemana[idx] += parseInt(item.litros || 0); } }); labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana']; dadosGrafico = totaisSemana; } else { titulo = `Detalhes: Semana ${semanaFiltro}`; const diasMap = {}; let diaInicio = 1, diaFim = 7; if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; } if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; } if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; } Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); if (dia >= diaInicio && dia <= diaFim) { const labelDia = `Dia ${String(dia).padStart(2, '0')}`; if (!diasMap[labelDia]) diasMap[labelDia] = 0; diasMap[labelDia] += parseInt(item.litros || 0); } } }); labelsGrafico = Object.keys(diasMap).sort(); dadosGrafico = labelsGrafico.map(l => diasMap[l]); if (labelsGrafico.length === 0) { labelsGrafico = ["Sem dados"]; dadosGrafico = [0]; } } if(document.getElementById('tituloGraficoAbastecimento')) { document.getElementById('tituloGraficoAbastecimento').innerText = titulo; } if(chartAbastecimento) { chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = dadosGrafico; chartAbastecimento.update(); } } else { if(listaUL) { listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; } } } catch (e) { console.error(e); } }
 function animarBotaoSucesso(btnId) { const btn = document.getElementById(btnId); if(!btn) return; const originalHTML = btn.innerHTML; btn.classList.add('btn-success'); btn.innerHTML = '<i class="fas fa-check"></i> Salvo!'; setTimeout(() => { btn.classList.remove('btn-success'); btn.innerHTML = originalHTML; }, 2000); }
 async function salvarAbastecimento(litros) { 
     if (!litros || litros <= 0) return; 
@@ -1395,8 +1431,8 @@ function checkAutoRefill(currentLevel) {
 
     } else {
         // --- NÍVEL ESTABILIZADO (dentro da margem de ruído de +-2%) ---
-        if (arState === 'FILLING' && (agora - arStableTime > 300000)) {
-            // Se estava enchendo e o valor parou de mudar por 5 minutos, consolida a entrada automática
+        if (arState === 'FILLING' && (agora - arStableTime > 180000)) {
+            // Se estava enchendo e o valor parou de mudar por 3 minutos (180000ms), consolida a entrada automática
             const diff = arMaxLevel - arMinLevel;
             if (diff >= 5) {
                 const litros = calcularVolumeLitros(arMaxLevel) - calcularVolumeLitros(arMinLevel);
