@@ -647,6 +647,7 @@ const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`;
 const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`; 
 const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; 
 const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
+const PATH_CONTATOS = `${PATH_CONFIG_BASE}/contatos.json`;
 const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
 
 let isDarkMode = false;
@@ -1128,6 +1129,59 @@ async function carregarConfiguracoesGerais() {
     } catch (e) {} 
 }
 
+/* --- STREAMING_CHUNK:Lógica de Contatos (E-mail) Restaurada --- */
+async function carregarContatos() {
+    const listaUL = document.getElementById('lista-contatos');
+    if(!listaUL) return;
+    listaUL.innerHTML = '<li class="small">Carregando...</li>';
+    try {
+        const dados = await safeFetch(PATH_CONTATOS);
+        listaUL.innerHTML = '';
+        if (dados) {
+            Object.keys(dados).forEach(id => {
+                const item = dados[id];
+                const li = document.createElement('li');
+                li.innerHTML = `<span><i class="fas fa-envelope" style="margin-right:8px; color:var(--text-sec)"></i>${item.valor}</span>
+                <button class="delete-abastecimento-btn" onclick="window.removerContato('${id}')"><i class="fas fa-times"></i></button>`;
+                listaUL.appendChild(li);
+            });
+        } else {
+            listaUL.innerHTML = '<li class="small">Nenhum contato cadastrado.</li>';
+        }
+    } catch (e) {
+        listaUL.innerHTML = '<li class="small" style="color:var(--level-danger);">Erro ao carregar contatos.</li>';
+    }
+}
+
+async function adicionarContato() {
+    const input = document.getElementById('contato-valor');
+    const status = document.getElementById('status-contato');
+    const valor = input.value.trim();
+    if (!valor || !valor.includes('@')) {
+        status.innerText = 'E-mail inválido!'; status.style.color = 'var(--level-danger)';
+        return;
+    }
+    status.innerText = 'Adicionando...'; status.style.color = 'var(--text-main)';
+    try {
+        await fetch(PATH_CONTATOS, { method: 'POST', body: JSON.stringify({ tipo: 'email', valor: valor }) });
+        input.value = '';
+        status.innerText = 'Adicionado com sucesso!'; status.style.color = 'var(--level-ok)';
+        setTimeout(() => status.innerText = '', 2000);
+        carregarContatos();
+    } catch (e) {
+        status.innerText = 'Erro ao adicionar.'; status.style.color = 'var(--level-danger)';
+    }
+}
+
+window.removerContato = async function(id) {
+    if(confirm('Remover este contato?')) {
+        try {
+            await fetch(`${PATH_CONTATOS.replace('.json', '')}/${id}.json`, { method: 'DELETE' });
+            carregarContatos();
+        } catch (e) {}
+    }
+};
+
 /* --- STREAMING_CHUNK:Renderizando status e animação no DOM --- */
 function renderNivel(nivelPct, isSimulado = false) {
     nivelAtual = nivelPct; 
@@ -1309,7 +1363,7 @@ window.addEventListener('load', function() {
         try {
             if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } 
             else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); } 
-            else if (viewName === 'config') { carregarConfiguracoesGerais(); }
+            else if (viewName === 'config') { carregarConfiguracoesGerais(); carregarContatos(); }
             
             if (viewName === 'grafico' && typeof chartLinha !== 'undefined') { chartLinha.resize(); }
             if (viewName === 'consumo' && typeof chartConsumoBloco !== 'undefined') { chartConsumoBloco.resize(); chartConsumoLinha.resize(); }
@@ -1360,6 +1414,9 @@ window.addEventListener('load', function() {
         ['btn-salvar-nivel-alerta', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))]
     ];
     idsBotoes.forEach(pair => { const b = document.getElementById(pair[0]); if(b) b.addEventListener('click', pair[1]); });
+
+    const btnAddContato = document.getElementById('btn-add-contato');
+    if (btnAddContato) btnAddContato.addEventListener('click', adicionarContato);
 
     const lstAbast = document.getElementById('lista-abastecimentos');
     if(lstAbast) lstAbast.addEventListener('click', (e) => { 
