@@ -194,7 +194,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 <body>
 
 <!-- --- STREAMING_CHUNK:Renderizando HTML principal --- -->
-<div id="maintenance-popup">
+<div id="maintenance-popup" style="display:none;">
     <div class="m-box">
         <div class="m-icon-anim"><i class="fas fa-cog"></i></div>
         <div class="m-title">Aplicativo em manutenção</div>
@@ -434,7 +434,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div class="board">
 <div class="charts-with-insights" style="display: grid; grid-template-columns: 2.5fr 1fr; gap: 20px; align-items: stretch; width: 100%;">
 <div class="chart-card glass-panel" style="min-height: 400px; display: flex; flex-direction: column;">
-    <strong>Nível Contínuo (15 em 15 min)</strong>
+    <strong>Nível Contínuo (Hora a Hora)</strong>
     <div style="flex: 1; position: relative;"><canvas id="chartLinha"></canvas></div>
 </div>
 <div class="insights-panel" style="display: flex; flex-direction: column; gap: 15px;">
@@ -446,7 +446,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
     <div class="config-card glass-panel" style="margin:0; text-align:center; padding: 20px; display:flex; flex-direction:column; justify-content:center;">
         <h3 style="color: var(--accent); margin: 0 0 10px 0;"><i class="fas fa-truck-droplet"></i> Último Abastecimento</h3>
         <div id="insight-ultimo-abast" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">Buscando...</div>
-        <div id="insight-abast-status" class="small text-muted">Baseado na estabilidade de 3 min</div>
+        <div id="insight-abast-status" class="small text-muted">Baseado na estabilidade de 5 min</div>
     </div>
     <div class="config-card glass-panel" style="margin:0; text-align:center; padding: 20px; display:flex; flex-direction:column; justify-content:center; flex-grow: 1;">
         <h3 style="color: var(--accent); margin: 0 0 10px 0;"><i class="fas fa-info-circle"></i> Status Atual</h3>
@@ -521,7 +521,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div class="board">
 <div class="charts">
 <div class="chart-card glass-panel" id="consumo-chart-card-bloco">
-<strong>Consumo Estimado (Litros)</strong>
+<strong>Consumo (Litros por Hora)</strong>
 <canvas id="chartConsumoBloco"></canvas>
 </div>
 <div class="chart-card glass-panel" id="consumo-chart-card-linha">
@@ -638,184 +638,9 @@ function abrirAppExterno(protocolo, valor) {
 }
 
 const DATABASE_URL = "https://monitoramento-caixa-d-agua-default-rtdb.firebaseio.com";
-
-// === TELEGRAM: Registro automático + envio periódico de status ===
 const TELEGRAM_BOT_TOKEN = '__TELEGRAM_BOT_TOKEN__';
 const TELEGRAM_BOT_NAME = '__TELEGRAM_BOT__';
 const PATH_TG_USERS = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__/telegram_users`;
-let tgLastUpdateId = 0;
-let tgEnvioInterval = null;
-
-function tgDisponivel() {
-    return TELEGRAM_BOT_TOKEN && TELEGRAM_BOT_TOKEN.length > 10 && !TELEGRAM_BOT_TOKEN.includes('__');
-}
-
-function abrirBotERegistrar() {
-    if (!tgDisponivel()) {
-        const el = document.getElementById('telegram-info');
-        if (el) { el.innerText = 'Bot não configurado para esta caixa.'; el.style.color = 'var(--level-warn)'; }
-        return;
-    }
-    const url = `https://t.me/${TELEGRAM_BOT_NAME}?start=${currentAppId}`;
-    window.open(url, '_blank');
-    const el = document.getElementById('telegram-info');
-    if (el) { el.innerText = '⏳ Envie /start no bot e volte aqui...'; el.style.color = 'var(--level-warn)'; }
-    // Verificar registro a cada 5s por 2 minutos
-    let checks = 0;
-    const checkInterval = setInterval(async () => {
-        checks++;
-        const novos = await tgRegistrarNovosUsuarios();
-        if (novos > 0 || checks >= 24) clearInterval(checkInterval);
-    }, 5000);
-}
-
-async function tgRegistrarNovosUsuarios() {
-    if (!tgDisponivel()) return 0;
-    try {
-        const resp = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${tgLastUpdateId}&limit=50&allowed_updates=["message"]`);
-        const data = await resp.json();
-        if (!data.ok || !data.result || data.result.length === 0) return 0;
-
-        let novos = 0;
-        for (const update of data.result) {
-            tgLastUpdateId = update.update_id + 1;
-            if (update.message && update.message.text && update.message.text.includes('/start')) {
-                const text = update.message.text;
-                const partes = text.split(' ');
-                const param = partes.length > 1 ? partes[1].toLowerCase() : null;
-                const chatId = String(update.message.chat.id);
-                const nome = update.message.chat.first_name || 'Usuário';
-
-                if (!param) {
-                    try {
-                        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                chat_id: chatId,
-                                text: `⚠️ *Atenção!*\nPara se cadastrar, você precisa especificar qual estação deseja monitorar.\n\n👉 Por favor, digite:\n\`/start pp06\`\n*(Troque pp06 pela caixa que você quer: pp03, pp04, etc.)*`,
-                                parse_mode: 'Markdown'
-                            })
-                        });
-                    } catch(e) {}
-                    continue;
-                }
-                
-                const targetAppId = param;
-                
-                const targetPath = `${DATABASE_URL}/${targetAppId.toUpperCase()}_config/telegram_users`;
-                let existentesAlvo = {};
-                try { const r = await safeFetch(`${targetPath}.json`); if (r) existentesAlvo = r; } catch(e) {}
-                const jaExiste = Object.values(existentesAlvo || {}).some(u => String(u.chat_id) === chatId);
-
-                if (!jaExiste) {
-                    await fetch(`${targetPath}.json`, {
-                        method: 'POST',
-                        body: JSON.stringify({ chat_id: chatId, nome: nome, data: Date.now() })
-                    });
-                    
-                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: chatId,
-                            text: `✅ *CADASTRADO COM SUCESSO!*\n\n📡 Você receberá o status da *ESTAÇÃO ${targetAppId.toUpperCase()}* a cada 60 minutos.\n\n💧 _Monitoramento Caixa D'água_`,
-                            parse_mode: 'Markdown'
-                        })
-                    });
-                    
-                    let targetNivel = 0;
-                    try {
-                        const rData = await safeFetch(`${DATABASE_URL}/${targetAppId.toUpperCase()}.json`);
-                        if (rData) targetNivel = Number(rData.nivel_pct ?? rData.nivel ?? 0);
-                    } catch(e) {}
-
-                    if (targetNivel > 0) {
-                        const hora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-                        let icone = targetNivel > 60 ? '✅' : targetNivel > 30 ? '⚠️' : '🚨';
-                        let statusText = targetNivel > 60 ? 'Normal' : targetNivel > 30 ? 'Atenção' : 'CRÍTICO!';
-                        let msg = `🛣️ *${targetAppId.toUpperCase()}*\n📊 Nível: *${Math.round(targetNivel)}%*\n${icone} Status: ${statusText}\n🕑 ${hora}`;
-                        
-                        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
-                        });
-                    }
-                    novos++;
-                }
-            }
-        }
-        tgAtualizarContador();
-        return novos;
-    } catch(e) { return 0; }
-}
-
-async function tgAtualizarContador() {
-    const el = document.getElementById('telegram-info');
-    if (!el) return;
-    try {
-        const r = await safeFetch(`${PATH_TG_USERS}.json`);
-        const total = r ? Object.keys(r).length : 0;
-        if (total > 0) {
-            el.innerText = `✅ ${total} celular(es) recebendo status a cada 30 min`;
-            el.style.color = 'var(--level-ok)';
-        } else {
-            el.innerText = 'Clique no botão acima e envie /start no Telegram';
-            el.style.color = 'var(--text-sec)';
-        }
-    } catch(e) {}
-}
-
-async function tgEnviarStatusParaChat(chatId) {
-    const nivel = nivelAtual || 0;
-    if (nivel <= 0) return; 
-
-    const litros = calcularVolumeLitros(nivel);
-    const hora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-    let msg = '';
-
-    if (nivel <= limiteAlerta) {
-        msg = `🚨 *ALERTA DE NÍVEL MÍNIMO!* 🚨\n\n🛣️ *${currentAppId.toUpperCase()}*\n📊 Nível: *${Math.round(nivel)}%* (Abaixo de ${limiteAlerta}%)\n💧 Volume: *${litros}L*\n🕑 ${hora}\n\n⚠️ *AÇÃO REQUERIDA:* Solicitar abastecimento urgente!`;
-    } else {
-        const icone = nivel > 60 ? '✅' : '⚠️';
-        const status = nivel > 60 ? 'Normal' : 'Atenção';
-        msg = `🛣️ *${currentAppId.toUpperCase()}*\n📊 Nível: *${Math.round(nivel)}%*\n💧 Volume: *${litros}L*\n${icone} Status: ${status}\n🕑 ${hora}`;
-    }
-
-    try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
-        });
-    } catch(e) {}
-}
-
-async function tgEnviarStatusParaTodos() {
-    if (!tgDisponivel()) return;
-    try {
-        const r = await safeFetch(`${PATH_TG_USERS}.json`);
-        if (!r) return;
-        const users = Object.values(r);
-        if (users.length === 0) return;
-
-        for (const user of users) {
-            if (user.chat_id) {
-                await tgEnviarStatusParaChat(user.chat_id);
-            }
-        }
-    } catch(e) {}
-}
-
-function tgIniciarEnvioPeriodico() {
-    if (!tgDisponivel()) return;
-    if (tgEnvioInterval) clearInterval(tgEnvioInterval);
-    // Enviar a cada 60 minutos (3600000 ms)
-    tgEnvioInterval = setInterval(tgEnviarStatusParaTodos, 3600000);
-    // Primeiro envio após 1 minuto (dar tempo de carregar nível)
-    setTimeout(tgEnviarStatusParaTodos, 60000);
-}
 
 const API_KEY = ""; 
 const PATH_TEMPO_REAL = `${DATABASE_URL}__FIREBASE_DATA_PATH__`; 
@@ -834,27 +659,26 @@ function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme
 function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } try { criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); } catch(e){} }
 
 try { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
-let chartLinha, chartBlocos, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
-let historicoNiveis = [], historicoLabels = [];
+let chartLinha, chartConsumoBloco, chartConsumoLinha, chartAbastecimento; 
 let currentView = 'diario'; let activeTab = 'caixa'; 
 let nivelAtual = 0; let nivelAlertaConfigurado = 30; let capacidadeTotal = 8000; let alturaCaixa = 0; 
 let alertaModalMostrado = false; let verificacaoInicialConcluida = false;
 let emailEnviadoNessaSessao = false; let alertaConfirmadoPeloUsuario = false; 
-let ultimoHorarioSalvo = -1; let ultimoTempoSalvo = 0; let backfillRealizado = false;
-let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
-let snoozeCount = 0, snoozeUntil = 0; 
-const SNOOZE_DURATION_MINUTES = 10; const AUTO_SNOOZE_SECONDS = 30; 
-let ultimoNivelValidoLatch = null; let timestampLatch = null; 
-let historicoLeiturasValidas = []; let loopInterval = null;
+
+// Variáveis Vitais de Loop e Atualização
+let loopInterval = null;
 let watchdogInterval = null;
 let ultimoUpdateEmMs = 0;
 const UPDATE_MS = 2500;
-let lastUpdateTimestamp = 0; let contadorZerosConsecutivos = 0; 
-let bufferLeiturasValidas = []; 
 let lastSavedValidTime = 0; 
+let lastSavedLevel = -1;
 
-// Auto-Refill Control Variables
-let arState = 'IDLE'; // Estados: IDLE, DROPPING, FILLING
+let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
+let snoozeCount = 0, snoozeUntil = 0; 
+const SNOOZE_DURATION_MINUTES = 10; const AUTO_SNOOZE_SECONDS = 30; 
+
+// Variáveis Vitais de Abastecimento Automático
+let arState = 'IDLE'; 
 let arMinLevel = 100;
 let arMaxLevel = 0;
 let arLastLevel = -1;
@@ -870,7 +694,7 @@ function getNoCacheUrl(url) {
     return `${cleanUrl}${separator}nocache=${Date.now()}_${Math.floor(Math.random() * 99999)}`; 
 }
 
-/* --- STREAMING_CHUNK:Funções de alerta e manipulação de API --- */
+/* --- STREAMING_CHUNK:Funções base e API --- */
 async function safeFetch(url, timeoutMs = 8000) {
     let controller = null; let signal = null; let t = null;
     if (typeof AbortController !== 'undefined') { controller = new AbortController(); signal = controller.signal; t = setTimeout(() => controller.abort(), timeoutMs); }
@@ -879,78 +703,33 @@ async function safeFetch(url, timeoutMs = 8000) {
     catch(e) { if (t) clearTimeout(t); return null; }
 }
 
-async function enviarEmailAlerta(nivel) { const urlTimestamp = `${PATH_CONFIG_BASE}/controle_email/ultimo_disparo_timestamp.json`; if (emailEnviadoNessaSessao) return false; try { const rTime = await safeFetch(urlTimestamp); if (rTime) { const ultimoDisparo = rTime; const agora = Date.now(); if (ultimoDisparo) { const diferenca = agora - ultimoDisparo; const horas12 = 12 * 60 * 60 * 1000; if (diferenca < horas12) return false; } } } catch (e) {} let contatos = {}; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = r; if (!contatos) return false; } catch (e) { return false; } const emailsParaEnviar = Object.values(contatos).filter(c => c.tipo === 'email' && c.valor).map(c => c.valor); if (emailsParaEnviar.length === 0) return false; let credenciais = null; const hoje = new Date(); for (let conta of CONTAS_EMAIL) { let dataReinicio = new Date(hoje.getFullYear(), conta.mes_reinicio, conta.dia_reinicio); if (hoje >= dataReinicio && conta.quota_inicial < 200) { conta.quota_inicial = 200; } if (conta.quota_inicial >= emailsParaEnviar.length) { credenciais = conta; break; } } if (!credenciais) { return false; } let todosEnviadosComSucesso = true; for (const email of emailsParaEnviar) { const templateParams = { "%": nivel, "email": email }; try { await emailjs.send(credenciais.service, credenciais.template, templateParams, credenciais.key); } catch (err) { todosEnviadosComSucesso = false; } } if (todosEnviadosComSucesso) { emailEnviadoNessaSessao = true; const agoraMs = Date.now(); try { await fetch(urlTimestamp, { method: 'PUT', body: JSON.stringify(agoraMs) }); } catch(e) {} } return todosEnviadosComSucesso; }
+function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
+function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
 function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
 function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
 function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
 function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
-function setupAudio() { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); gainNode = audioContext.createGain(); lfo = audioContext.createOscillator(); lfoGain = audioContext.createGain(); lfo.type = 'sine'; lfo.frequency.setValueAtTime(2, audioContext.currentTime); lfoGain.gain.setValueAtTime(400, audioContext.currentTime); oscillator.type = 'square'; oscillator.frequency.setValueAtTime(800, audioContext.currentTime); lfo.connect(lfoGain); lfoGain.connect(oscillator.frequency); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); lfo.start(); oscillator.start(); } catch (e) {} }
-function controlarAlarme(play) { if (!audioContext) return; if (audioContext.state === 'suspended') audioContext.resume(); if (play && !isAlarmPlaying) { gainNode.gain.setValueAtTime(0.25, audioContext.currentTime); isAlarmPlaying = true; } else if (!play && isAlarmPlaying) { gainNode.gain.setValueAtTime(0, audioContext.currentTime); isAlarmPlaying = false; } }
 
 /* --- STREAMING_CHUNK:Atualização de gráficos e Chart.js --- */
 function atualizarGraficosHistorico(result) { 
     if (!chartLinha) return; 
     
-    let displayLabelsLine = result.labelsLine || result.labels || []; 
-    let displayNiveisLine = result.niveisLine || result.niveis || []; 
-    
-    chartLinha.data.labels = displayLabelsLine; 
-    chartLinha.data.datasets[0].data = displayNiveisLine; 
+    chartLinha.data.labels = result.labelsLine || []; 
+    chartLinha.data.datasets[0].data = result.niveisLine || []; 
     
     if (chartLinha.options && chartLinha.options.elements && chartLinha.options.elements.line) {
         chartLinha.options.elements.line.stepped = false; 
-        chartLinha.options.elements.line.tension = 0.1; 
+        chartLinha.options.elements.line.tension = 0.2; 
     }
     chartLinha.update(); 
-}
-
-async function fetchMediaSemanalEValidar(totalConsumoHoje, elStatus) {
-    let dStart = new Date(); dStart.setDate(dStart.getDate() - 7);
-    let ds = getLocalISODate(dStart); let de = getLocalISODate(new Date());
-    try {
-        let r = await safeFetch(`${PATH_HISTORICO}.json?orderBy="$key"&startAt="${ds}"&endAt="${de}"`);
-        if(!r) return;
-        let consumoTotal7Dias = 0; let diasContados = 0;
-        for (const dateKey in r) {
-            if (dateKey === de) continue; 
-            let times = Object.keys(r[dateKey]).sort((a,b)=>parseInt(a)-parseInt(b));
-            let volDia = 0; let lastL = null;
-            for(let i=0; i<times.length; i++) {
-                let v = Number(r[dateKey][times[i]].nivel_pct ?? r[dateKey][times[i]].nivel ?? 0);
-                if (v>0) {
-                    if (lastL !== null && lastL > v) {
-                        let diff = calcularVolumeLitros(lastL) - calcularVolumeLitros(v);
-                        if (diff < (capacidadeTotal * 0.50) && diff > 0) volDia += diff;
-                    }
-                    lastL = v;
-                }
-            }
-            consumoTotal7Dias += volDia; diasContados++;
-        }
-        let media = diasContados > 0 ? (consumoTotal7Dias / diasContados) : 0;
-        
-        if (totalConsumoHoje > (capacidadeTotal * 0.9)) {
-            elStatus.innerText = "Risco (Possível Vazamento)";
-            elStatus.style.color = "var(--level-danger)";
-        } else if (media > 0 && totalConsumoHoje > media * 1.8 && totalConsumoHoje > (capacidadeTotal * 0.5)) {
-            elStatus.innerText = "Alto Consumo (Acima da Média)";
-            elStatus.style.color = "var(--level-warn)";
-        } else if (totalConsumoHoje === 0 && new Date().getHours() > 8) {
-            elStatus.innerText = "Sem Medição";
-            elStatus.style.color = "var(--text-sec)";
-        } else {
-            elStatus.innerText = "Normal";
-            elStatus.style.color = "var(--level-ok)";
-        }
-    } catch(e) {}
 }
 
 function atualizarGraficosConsumo(result) { 
     if (!chartConsumoBloco || !chartConsumoLinha) return; 
     if (!result || !result.consumo) return; 
     
-    const consumoData = result.consumo || []; 
-    const consumoLabels = result.labelsBar || result.labels || []; 
+    const consumoData = result.consumo; 
+    const consumoLabels = result.labelsLine; 
     
     chartConsumoBloco.data.labels = consumoLabels; 
     chartConsumoBloco.data.datasets[0].data = consumoData; 
@@ -969,19 +748,22 @@ function atualizarGraficosConsumo(result) {
     if (elTotal && elPico && elStatus) {
         let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
         let picoConsumo = Math.max(...consumoData.map(v => v || 0));
-        
         elTotal.innerText = totalConsumo.toFixed(0) + ' L';
         
         if (currentView === 'diario') {
             lblTotal.innerText = "Total no Dia";
             elPico.innerText = picoConsumo.toFixed(0) + ' L/h';
             
-            fetchMediaSemanalEValidar(totalConsumo, elStatus);
-        } else {
-            lblTotal.innerText = "Total no Período";
-            elPico.innerText = picoConsumo.toFixed(0) + ' L (Dia Pico)';
-            elStatus.innerText = "Visão Agrupada";
-            elStatus.style.color = "var(--text-sec)";
+            if (totalConsumo > (capacidadeTotal * 0.9)) {
+                elStatus.innerText = "Risco (Vazamento?)";
+                elStatus.style.color = "var(--level-danger)";
+            } else if (totalConsumo === 0 && new Date().getHours() > 8) {
+                elStatus.innerText = "Sem Medição";
+                elStatus.style.color = "var(--text-sec)";
+            } else {
+                elStatus.innerText = "Normal";
+                elStatus.style.color = "var(--level-ok)";
+            }
         }
     }
 }
@@ -992,8 +774,6 @@ function criarGraficos() {
     const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; 
     const textColor = isDark ? '#94a3b8' : '#64748b'; 
     const zoomOptions = { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true, speed: 0.02 }, pinch: { enabled: true, sensitivity: 0.1 }, mode: 'x' } }; 
-    
-    /* Alterado maxTicksLimit para 24 para garantir a exibição das 24 horas no gráfico de linha */
     const xAxisConfig = { ticks: { autoSkip: true, maxRotation: 45, minRotation: 0, maxTicksLimit: 24, color: textColor }, grid: { display: true, color: gridColor } }; 
     
     if(document.getElementById('chartLinha')) { 
@@ -1004,7 +784,7 @@ function criarGraficos() {
         if(chartLinha) chartLinha.destroy(); 
         chartLinha = new Chart(ctxL, { 
             type: 'line', 
-            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.2, pointRadius: 0, pointHoverRadius: 0, pointHitRadius: 0, borderWidth: 3, spanGaps: true }] }, 
+            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.2, pointRadius: 2, borderWidth: 3, spanGaps: true }] }, 
             options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
     } 
 
@@ -1028,65 +808,64 @@ function criarGraficos() {
     } 
 }
 
-/* --- STREAMING_CHUNK:Processamento de dados historicos Firebase --- */
+/* --- STREAMING_CHUNK:Processamento e Leitura de Dados --- */
 async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') { 
     if (nivel === null || nivel === undefined) return; 
     if (tipo === 'real' && nivel <= 0) return; 
+    
     const d = new Date(timestamp); 
     const localDate = getLocalISODate(d); 
     const h = String(d.getHours()).padStart(2, '0'); 
-    const minBucket = Math.floor(d.getMinutes() / 5) * 5;
-    const minStr = String(minBucket).padStart(2, '0');
-    const horaKey = `${h}:${minStr}`; 
+    const m = String(d.getMinutes()).padStart(2, '0'); 
+    
+    // Grava com a chave de Hora:Minuto para ter todas as variações salvas 100% no banco
+    const horaKey = `${h}:${m}`; 
     const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; 
-    const dados = { nivel_pct: nivel, timestamp: timestamp, tipo: tipo }; 
+    
+    const dados = { nivel_pct: Math.round(nivel * 10) / 10, timestamp: timestamp, tipo: tipo }; 
     try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} 
 }
 
-async function preencherHorasFaltantesNoFirebase(dadosHoje, nivelAtual) {
-    if (!nivelAtual || nivelAtual <= 0) return;
-    const d = new Date();
-    const currentHour = d.getHours();
-    const localDate = getLocalISODate(d);
-    let horasSalvas = new Set();
-    
-    if (dadosHoje) {
-        Object.keys(dadosHoje).forEach(key => {
-            const h = parseInt(key.split(':')[0]);
-            horasSalvas.add(h);
-        });
+function extractLevel(entry) {
+    if (entry === null || entry === undefined) return null;
+    if (typeof entry === 'number' || typeof entry === 'string') {
+        let n = Number(String(entry).replace('%', ''));
+        return isNaN(n) ? null : n;
     }
+    let v = Number(entry.nivel_pct ?? entry.nivel ?? entry.percentual_atual ?? entry.ultima_valida_pct ?? null);
+    return isNaN(v) ? null : v;
+}
 
-    let promises = [];
-    for (let h = 0; h <= currentHour; h++) {
-        if (!horasSalvas.has(h)) {
-            const hStr = String(h).padStart(2, '0');
-            const horaKey = `${hStr}:00`;
-            const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; 
-            
-            let retroTimestamp = new Date(d);
-            retroTimestamp.setHours(h, 0, 0, 0);
-            const dados = { nivel_pct: nivelAtual, timestamp: retroTimestamp.getTime(), tipo: 'backfill' }; 
-            promises.push(fetch(url, { method: 'PUT', body: JSON.stringify(dados) }).catch(e => {}));
-        }
-    }
-    if (promises.length > 0) {
-        await Promise.all(promises);
-        return true; 
-    }
-    return false;
+// O ParseDados é o "Tradutor Universal" - Lê milissegundos e Horas perfeitamente.
+function parseDados(dadosNode) {
+    if (!dadosNode) return {};
+    let result = {};
+    Object.keys(dadosNode).forEach(k => {
+         let val = extractLevel(dadosNode[k]);
+         if (val !== null && val > 0) {
+             if (k.length >= 12 && !isNaN(k)) { // Formato Antigo (PP03-06)
+                 let d = new Date(Number(k));
+                 let h = String(d.getHours()).padStart(2, '0');
+                 let m = String(d.getMinutes()).padStart(2, '0');
+                 result[`${h}:${m}`] = dadosNode[k];
+             } else { // Formato Novo
+                 result[k] = dadosNode[k]; 
+             }
+         }
+    });
+    return result;
 }
 
 async function carregarHistoricoEConsumo() { 
-    if (currentView === 'semanal') return; 
-    let url = ''; let processData; 
-    let result = { labels: [], labelsBar: [], labelsLine: [], niveis: [], niveisBar: [], niveisLine: [], consumo: [], refillIndex: -1 }; 
+    if (currentView === 'semanal' || currentView === 'mensal' || currentView === 'intervalo') return; // Apenas visão diária ativa
+    let url = ''; 
+    let result = { labelsLine: [], niveisLine: [], consumo: [] }; 
     
     if (currentView === 'diario') { 
         const dataEl = document.getElementById('dataEscolhida'); 
-        if(!dataEl) return result; 
+        if(!dataEl) return; 
         const data = dataEl.value; 
-        if (!data) return result; 
+        if (!data) return; 
         
         const dataParts = data.split('-'); 
         const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); 
@@ -1096,244 +875,215 @@ async function carregarHistoricoEConsumo() {
         url = `${PATH_HISTORICO}/${data}.json`; 
         const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; 
         
-        processData = (dadosHoje, dadosOntem) => { 
-            const isToday = (getLocalISODate(new Date()) === data);
-            const currentHour = isToday ? new Date().getHours() : 23;
-            const currentMin = isToday ? new Date().getMinutes() : 59;
-            const currentBinIdxBar = isToday ? currentHour * 12 + Math.floor(currentMin / 5) : 287;
-            
-            const labelsLine = []; 
-            const niveisLine = new Array(96).fill(null); 
-            const consumoFinal = new Array(24).fill(0); 
-            for(let h = 0; h <= 23; h++) {
-                for(let m = 0; m < 60; m += 15) {
-                    labelsLine.push(String(h).padStart(2, '0') + ":" + String(m).padStart(2, '0')); 
-                }
-            }
-            
-            let lastHoraInt = -1; let previousVal = null; let detectedRefillIdx = -1; 
-
-            if (dadosOntem) { 
-                const horariosOntem = Object.keys(dadosOntem).sort((a, b) => parseInt(a) - parseInt(b)); 
-                if (horariosOntem.length > 0) { 
-                    const lastKey = horariosOntem[horariosOntem.length - 1]; 
-                    const leitura = dadosOntem[lastKey]; 
-                    const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; 
-                    previousVal = valRaw !== null ? Number(valRaw) : null; 
-                } 
-            } 
-            
-            let valOntem = previousVal;
-
-            let ultimoAbastecimentoTime = null;
-            if (dadosHoje) { 
-                const keysSorted = Object.keys(dadosHoje).sort((a, b) => { 
-                    const [hA, mA] = a.split(':').map(Number); 
-                    const [hB, mB] = b.split(':').map(Number); 
-                    return (hA * 60 + (mA || 0)) - (hB * 60 + (mB || 0)); 
-                }); 
-                
-                keysSorted.forEach(key => { 
-                    const [hStr, mStr] = key.split(':');
-                    const horaInt = parseInt(hStr); 
-                    const minInt = mStr ? parseInt(mStr) : 0;
-                    const binIdxLine = horaInt * 4 + Math.floor(minInt / 15);
-                    const leitura = dadosHoje[key];
-                    const valRaw = leitura.nivel_pct ?? leitura.nivel ?? null; 
-                    const val = valRaw !== null ? Number(valRaw) : null; 
-                    
-                    if (val !== null) {
-                        if (binIdxLine >= 0 && binIdxLine <= 95) {
-                            niveisLine[binIdxLine] = val;
-                        }
-                        if (previousVal !== null && val > previousVal + 5) {
-                            ultimoAbastecimentoTime = key;
-                            detectedRefillIdx = horaInt;
-                        }
-                        previousVal = val; lastHoraInt = horaInt; 
-                    }
-                }); 
-            }
-
-            // --- INTERPOLAÇÃO LINHA (96 pontos - 15 em 15 min) ---
-            const currentBinIdxLine = isToday ? currentHour * 4 + Math.floor(currentMin / 15) : 95;
-            if (niveisLine[0] === null && valOntem !== null) niveisLine[0] = valOntem;
-            let lastValidIdxLine = -1;
-            for (let i = 0; i <= currentBinIdxLine; i++) {
-                if (niveisLine[i] !== null) {
-                    if (lastValidIdxLine !== -1 && i - lastValidIdxLine > 1) {
-                        let startV = niveisLine[lastValidIdxLine];
-                        let endV = niveisLine[i];
-                        let diffPerBin = (endV - startV) / (i - lastValidIdxLine);
-                        for (let j = lastValidIdxLine + 1; j < i; j++) {
-                            niveisLine[j] = Math.round(startV + diffPerBin * (j - lastValidIdxLine));
-                        }
-                    }
-                    lastValidIdxLine = i;
-                }
-            }
-            if (lastValidIdxLine !== -1 && lastValidIdxLine < currentBinIdxLine) {
-                let lastV = niveisLine[lastValidIdxLine];
-                for (let i = lastValidIdxLine + 1; i <= currentBinIdxLine; i++) niveisLine[i] = lastV;
-            }
-
-            // --- CÁLCULO DE CONSUMO (HORA EM HORA) ---
-            // Usa as leituras no início de cada hora (índices 0, 4, 8, 12, etc.)
-            let ultimaHoraComValor = -1;
-            for (let h = 0; h <= 23; h++) {
-                let idxAtual = h * 4;
-                let valAtual = niveisLine[idxAtual];
-                let valAnterior = (h === 0) ? valOntem : niveisLine[(h-1)*4];
-                
-                if (valAtual !== null && valAnterior !== null && valAtual <= currentBinIdxLine) {
-                    // Verifica se houve queda real
-                    if (valAnterior > valAtual) {
-                        let diffLitros = calcularVolumeLitros(valAnterior) - calcularVolumeLitros(valAtual);
-                        if (diffLitros > 0 && diffLitros < (capacidadeTotal * 0.50)) {
-                            consumoFinal[h] = diffLitros;
-                        }
-                    }
-                    ultimaHoraComValor = h;
-                }
-            }
-
-            // Atualiza os Painéis de Insights se for o dia de hoje
-            if (isToday) {
-                try {
-                    // 1. Insight: Última Hora
-                    let hAtual = currentHour;
-                    let idxUltimaHora = hAtual * 4; 
-                    let idxHoraAnterior = (hAtual > 0) ? (hAtual - 1) * 4 : 0;
-                    
-                    let nivelAgora = niveisLine[lastValidIdxLine] || 0;
-                    let nivelAntes = niveisLine[idxHoraAnterior] || 0;
-                    
-                    let elUltimaHora = document.getElementById('insight-ultima-hora');
-                    let elConsumoHora = document.getElementById('insight-consumo-hora');
-                    let elStatus = document.getElementById('insight-status');
-                    
-                    if (elUltimaHora && elConsumoHora) {
-                        let diffPct = nivelAgora - nivelAntes;
-                        if (diffPct < 0) {
-                            let litrosCaiu = calcularVolumeLitros(nivelAntes) - calcularVolumeLitros(nivelAgora);
-                            elUltimaHora.innerHTML = `<span style="color:var(--level-warn)"><i class="fas fa-arrow-down"></i> ${Math.abs(diffPct).toFixed(1)}%</span>`;
-                            elConsumoHora.innerText = `Consumo: ~${litrosCaiu} Litros`;
-                            elStatus.innerHTML = '<span style="color:var(--level-warn)">Consumindo</span>';
-                        } else if (diffPct > 0) {
-                            elUltimaHora.innerHTML = `<span style="color:var(--level-ok)"><i class="fas fa-arrow-up"></i> ${diffPct.toFixed(1)}%</span>`;
-                            elConsumoHora.innerText = 'Ganhando volume';
-                            elStatus.innerHTML = '<span style="color:var(--level-ok)">Abastecendo</span>';
-                        } else {
-                            elUltimaHora.innerHTML = `<span style="color:var(--text-sec)">0%</span>`;
-                            elConsumoHora.innerText = 'Estável';
-                            elStatus.innerHTML = '<span style="color:var(--text-sec)">Estável</span>';
-                        }
-                    }
-                    
-                    let elUltAbast = document.getElementById('insight-ultimo-abast');
-                    if (elUltAbast) {
-                        if (ultimoAbastecimentoTime) {
-                            elUltAbast.innerText = `Hoje às ${ultimoAbastecimentoTime}`;
-                        } else {
-                            elUltAbast.innerText = 'Sem dados hoje';
-                        }
-                    }
-                } catch(e) {}
-            }
-
-            return { labelsLine: labelsLine, niveisLine: niveisLine, consumo: consumoFinal, refillIndex: detectedRefillIdx }; 
-        }; 
+        const isToday = (getLocalISODate(new Date()) === data);
+        const currentHour = isToday ? new Date().getHours() : 23;
         
-        try { 
-            let dadosHoje = null; 
-            try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = rHoje; } catch(e) {} 
-            let dadosOntem = null; 
-            try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = rOntem; } catch(e) {} 
-            result = processData(dadosHoje, dadosOntem); 
-            atualizarGraficosHistorico(result); 
-            atualizarGraficosConsumo(result); 
-        } catch (e) {} 
-    } else { 
-        let dataInicio, dataFim; 
-        if (currentView === 'mensal') { 
-            const mesEl = document.getElementById('mesEscolhido'); 
-            if (!mesEl) return result; 
-            const mesAno = mesEl.value; 
-            if (!mesAno) return result; 
-            dataInicio = `${mesAno}-01`; 
-            const [ano, mes] = mesAno.split('-'); 
-            const ultimoDia = new Date(ano, mes, 0).getDate(); 
-            dataFim = `${mesAno}-${ultimoDia}`; 
-        } else if (currentView === 'intervalo') { 
-            const dataI = document.getElementById('dataInicio'); 
-            const dataF = document.getElementById('dataFim'); 
-            if(!dataI || !dataF) return result; 
-            dataInicio = dataI.value; 
-            dataFim = dataF.value; 
-            if (!dataInicio || !dataFim) return result; 
-        } 
-        url = `${PATH_HISTORICO}.json?orderBy="$key"&startAt="${dataInicio}"&endAt="${dataFim}"`; 
-        processData = (dados) => { 
-            const dailyConsumption = {}; const dailyLevels = {}; 
-            const dateKeys = Object.keys(dados).sort(); 
-            for (const dateKey in dados) { 
-                const dailyReadings = dados[dateKey]; 
-                const times = Object.keys(dailyReadings).sort((a, b) => parseInt(a) - parseInt(b)); 
-                if(times.length === 0) continue; 
-                let consumoDia = 0; let somaNiveis = 0; let countNiveis = 0; let lastValidLevelForDay = null; 
-                for (let i = 0; i < times.length; i++) { 
-                    const tCurrent = times[i]; 
-                    const valRaw = dailyReadings[tCurrent].nivel_pct ?? dailyReadings[tCurrent].nivel ?? 0; 
-                    const valCurrent = Number(valRaw); 
-                    if(valCurrent > 0) { 
-                        somaNiveis += valCurrent; countNiveis++; 
-                        if (lastValidLevelForDay !== null) { 
-                            if (lastValidLevelForDay > valCurrent) { 
-                                const volAnterior = calcularVolumeLitros(lastValidLevelForDay); 
-                                const volAtual = calcularVolumeLitros(valCurrent); 
-                                const diff = volAnterior - volAtual; 
-                                const limiteMaxDiff = capacidadeTotal * 0.50; 
-                                if(diff < limiteMaxDiff && diff > 0) consumoDia += diff; 
-                            } 
-                        } 
-                        lastValidLevelForDay = valCurrent; 
-                    } 
-                } 
-                dailyConsumption[dateKey] = consumoDia; 
-                dailyLevels[dateKey] = countNiveis > 0 ? Math.round(somaNiveis / countNiveis) : 0; 
-            } 
-            if (currentView === 'mensal') { 
-                const weeks = [0, 0, 0, 0]; const levelsSum = [0, 0, 0, 0]; const levelsCount = [0, 0, 0, 0]; 
-                for (const dateKey in dailyConsumption) { 
-                    const day = parseInt(dateKey.split('-')[2]); 
-                    let idx = (day <= 7) ? 0 : (day <= 14 ? 1 : (day <= 21 ? 2 : 3)); 
-                    weeks[idx] += dailyConsumption[dateKey]; 
-                    if (dailyLevels[dateKey] > 0) { levelsSum[idx] += dailyLevels[dateKey]; levelsCount[idx]++; } 
-                } 
-                const finalLevels = levelsSum.map((sum, i) => levelsCount[i] > 0 ? Math.round(sum/levelsCount[i]) : 0); 
-                return { labelsBar: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], labelsLine: ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana'], niveisBar: finalLevels, niveisLine: finalLevels, consumo: weeks }; 
-            } 
-            const labels = Object.keys(dailyConsumption).sort(); 
-            const consumo = labels.map(key => dailyConsumption[key]); 
-            const niveis = labels.map(key => dailyLevels[key]); 
-            const displayLabels = labels.map(d => { const parts = d.split('-'); return `${parts[2]}/${parts[1]}`; }); 
-            return { labelsBar: displayLabels, labelsLine: displayLabels, niveisBar: niveis, niveisLine: niveis, consumo: consumo }; 
-        }; 
-        try { 
-            let dados = null; 
-            try { const r = await safeFetch(url); if (r) dados = r; } catch(e) {} 
-            result = dados ? processData(dados) : { labelsBar: [], labelsLine: [], niveisBar: [], niveisLine: [], consumo: [] }; 
-            atualizarGraficosHistorico(result); 
-            atualizarGraficosConsumo(result); 
-        } catch (e) {} 
+        const labelsLine = []; 
+        const niveisLine = new Array(24).fill(null); 
+        const consumoFinal = new Array(24).fill(0); 
+        
+        // As 24 colunas de horário do dia
+        for(let h = 0; h <= 23; h++) {
+            labelsLine.push(String(h).padStart(2, '0') + ":00"); 
+        }
+
+        let dadosHoje = null; 
+        try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = rHoje; } catch(e) {} 
+        let dadosOntem = null; 
+        try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = rOntem; } catch(e) {} 
+
+        let dadosHojeParsed = parseDados(dadosHoje);
+        let dadosOntemParsed = parseDados(dadosOntem);
+
+        // Nível Final do dia de ontem
+        let valOntem = null;
+        let keysOntem = Object.keys(dadosOntemParsed).sort();
+        if (keysOntem.length > 0) {
+            valOntem = extractLevel(dadosOntemParsed[keysOntem[keysOntem.length - 1]]);
+        }
+
+        let hourlyLevels = new Array(24).fill(null);
+        let lastKnownLevel = valOntem;
+        let ultimoAbastecimentoTime = null;
+
+        // Distribui os registros de hoje nas 24 horas (Sempre pega a última leitura daquela hora)
+        let keysHoje = Object.keys(dadosHojeParsed).sort();
+        keysHoje.forEach(k => {
+             let h = parseInt(k.split(':')[0]);
+             let val = extractLevel(dadosHojeParsed[k]);
+             if (!isNaN(h) && h >= 0 && h <= 23 && val !== null) {
+                  hourlyLevels[h] = val; // Sobrescreve para usar o último minuto que salvou naquela hora
+                  
+                  if (lastKnownLevel !== null && val > lastKnownLevel + 5) {
+                       ultimoAbastecimentoTime = k;
+                  }
+                  lastKnownLevel = val;
+             }
+        });
+
+        // Preenchimento de Rampa e Limpeza
+        if (hourlyLevels[0] === null && valOntem !== null) hourlyLevels[0] = valOntem;
+        
+        let lastValidIdx = -1;
+        for (let i = 0; i <= currentHour; i++) {
+            if (hourlyLevels[i] !== null) {
+                if (lastValidIdx !== -1 && i - lastValidIdx > 1) {
+                    let startV = hourlyLevels[lastValidIdx];
+                    let endV = hourlyLevels[i];
+                    let diffPerBin = (endV - startV) / (i - lastValidIdx);
+                    for (let j = lastValidIdx + 1; j < i; j++) {
+                        hourlyLevels[j] = Math.round(startV + diffPerBin * (j - lastValidIdx));
+                    }
+                }
+                lastValidIdx = i;
+            }
+        }
+        
+        if (lastValidIdx !== -1 && lastValidIdx < currentHour) {
+             let lastV = hourlyLevels[lastValidIdx];
+             for(let i = lastValidIdx + 1; i <= currentHour; i++) hourlyLevels[i] = lastV;
+        }
+
+        for (let i = 0; i < 24; i++) niveisLine[i] = hourlyLevels[i];
+
+        // --- CÁLCULO DE CONSUMO ---
+        // Distribui suavemente as quedas entre as horas se ficou travado no topo
+        for (let h = 0; h <= currentHour; h++) {
+            let valAtual = hourlyLevels[h];
+            let valAnterior = (h === 0) ? valOntem : hourlyLevels[h-1];
+            
+            if (valAtual !== null && valAnterior !== null) {
+                 let diffLitros = calcularVolumeLitros(valAnterior) - calcularVolumeLitros(valAtual);
+                 if (diffLitros > 0 && diffLitros < (capacidadeTotal * 0.50)) {
+                      consumoFinal[h] += diffLitros;
+                 }
+            }
+        }
+        
+        for(let i=0; i<24; i++) consumoFinal[i] = Math.round(consumoFinal[i]);
+
+        // Insights Panel
+        if (isToday) {
+            try {
+                let nivelAgora = niveisLine[lastValidIdx] || 0;
+                let nivelAntes = (lastValidIdx > 0) ? niveisLine[lastValidIdx - 1] : valOntem;
+                if(nivelAntes === null) nivelAntes = nivelAgora;
+                
+                let elUltimaHora = document.getElementById('insight-ultima-hora');
+                let elConsumoHora = document.getElementById('insight-consumo-hora');
+                let elStatus = document.getElementById('insight-status');
+                
+                if (elUltimaHora && elConsumoHora) {
+                    let diffPct = nivelAgora - nivelAntes;
+                    if (diffPct <= -1) {
+                        let litrosCaiu = calcularVolumeLitros(nivelAntes) - calcularVolumeLitros(nivelAgora);
+                        elUltimaHora.innerHTML = `<span style="color:var(--level-warn)"><i class="fas fa-arrow-down"></i> ${Math.abs(diffPct).toFixed(1)}%</span>`;
+                        elConsumoHora.innerText = `Consumo: ~${litrosCaiu} Litros`;
+                        elStatus.innerHTML = '<span style="color:var(--level-warn)">Consumindo</span>';
+                    } else if (diffPct >= 1) {
+                        elUltimaHora.innerHTML = `<span style="color:var(--level-ok)"><i class="fas fa-arrow-up"></i> ${diffPct.toFixed(1)}%</span>`;
+                        elConsumoHora.innerText = 'Ganhando volume';
+                        elStatus.innerHTML = '<span style="color:var(--level-ok)">Abastecendo</span>';
+                    } else {
+                        elUltimaHora.innerHTML = `<span style="color:var(--text-sec)">Estável</span>`;
+                        elConsumoHora.innerText = '0 L/h';
+                        elStatus.innerHTML = '<span style="color:var(--text-sec)">Estável</span>';
+                    }
+                }
+                
+                let elUltAbast = document.getElementById('insight-ultimo-abast');
+                if (elUltAbast) {
+                    elUltAbast.innerText = ultimoAbastecimentoTime ? `Hoje às ${ultimoAbastecimentoTime}` : 'Sem abastecimento hoje';
+                }
+            } catch(e) {}
+        }
+
+        result = { labelsLine: labelsLine, niveisLine: niveisLine, consumo: consumoFinal }; 
+        atualizarGraficosHistorico(result); 
+        atualizarGraficosConsumo(result); 
     } 
 }
 
-/* --- STREAMING_CHUNK:Lógica de Abastecimento e Contatos --- */
+/* --- STREAMING_CHUNK:Lógica de Abastecimento Automático --- */
+async function registrarAbastecimentoAutomatico(litros, nivelAntes, nivelDepois) {
+    if (Date.now() - lastAutoRefillTime < 300000) return; // Segurança contra flood
+    lastAutoRefillTime = Date.now();
+    const agora = new Date();
+    const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString(), tipo: 'automatico', detalhes: `Subida de ${nivelAntes}% para ${nivelDepois}%` };
+    try { await fetch(PATH_ABASTECIMENTO, { method: 'POST', body: JSON.stringify(dados) }); carregarHistoricoAbastecimento(); } catch (e) {}
+}
+
+function checkAutoRefill(currentLevel) {
+    const manualApps = ['pp07', 'sau11', 'sau13'];
+    if (manualApps.includes(currentAppId.toLowerCase())) return;
+
+    if (arLastLevel === -1) { arLastLevel = currentLevel; arMinLevel = currentLevel; return; }
+
+    const agora = Date.now();
+    const noiseThreshold = 2; // Ignora marolas de 2%
+
+    if (currentLevel <= arLastLevel - noiseThreshold) {
+        if (arState === 'FILLING') {
+            const diff = arMaxLevel - arMinLevel;
+            if (diff >= 5) {
+                const litros = calcularVolumeLitros(arMaxLevel) - calcularVolumeLitros(arMinLevel);
+                registrarAbastecimentoAutomatico(litros, arMinLevel, arMaxLevel);
+            }
+            arMinLevel = currentLevel; arMaxLevel = 0;
+        } else {
+            if (currentLevel < arMinLevel) arMinLevel = currentLevel;
+        }
+        arState = 'DROPPING';
+        arLastLevel = currentLevel;
+        arStableTime = agora;
+
+    } else if (currentLevel >= arLastLevel + noiseThreshold) {
+        if (arState !== 'FILLING') { arMaxLevel = currentLevel; } 
+        else { if (currentLevel > arMaxLevel) arMaxLevel = currentLevel; }
+        
+        arState = 'FILLING';
+        arLastLevel = currentLevel;
+        arStableTime = agora;
+
+    } else {
+        // --- 5 MINUTOS DE CONFIRMAÇÃO ---
+        // Se ficou FILLING e parou por 5 minutos (300000ms), confirma o abastecimento!
+        if (arState === 'FILLING' && (agora - arStableTime > 300000)) {
+            const diff = arMaxLevel - arMinLevel;
+            if (diff >= 5) {
+                const litros = calcularVolumeLitros(arMaxLevel) - calcularVolumeLitros(arMinLevel);
+                registrarAbastecimentoAutomatico(litros, arMinLevel, arMaxLevel);
+            }
+            arState = 'IDLE';
+            arMinLevel = currentLevel;
+            arMaxLevel = 0;
+        }
+    }
+}
+
 async function removerAbastecimento(id) { try { await fetch(`${PATH_ABASTECIMENTO.replace('.json', '')}/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {} }
-async function carregarHistoricoAbastecimento() { const listaUL = document.getElementById('lista-abastecimentos'); const elMes = document.getElementById('mesAbastecimento'); const elSemana = document.getElementById('filtroSemana'); const mesAno = elMes ? elMes.value : getLocalISODate(new Date()).substring(0, 7); const semanaFiltro = elSemana ? elSemana.value : 'todas'; if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; try { let dados = null; try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = r; } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (dados) { const ids = Object.keys(dados).sort().reverse(); 
-if (ids.length > 0) { const ultimo = dados[ids[0]]; const dUlt = new Date(ultimo.timestamp); } 
-const idsParaLista = ids.slice(0, 5); if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; idsParaLista.forEach(id => { const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; listaUL.appendChild(li); }); let labelsGrafico = []; let dadosGrafico = []; let titulo = "Comparativo Semanal (Litros)"; if (semanaFiltro === 'todas') { titulo = "Comparativo Semanal (Litros)"; const totaisSemana = [0, 0, 0, 0]; Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); let idx = 0; if (dia <= 7) idx = 0; else if (dia <= 14) idx = 1; else if (dia <= 21) idx = 2; else idx = 3; totaisSemana[idx] += parseInt(item.litros || 0); } }); labelsGrafico = ['1ª Semana', '2ª Semana', '3ª Semana', '4ª Semana']; dadosGrafico = totaisSemana; } else { titulo = `Detalhes: Semana ${semanaFiltro}`; const diasMap = {}; let diaInicio = 1, diaFim = 7; if (semanaFiltro === '2') { diaInicio = 8; diaFim = 14; } if (semanaFiltro === '3') { diaInicio = 15; diaFim = 21; } if (semanaFiltro === '4') { diaInicio = 22; diaFim = 31; } Object.keys(dados).forEach(key => { const item = dados[key]; const d = new Date(item.timestamp); const itemMesAno = getLocalISODate(d).substring(0, 7); if (itemMesAno === mesAno) { const dia = d.getDate(); if (dia >= diaInicio && dia <= diaFim) { const labelDia = `Dia ${String(dia).padStart(2, '0')}`; if (!diasMap[labelDia]) diasMap[labelDia] = 0; diasMap[labelDia] += parseInt(item.litros || 0); } } }); labelsGrafico = Object.keys(diasMap).sort(); dadosGrafico = labelsGrafico.map(l => diasMap[l]); if (labelsGrafico.length === 0) { labelsGrafico = ["Sem dados"]; dadosGrafico = [0]; } } if(document.getElementById('tituloGraficoAbastecimento')) { document.getElementById('tituloGraficoAbastecimento').innerText = titulo; } if(chartAbastecimento) { chartAbastecimento.data.labels = labelsGrafico; chartAbastecimento.data.datasets[0].data = dadosGrafico; chartAbastecimento.update(); } } else { if(listaUL) { listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; } } } catch (e) { console.error(e); } }
+async function carregarHistoricoAbastecimento() { 
+    const listaUL = document.getElementById('lista-abastecimentos'); 
+    if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; 
+    try { 
+        let dados = null; 
+        try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = r; } catch(e) {} 
+        if(listaUL) listaUL.innerHTML = ''; 
+        if (dados) { 
+            const ids = Object.keys(dados).sort().reverse(); 
+            const idsParaLista = ids.slice(0, 5); 
+            if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; 
+            idsParaLista.forEach(id => { 
+                const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); 
+                li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; 
+                listaUL.appendChild(li); 
+            }); 
+        } else { 
+            if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; 
+        } 
+    } catch (e) {} 
+}
+
 function animarBotaoSucesso(btnId) { const btn = document.getElementById(btnId); if(!btn) return; const originalHTML = btn.innerHTML; btn.classList.add('btn-success'); btn.innerHTML = '<i class="fas fa-check"></i> Salvo!'; setTimeout(() => { btn.classList.remove('btn-success'); btn.innerHTML = originalHTML; }, 2000); }
 async function salvarAbastecimento(litros) { 
     if (!litros || litros <= 0) return; 
@@ -1341,159 +1091,41 @@ async function salvarAbastecimento(litros) {
     const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString(), tipo: 'manual' }; 
     try { 
         await fetch(PATH_ABASTECIMENTO, { method: 'POST', body: JSON.stringify(dados) }); 
-        
         const manualApps = ['pp07', 'sau11', 'sau13'];
         if (manualApps.includes(currentAppId.toLowerCase()) || nivelAtual <= 0) {
             let pctToAdd = (Number(litros) / capacidadeTotal) * 100;
             let novoNivel = (nivelAtual > 0 ? nivelAtual : 0) + pctToAdd;
             if (novoNivel > 100) novoNivel = 100;
-            
-            await fetch(PATH_TEMPO_REAL, {
-                method: 'PATCH',
-                body: JSON.stringify({ nivel_pct: novoNivel, nivel: novoNivel, percentual_atual: novoNivel, timestamp: agora.getTime(), ultima_valida_pct: novoNivel, ultima_valida_time: agora.getTime() })
-            });
-            await salvarUltimaLeituraValida(novoNivel, agora.getTime());
+            await fetch(PATH_TEMPO_REAL, { method: 'PATCH', body: JSON.stringify({ nivel_pct: novoNivel, timestamp: agora.getTime() }) });
             renderNivel(novoNivel, true);
         }
-
         document.getElementById('litros-abastecidos').value = ''; 
         carregarHistoricoAbastecimento(); 
         animarBotaoSucesso('btn-salvar-abastecimento'); 
     } catch (e) {} 
 }
 
-async function registrarAbastecimentoAutomatico(litros, nivelAntes, nivelDepois) {
-    if (Date.now() - lastAutoRefillTime < 600000) return; // Cooldown reduzido para 10 minutos (600000 ms) para pegar vários acionamentos curtos
-    lastAutoRefillTime = Date.now();
-    const agora = new Date();
-    const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString(), tipo: 'automatico', detalhes: `Subida de ${nivelAntes}% para ${nivelDepois}%` };
-    try { await fetch(PATH_ABASTECIMENTO, { method: 'POST', body: JSON.stringify(dados) }); carregarHistoricoAbastecimento(); } catch (e) {}
-}
-
+/* --- STREAMING_CHUNK:Configurações e Auxiliares --- */
 async function salvarConfig(endpoint, valor) { try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {} }
 async function salvarCapacidade(valor) { if(!valor || valor <= 0) return; await salvarConfig('capacidade', valor); capacidadeTotal = valor; animarBotaoSucesso('btn-salvar-capacidade'); }
 async function salvarAltura(valor) { if(!valor || valor <= 0) return; await salvarConfig('altura', valor); alturaCaixa = valor; animarBotaoSucesso('btn-salvar-altura'); }
 async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = parseInt(valor); animarBotaoSucesso('btn-salvar-nivel-alerta'); }
-async function carregarConfiguracoesGerais() { try { let config = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) config = r; } catch(e) {} if(config) { if (config.nivel_alerta) { document.getElementById('nivel-alerta-valor').value = config.nivel_alerta; nivelAlertaConfigurado = parseInt(config.nivel_alerta); } else if (config.nivel_critico_pct) { document.getElementById('nivel-alerta-valor').value = config.nivel_critico_pct; nivelAlertaConfigurado = parseInt(config.nivel_critico_pct); } if (config.capacidade) { document.getElementById('capacidade-total-valor').value = config.capacidade; capacidadeTotal = parseInt(config.capacidade); } else if (config.capacidade_total_litros) { document.getElementById('capacidade-total-valor').value = config.capacidade_total_litros; capacidadeTotal = parseInt(config.capacidade_total_litros); } if (config.altura) { document.getElementById('altura-caixa-valor').value = config.altura; alturaCaixa = parseInt(config.altura); } else if (config.altura_tanque_cm) { document.getElementById('altura-caixa-valor').value = config.altura_tanque_cm; alturaCaixa = parseInt(config.altura_tanque_cm); } } } catch (e) {} }
-async function adicionarContato(valor, tipo) { if (!valor) return; const novoContato = { valor, tipo }; try { await fetch(`${PATH_CONFIG_BASE}/contatos.json`, { method: 'POST', body: JSON.stringify(novoContato) }); document.getElementById('contato-valor').value = ''; carregarContatos(); animarBotaoSucesso('btn-add-contato'); } catch (e) {} }
-async function removerContato(id) { try { await fetch(`${PATH_CONFIG_BASE}/contatos/${id}.json`, { method: 'DELETE' }); carregarContatos(); } catch (e) {} }
-async function carregarContatos() { const listaUL = document.getElementById('lista-contatos'); if(listaUL) listaUL.innerHTML = '<li>Carregando...</li>'; try { let contatos = null; try { const r = await safeFetch(`${PATH_CONFIG_BASE}/contatos.json`); if (r) contatos = r; } catch(e) {} if(listaUL) listaUL.innerHTML = ''; if (contatos && listaUL) { Object.keys(contatos).forEach(id => { const c = contatos[id]; if (c && c.tipo && c.valor) { const li = document.createElement('li'); li.className = 'contato-item'; li.innerHTML = `<span><i class="fas fa-${c.tipo === 'email' ? 'envelope' : 'paper-plane'}"></i> ${c.valor}</span><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-trash"></i></button>`; listaUL.appendChild(li); } }); } else if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum contato.</li>'; } catch (e) {} }
 
-function checkAutoRefill(currentLevel) {
-    // Exclui as caixas que são exclusivamente de abastecimento manual
-    const manualApps = ['pp07', 'sau11', 'sau13'];
-    if (manualApps.includes(currentAppId.toLowerCase())) return;
-
-    // Inicializa a referência na primeira leitura
-    if (arLastLevel === -1) {
-        arLastLevel = currentLevel;
-        arMinLevel = currentLevel;
-        return;
-    }
-
-    const agora = Date.now();
-    const noiseThreshold = 2; // Margem para ignorar ruído ou oscilação do sensor (ex: ondinhas de 1~2%)
-
-    if (currentLevel <= arLastLevel - noiseThreshold) {
-        // --- NÍVEL ESTÁ CAINDO ---
-        if (arState === 'FILLING') {
-            // Se estava subindo e agora começou a cair, concluímos que o abastecimento terminou
-            const diff = arMaxLevel - arMinLevel;
-            if (diff >= 5) { // Só considera abastecimento se encheu pelo menos 5% da caixa
-                const litros = calcularVolumeLitros(arMaxLevel) - calcularVolumeLitros(arMinLevel);
-                registrarAbastecimentoAutomatico(litros, arMinLevel, arMaxLevel);
-            }
-            // Prepara para o novo ciclo de queda
-            arMinLevel = currentLevel; 
-            arMaxLevel = 0;
-        } else {
-            // Continua caindo, rastreia qual foi o menor nível
-            if (currentLevel < arMinLevel) arMinLevel = currentLevel;
-        }
-        
-        arState = 'DROPPING';
-        arLastLevel = currentLevel;
-        arStableTime = agora;
-
-    } else if (currentLevel >= arLastLevel + noiseThreshold) {
-        // --- NÍVEL ESTÁ SUBINDO ---
-        if (arState !== 'FILLING') {
-            // Bateu no fundo e começou a encher
-            arMaxLevel = currentLevel;
-        } else {
-            // Continua enchendo, rastreia o pico
-            if (currentLevel > arMaxLevel) arMaxLevel = currentLevel;
-        }
-        
-        arState = 'FILLING';
-        arLastLevel = currentLevel;
-        arStableTime = agora;
-
-    } else {
-        // --- NÍVEL ESTABILIZADO (dentro da margem de ruído de +-2%) ---
-        if (arState === 'FILLING' && (agora - arStableTime > 180000)) {
-            // Se estava enchendo e o valor parou de mudar por 3 minutos (180000ms), consolida a entrada automática
-            const diff = arMaxLevel - arMinLevel;
-            if (diff >= 5) {
-                const litros = calcularVolumeLitros(arMaxLevel) - calcularVolumeLitros(arMinLevel);
-                registrarAbastecimentoAutomatico(litros, arMinLevel, arMaxLevel);
-            }
-            arState = 'IDLE';
-            arMinLevel = currentLevel; // Transforma o pico atual no "piso" de uma possível nova medição
-            arMaxLevel = 0;
-        }
-    }
-}
-
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
-    const agora = Date.now();
-    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
-    let nivelSimulado = nivelInicial;
-    let quedasAplicadas = 0;
-    while (horasPassadas > 0 && nivelSimulado > 0) {
-        let duracaoBloco = 2; 
-        quedasAplicadas++;
-        if (quedasAplicadas <= 4) { duracaoBloco = 2; }
-        else if (quedasAplicadas <= 6) { duracaoBloco = 6; }
-        else if (quedasAplicadas <= 8) { duracaoBloco = 4; }
-        else { duracaoBloco = 2; }
-        
-        if (horasPassadas >= duracaoBloco) {
-            nivelSimulado -= 5;
-            horasPassadas -= duracaoBloco;
-        } else {
-            break; 
-        }
-    }
-    if (nivelSimulado < 0) nivelSimulado = 0;
-    return nivelSimulado;
-}
-
-async function buscarBackupHistorico() {
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const r = await fetch(`${PATH_HISTORICO}/${today}.json?orderBy="$key"&limitToLast=1`);
-        const d = await r.json();
-        if(d) {
-            const keys = Object.keys(d);
-            if(keys.length > 0) {
-                const lastEntry = d[keys[0]];
-                return { pct: lastEntry.nivel_pct || lastEntry.nivel || 0, time: lastEntry.timestamp || 0 };
-            }
-        }
-    } catch(e) {}
-    return null;
-}
-
-function extrairNivelPct(dados) {
-  let v = null;
-  if (dados && typeof dados.nivel_pct !== "undefined") v = dados.nivel_pct;
-  else if (dados && typeof dados.nivel !== "undefined") v = dados.nivel;
-  else if (dados && typeof dados.percentual_atual !== "undefined") v = dados.percentual_atual;
-  else if (dados && dados.ultimo_valor_valido && typeof dados.ultimo_valor_valido.nivel_pct !== "undefined") v = dados.ultimo_valor_valido.nivel_pct;
-  v = Number(v);
-  if (!Number.isFinite(v)) return null;
-  return Math.max(0, Math.min(100, v));
+async function carregarConfiguracoesGerais() { 
+    try { 
+        let config = null; 
+        try { const r = await safeFetch(`${PATH_CONFIG_BASE}.json`); if (r) config = r; } catch(e) {} 
+        if(config) { 
+            if (config.nivel_alerta) { document.getElementById('nivel-alerta-valor').value = config.nivel_alerta; nivelAlertaConfigurado = parseInt(config.nivel_alerta); } 
+            else if (config.nivel_critico_pct) { document.getElementById('nivel-alerta-valor').value = config.nivel_critico_pct; nivelAlertaConfigurado = parseInt(config.nivel_critico_pct); } 
+            
+            if (config.capacidade) { document.getElementById('capacidade-total-valor').value = config.capacidade; capacidadeTotal = parseInt(config.capacidade); } 
+            else if (config.capacidade_total_litros) { document.getElementById('capacidade-total-valor').value = config.capacidade_total_litros; capacidadeTotal = parseInt(config.capacidade_total_litros); } 
+            
+            if (config.altura) { document.getElementById('altura-caixa-valor').value = config.altura; alturaCaixa = parseInt(config.altura); } 
+            else if (config.altura_tanque_cm) { document.getElementById('altura-caixa-valor').value = config.altura_tanque_cm; alturaCaixa = parseInt(config.altura_tanque_cm); } 
+        } 
+    } catch (e) {} 
 }
 
 /* --- STREAMING_CHUNK:Renderizando status e animação no DOM --- */
@@ -1547,35 +1179,16 @@ function renderNivel(nivelPct, isSimulado = false) {
     
     const liveIndicator = document.getElementById('live-indicator');
     const simIndicator = document.getElementById('simulated-indicator');
-    
     if (liveIndicator) {
         if (isSimulado) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); } 
         else { liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online'); }
     }
-
     if (simIndicator) { simIndicator.style.display = isSimulado ? 'inline-flex' : 'none'; }
-
-    let bloquearAlarme = (isSimulado && nivelPct <= 0);
-    if (!bloquearAlarme && nivelPct <= nivelAlertaConfigurado) { 
-        if (!alertaConfirmadoPeloUsuario && snoozeCount < 3) { controlarAlarme(true); } 
-        if (!alertaConfirmadoPeloUsuario && !alertaModalMostrado && snoozeCount < 3) { 
-            enviarEmailAlerta(nivelPct); mostrarAlertaModal(); alertaModalMostrado = true; 
-            setTimeout(() => { if (alertaModalMostrado) iniciarSoneca(); }, AUTO_SNOOZE_SECONDS * 1000); 
-        } else { enviarEmailAlerta(nivelPct); } 
-    } else { 
-        if (nivelPct > 50) { 
-            if (alertaConfirmadoPeloUsuario) alertaConfirmadoPeloUsuario = false; 
-            if (emailEnviadoNessaSessao) emailEnviadoNessaSessao = false; 
-        }
-        if (alertaModalMostrado) { fecharAlertaModal(); alertaModalMostrado = false; } 
-        controlarAlarme(false); snoozeCount = 0; snoozeUntil = 0; 
-    }
 }
 
 async function salvarUltimaLeituraValida(nivel, timestamp) {
     const url = `${PATH_CONFIG_BASE}/ultima_leitura_valida.json`;
-    const dados = { nivel: nivel, timestamp: timestamp };
-    try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch(e) {}
+    try { await fetch(url, { method: 'PUT', body: JSON.stringify({ nivel: nivel, timestamp: timestamp }) }); } catch(e) {}
 }
 
 async function buscarBackupUltimaValidaFirebase() {
@@ -1584,20 +1197,39 @@ async function buscarBackupUltimaValidaFirebase() {
     return null;
 }
 
-/* --- STREAMING_CHUNK:Loop de atualização do Iframe --- */
+function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
+    const agora = Date.now();
+    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
+    let nivelSimulado = nivelInicial;
+    let quedasAplicadas = 0;
+    while (horasPassadas > 0 && nivelSimulado > 0) {
+        let duracaoBloco = 2; 
+        quedasAplicadas++;
+        if (quedasAplicadas <= 4) { duracaoBloco = 2; }
+        else if (quedasAplicadas <= 6) { duracaoBloco = 6; }
+        else if (quedasAplicadas <= 8) { duracaoBloco = 4; }
+        else { duracaoBloco = 2; }
+        
+        if (horasPassadas >= duracaoBloco) {
+            nivelSimulado -= 5;
+            horasPassadas -= duracaoBloco;
+        } else { break; }
+    }
+    return Math.max(0, nivelSimulado);
+}
+
+/* --- STREAMING_CHUNK:Loop de atualização do Iframe (Live) --- */
 async function loopDeAtualizacao() {
   if (IS_MAINTENANCE) {
       renderNivel(0, false);
       const elTexto = document.getElementById("status-level");
       if (elTexto) { elTexto.innerText = "MANUTENÇÃO"; elTexto.style.color = "var(--level-warn)"; elTexto.style.fontSize = "1.2rem"; }
-      const stTime = document.getElementById("status-time");
-      if (stTime) stTime.innerText = "--:--";
       return; 
   }
 
   try {
     const dados = await safeFetch(PATH_TEMPO_REAL);
-    let nivelCru = extrairNivelPct(dados);
+    let nivelCru = extractLevel(dados);
     let nivelFinal = 0;
     let isSimulado = false;
 
@@ -1608,29 +1240,22 @@ async function loopDeAtualizacao() {
         checkAutoRefill(nivelFinal);
 
         const agora = Date.now();
-        if (agora - lastSavedValidTime > 60000) {
+        
+        // SALVAMENTO VITAL: Grava a cada 1 minuto ou se a água variar 1% na hora!
+        if (agora - lastSavedValidTime >= 60000 || Math.abs(nivelFinal - lastSavedLevel) >= 1.0) {
+            await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real'); 
             salvarUltimaLeituraValida(nivelFinal, agora);
             lastSavedValidTime = agora;
-        }
-        
-        const horaAtual = new Date().getHours(); 
-        if ((horaAtual !== ultimoHorarioSalvo || (agora - ultimoTempoSalvo > 300000)) && nivelFinal > 0) { 
-            await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real'); 
-            ultimoHorarioSalvo = horaAtual; 
-            ultimoTempoSalvo = agora; 
-            if (currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) carregarHistoricoEConsumo(); 
-        }
-
-        if (!backfillRealizado) {
-            backfillRealizado = true;
-            try {
-                const urlHoje = `${PATH_HISTORICO}/${getLocalISODate(new Date())}.json`;
-                const rHoje = await safeFetch(urlHoje);
-                const preencheu = await preencherHorasFaltantesNoFirebase(rHoje, nivelFinal);
-                if (preencheu && currentView === 'diario' && (activeTab === 'grafico' || activeTab === 'consumo')) {
-                    carregarHistoricoEConsumo();
+            lastSavedLevel = nivelFinal;
+            
+            // INJEÇÃO AO VIVO NO GRÁFICO (Entorta a linha do gráfico imediatamente)
+            if (typeof chartLinha !== 'undefined' && chartLinha && currentView === 'diario') {
+                const h = new Date().getHours();
+                if (chartLinha.data.datasets[0].data.length >= 24) {
+                     chartLinha.data.datasets[0].data[h] = nivelFinal;
+                     chartLinha.update('none'); // Update sem animação para parecer suave e contínuo
                 }
-            } catch(e) {}
+            }
         }
 
     } else {
@@ -1638,18 +1263,10 @@ async function loopDeAtualizacao() {
         let baseNivel = 0;
         let baseTime = 0;
 
-        if (nivelCru !== null && nivelCru > 0) {
-            baseNivel = nivelCru;
-            baseTime = Date.now(); 
-        } else {
-            const backup = await buscarBackupUltimaValidaFirebase();
-            if (backup) {
-                baseNivel = backup.nivel;
-                baseTime = backup.timestamp;
-            } else {
-                const hist = await buscarBackupHistorico();
-                if (hist) { baseNivel = hist.pct; baseTime = hist.time; }
-            }
+        const backup = await buscarBackupUltimaValidaFirebase();
+        if (backup) {
+            baseNivel = backup.nivel;
+            baseTime = backup.timestamp;
         }
 
         if (baseNivel > 0) { nivelFinal = calcularNivelSimuladoLatch(baseNivel, baseTime); } 
@@ -1682,20 +1299,6 @@ window.addEventListener('load', function() {
     const dateControls = document.getElementById('date-controls'); 
     const btnAt = document.getElementById('btnAtualizar');
 
-    // Telegram - mostrar para PP03-PP07 e iniciar envio periódico
-    const telegramAllowed = ['pp3', 'pp4', 'pp5', 'pp6', 'pp07'];
-    const cardTelegram = document.getElementById('card-telegram-bot');
-    if (cardTelegram) {
-        if (telegramAllowed.includes(currentAppId.toLowerCase()) && tgDisponivel()) {
-            cardTelegram.style.display = '';
-            tgAtualizarContador();
-            tgRegistrarNovosUsuarios();
-            tgIniciarEnvioPeriodico();
-        } else {
-            cardTelegram.style.display = 'none';
-        }
-    }
-
     function switchView(viewName) { 
         activeTab = viewName; 
         for (const key in views) { if(views[key]) views[key].style.display = 'none'; } 
@@ -1706,11 +1309,11 @@ window.addEventListener('load', function() {
         try {
             if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } 
             else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); } 
-            else if (viewName === 'config') { carregarContatos(); carregarConfiguracoesGerais(); }
+            else if (viewName === 'config') { carregarConfiguracoesGerais(); }
             
-            if (viewName === 'grafico' && typeof chartLinha !== 'undefined') { chartLinha.resize(); chartBlocos.resize(); }
-            else if (viewName === 'consumo' && typeof chartConsumoBloco !== 'undefined') { chartConsumoBloco.resize(); chartConsumoLinha.resize(); }
-            else if (viewName === 'abastecimento' && typeof chartAbastecimento !== 'undefined') { chartAbastecimento.resize(); }
+            if (viewName === 'grafico' && typeof chartLinha !== 'undefined') { chartLinha.resize(); }
+            if (viewName === 'consumo' && typeof chartConsumoBloco !== 'undefined') { chartConsumoBloco.resize(); chartConsumoLinha.resize(); }
+            if (viewName === 'abastecimento' && typeof chartAbastecimento !== 'undefined') { chartAbastecimento.resize(); }
         } catch(e) {}
     } 
 
@@ -1754,19 +1357,10 @@ window.addEventListener('load', function() {
         ['btn-salvar-abastecimento', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)],
         ['btn-salvar-capacidade', () => salvarCapacidade(parseInt(document.getElementById('capacidade-total-valor').value))],
         ['btn-salvar-altura', () => salvarAltura(parseInt(document.getElementById('altura-caixa-valor').value))],
-        ['btn-add-contato', () => adicionarContato(document.getElementById('contato-valor').value, document.getElementById('contato-tipo').value)],
         ['btn-salvar-nivel-alerta', () => salvarNivelAlerta(parseInt(document.getElementById('nivel-alerta-valor').value))]
     ];
     idsBotoes.forEach(pair => { const b = document.getElementById(pair[0]); if(b) b.addEventListener('click', pair[1]); });
 
-    const lstContatos = document.getElementById('lista-contatos');
-    if(lstContatos) lstContatos.addEventListener('click', (e) => { 
-        if (e.target.closest('button')) { 
-            const btn = e.target.closest('button'); const id = btn.dataset.id; 
-            if (btn.dataset.confirming) { removerContato(id); btn.dataset.confirming = ''; } 
-            else { btn.dataset.confirming = 'true'; btn.innerHTML = '<i class="fas fa-check"></i>'; setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = '<i class="fas fa-trash"></i>'; }, 2000); } 
-        } 
-    }); 
     const lstAbast = document.getElementById('lista-abastecimentos');
     if(lstAbast) lstAbast.addEventListener('click', (e) => { 
         if (e.target.closest('button')) { 
@@ -1982,7 +1576,6 @@ async function updateDashboardData() {
         const dot = card ? card.querySelector('.live-dot') : null;
         const badge = card ? card.querySelector('.simulated-badge') : null;
 
-        // Lógica Exclusiva de Manutenção
         if (item.maintenance) {
             item.active = true;
             if(card) {
