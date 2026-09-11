@@ -111,7 +111,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 .card[data-status="ok"]::before { background: var(--level-ok); }
 .card[data-status="warn"]::before { background: var(--level-warn); }
 .card[data-status="danger"]::before { background: var(--level-danger); }
-.card[data-status="simulated"]::before { background: #d97706; }
+.card[data-status="offline"]::before { background: var(--level-offline); }
 
 /* Ícone e Texto */
 .card-icon { font-size: 2rem; color: var(--text-sec); margin-bottom: 10px; }
@@ -135,15 +135,6 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
     animation: pulse-update 2s infinite;
 }
 @keyframes pulse-update { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-/* Indicador de Leitura Estimada no Card */
-.simulated-badge {
-    position: absolute; top: 10px; left: 10px; 
-    background: #d97706; color: white; border-radius: 50%; width: 22px; height: 22px;
-    font-size: 14px; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 2;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-.card[data-status="simulated"] .simulated-badge { display: flex; }
 
 /* Animação Online */
 .live-dot {
@@ -241,10 +232,9 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <style>
 /* CSS do App Interno */
-:root { --bg-body: #f0f2f5; --text-main: #1e293b; --text-sec: #64748b; --card-bg: rgba(255, 255, 255, 0.95); --card-border: rgba(226, 232, 240, 0.8); --header-bg: rgba(255, 255, 255, 0.98); --accent: #06b6d4; --accent-hover: #0891b2; --input-bg: #f8fafc; --input-border: #cbd5e1; --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --level-ok: #10b981; --level-warn: #f59e0b; --level-danger: #ef4444; }
+:root { --bg-body: #f0f2f5; --text-main: #1e293b; --text-sec: #64748b; --card-bg: rgba(255, 255, 255, 0.95); --card-border: rgba(226, 232, 240, 0.8); --header-bg: rgba(255, 255, 255, 0.98); --accent: #06b6d4; --accent-hover: #0891b2; --input-bg: #f8fafc; --input-border: #cbd5e1; --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --level-ok: #10b981; --level-warn: #f59e0b; --level-danger: #ef4444; --level-offline: #94a3b8;}
 [data-theme="dark"] { --bg-body: #0f172a; --text-main: #f1f5f9; --text-sec: #94a3b8; --card-bg: rgba(30, 41, 59, 0.85); --card-border: rgba(255, 255, 255, 0.1); --header-bg: rgba(15, 23, 42, 0.95); --accent: #22d3ee; --accent-hover: #67e8f9; --input-bg: #1e293b; --input-border: #334155; --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; margin: 0; padding: 0; }
@@ -263,9 +253,9 @@ body { font-family: 'Poppins', sans-serif; text-align: center; background: var(-
 
 /* Indicador Live */
 .status-indicator-box { position: absolute; top: 10px; right: 10px; }
-.live-indicator { width: 10px; height: 10px; border-radius: 50%; background-color: #64748b; transition: background-color 0.3s; display: inline-block; }
+.live-indicator { width: 10px; height: 10px; border-radius: 50%; background-color: var(--level-offline); transition: background-color 0.3s; display: inline-block; }
 .live-indicator.online { background-color: var(--level-ok); box-shadow: 0 0 8px var(--level-ok); animation: pulse-green 2s infinite; }
-.live-indicator.offline { background-color: var(--level-danger); }
+.live-indicator.offline { background-color: var(--level-offline); }
 @keyframes pulse-green { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1.0); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
 #caixa-view, #grafico-container, #config-view, #abastecimento-view, #consumo-view { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 10px 0.5rem 80px 0.5rem; overflow-y: auto; min-height: 100vh; box-sizing: border-box; }
@@ -337,7 +327,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 .led-base.aceso.amarelo { fill: #ffdd00; color: #ffdd00; animation: pisca 0.8s infinite; }
 .led-base.aceso.verde { fill: #00ff00; color: #00ff00; animation: pisca 0.8s infinite; }
 .agua-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; }
-.agua { position: absolute; bottom: 0; width: 100%; height: 0%; background: linear-gradient(to top, #06b6d4, #3b82f6); transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1); overflow: visible; color: white; font-weight: 800; text-align: center; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.agua { position: absolute; bottom: 0; width: 100%; height: 0%; transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1); overflow: visible; color: white; font-weight: 800; text-align: center; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 .agua::before, .agua::after { content: ""; position: absolute; width: 200%; height: 20px; top: -15px; left: 0; background-repeat: repeat-x; border-radius: 45%; background: rgba(255,255,255,0.3); }
 .agua::before { transform: translateX(-50%); animation: onda1 4s linear infinite; }
 .agua::after { top: -12px; transform: translateX(-50%); background: rgba(255,255,255,0.15); animation: onda2 6s linear infinite; }
@@ -378,7 +368,6 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <span class="status-label">Nível Atual</span>
 <div style="display:flex; justify-content:center; align-items:center;">
 <span class="status-value skeleton-text" id="status-level">--%</span>
-<span id="simulated-indicator" style="display:none; background:#f59e0b; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; cursor:help; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Leitura Estimada (Sem Sinal)">?</span>
 </div>
 </div>
 <div class="status-item item-litros">
@@ -390,6 +379,13 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <span class="status-value skeleton-text" id="status-time" style="font-size: 1.2rem;">--:--</span>
 </div>
 </div>
+
+<!-- Banner de Conexão Offline -->
+<div id="offline-warning-msg" style="display:none; background: var(--level-offline); color: white; padding: 15px; border-radius: 8px; margin: 10px auto; width: 100%; max-width: 360px; text-align: center; font-size: 0.85rem; font-weight: 600; box-shadow: var(--shadow-card);">
+    <i class="fas fa-wifi-slash" style="font-size: 1.2rem; margin-bottom: 5px; display: block;"></i>
+    Sem conexão com a internet. Favor verificar o Access Point.<br>Exibindo última leitura informada.
+</div>
+
 <div class="reservatorio-wrapper" id="caixa-container">
 <svg id="reservatorio-svg" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMin meet">
 <defs>
@@ -648,7 +644,6 @@ const PATH_CONFIG_BASE = `${DATABASE_URL}__FIREBASE_CONFIG_PATH__`;
 const PATH_HISTORICO = `${DATABASE_URL}__FIREBASE_HIST_PATH__`; 
 const PATH_ABASTECIMENTO = `${PATH_CONFIG_BASE}/abastecimentos.json`;
 const PATH_CONTATOS = `${PATH_CONFIG_BASE}/contatos.json`;
-const CONTAS_EMAIL = [ { id: 0, service: "service_lubx0i8", template: "template_ll79qy1", key: "I1HnvhgWehPP7EXxX", quota_inicial: 0, dia_reinicio: 18, mes_reinicio: 11 }, { id: 1, service: "service_n365um4", template: "template_fjhnurn", key: "ivGT9BYMpO_IMpcJI", quota_inicial: 75, dia_reinicio: 25, mes_reinicio: 11 }, { id: 2, service: "service_txwft9l", template: "template_c5l1j8r", key: "xwk898VhH0VS-PSg9", quota_inicial: 6, dia_reinicio: 30, mes_reinicio: 11 } ];
 
 let isDarkMode = false;
 window.toggleTheme = function(e) { 
@@ -664,7 +659,7 @@ let chartLinha, chartConsumoBloco, chartConsumoLinha, chartAbastecimento;
 let currentView = 'diario'; let activeTab = 'caixa'; 
 let nivelAtual = 0; let nivelAlertaConfigurado = 30; let capacidadeTotal = 8000; let alturaCaixa = 0; 
 let alertaModalMostrado = false; let verificacaoInicialConcluida = false;
-let emailEnviadoNessaSessao = false; let alertaConfirmadoPeloUsuario = false; 
+let alertaConfirmadoPeloUsuario = false; 
 
 // Variáveis Vitais de Loop e Atualização
 let loopInterval = null;
@@ -674,9 +669,16 @@ const UPDATE_MS = 2500;
 let lastSavedValidTime = 0; 
 let lastSavedLevel = -1;
 
+// Heartbeat Tracker
+let lastUptime = null;
+let lastRealTime = 0;
+let isFirstLoad = true;
+let backupCacheNivel = 0;
+
+// Filtro Fantasma
+let ghostFilterBuffer = [];
+
 let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
-let snoozeCount = 0, snoozeUntil = 0; 
-const SNOOZE_DURATION_MINUTES = 10; const AUTO_SNOOZE_SECONDS = 30; 
 
 // Variáveis Vitais de Abastecimento Automático
 let arState = 'IDLE'; 
@@ -709,7 +711,6 @@ function controlarAlarme(play) { if (!audioContext) return; if (audioContext.sta
 function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
 function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
 function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
-function iniciarSoneca() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; snoozeCount++; if (snoozeCount < 3) { const snoozeMs = SNOOZE_DURATION_MINUTES * 60 * 1000; snoozeUntil = Date.now() + snoozeMs; } }
 
 /* --- STREAMING_CHUNK:Atualização de gráficos e Chart.js --- */
 function atualizarGraficosHistorico(result) { 
@@ -809,7 +810,18 @@ function criarGraficos() {
     } 
 }
 
-/* --- STREAMING_CHUNK:Processamento e Leitura de Dados --- */
+/* --- STREAMING_CHUNK:Extrator Universal de Dados --- */
+function aplicarFiltroMediana(novoValor) {
+    if (novoValor === null) return null;
+    ghostFilterBuffer.push(novoValor);
+    if (ghostFilterBuffer.length > 3) ghostFilterBuffer.shift();
+    if (ghostFilterBuffer.length === 3) {
+        let sorted = [...ghostFilterBuffer].sort((a, b) => a - b);
+        return sorted[1]; 
+    }
+    return novoValor; 
+}
+
 async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') { 
     if (nivel === null || nivel === undefined) return; 
     if (tipo === 'real' && nivel <= 0) return; 
@@ -819,7 +831,6 @@ async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
     const h = String(d.getHours()).padStart(2, '0'); 
     const m = String(d.getMinutes()).padStart(2, '0'); 
     
-    // Grava com a chave de Hora:Minuto para ter todas as variações salvas 100% no banco
     const horaKey = `${h}:${m}`; 
     const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; 
     
@@ -837,144 +848,138 @@ function extractLevel(entry) {
     return isNaN(v) ? null : v;
 }
 
-// O ParseDados é o "Tradutor Universal" - Lê milissegundos e Horas perfeitamente.
-function parseDados(dadosNode) {
-    if (!dadosNode) return {};
-    let result = {};
-    Object.keys(dadosNode).forEach(k => {
-         let val = extractLevel(dadosNode[k]);
-         if (val !== null && val > 0) {
-             if (k.length >= 12 && !isNaN(k)) { // Formato Antigo (PP03-06)
-                 let d = new Date(Number(k));
-                 let h = String(d.getHours()).padStart(2, '0');
-                 let m = String(d.getMinutes()).padStart(2, '0');
-                 result[`${h}:${m}`] = dadosNode[k];
-             } else { // Formato Novo
-                 result[k] = dadosNode[k]; 
-             }
-         }
-    });
-    return result;
+// Extrator Universal Recursivo
+function extrairDadosUniversais(dadosNode) {
+    let results = [];
+    if (!dadosNode) return results;
+
+    function traverse(node) {
+        if (node !== null && typeof node === 'object' && !Array.isArray(node)) {
+            let lvl = extractLevel(node);
+            let ts = node.timestamp || node.time || node.ts;
+
+            if (lvl !== null && ts && lvl > 0) {
+                results.push({ timestamp: Number(ts), nivel: lvl });
+            } else {
+                for (let k in node) {
+                    if (typeof node[k] === 'object') {
+                        traverse(node[k]);
+                    }
+                }
+            }
+        }
+    }
+
+    traverse(dadosNode);
+
+    results.sort((a, b) => a.timestamp - b.timestamp);
+    
+    let unique = [];
+    let seen = new Set();
+    for (let item of results) {
+        if (!seen.has(item.timestamp)) {
+            seen.add(item.timestamp);
+            unique.push(item);
+        }
+    }
+    return unique;
 }
 
 async function carregarHistoricoEConsumo() { 
-    if (currentView === 'semanal' || currentView === 'mensal' || currentView === 'intervalo') return; // Apenas visão diária ativa
-    let url = ''; 
-    let result = { labelsLine: [], niveisLine: [], consumo: [] }; 
+    if (currentView === 'semanal' || currentView === 'mensal' || currentView === 'intervalo') return;
     
     if (currentView === 'diario') { 
         const dataEl = document.getElementById('dataEscolhida'); 
         if(!dataEl) return; 
-        const data = dataEl.value; 
-        if (!data) return; 
+        const dataStr = dataEl.value; 
+        if (!dataStr) return; 
         
-        const dataParts = data.split('-'); 
+        const dataParts = dataStr.split('-'); 
         const dateObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]); 
         dateObj.setDate(dateObj.getDate() - 1); 
-        const dataAnterior = getLocalISODate(dateObj); 
+        const dataAnteriorStr = getLocalISODate(dateObj); 
         
-        url = `${PATH_HISTORICO}/${data}.json`; 
-        const urlOntem = `${PATH_HISTORICO}/${dataAnterior}.json`; 
+        const urlHoje = `${PATH_HISTORICO}/${dataStr}.json`; 
+        const urlOntem = `${PATH_HISTORICO}/${dataAnteriorStr}.json`; 
         
-        const isToday = (getLocalISODate(new Date()) === data);
+        const isToday = (getLocalISODate(new Date()) === dataStr);
         const currentHour = isToday ? new Date().getHours() : 23;
         
-        const labelsLine = []; 
-        const niveisLine = new Array(24).fill(null); 
-        const consumoFinal = new Array(24).fill(0); 
-        
-        // As 24 colunas de horário do dia
+        let dadosHoje = null; 
+        try { const rHoje = await safeFetch(urlHoje); if (rHoje) dadosHoje = rHoje; } catch(e) {} 
+        let dadosOntem = null; 
+        try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = rOntem; } catch(e) {} 
+
+        let arrayOntem = extrairDadosUniversais(dadosOntem);
+        let arrayHoje = extrairDadosUniversais(dadosHoje);
+
+        let valOntem = arrayOntem.length > 0 ? arrayOntem[arrayOntem.length - 1].nivel : null;
+
+        let labelsLine = [];
+        let hourlyLevels = new Array(24).fill(null);
+        let consumoFinal = new Array(24).fill(0);
+        let ultimoAbastecimentoTime = null;
+
         for(let h = 0; h <= 23; h++) {
             labelsLine.push(String(h).padStart(2, '0') + ":00"); 
         }
 
-        let dadosHoje = null; 
-        try { const rHoje = await safeFetch(url); if (rHoje) dadosHoje = rHoje; } catch(e) {} 
-        let dadosOntem = null; 
-        try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = rOntem; } catch(e) {} 
+        for (let h = 0; h <= 23; h++) {
+            let limiteMs = new Date(dataStr + "T00:00:00");
+            limiteMs.setHours(h, 59, 59, 999);
+            let limiteTs = limiteMs.getTime();
 
-        let dadosHojeParsed = parseDados(dadosHoje);
-        let dadosOntemParsed = parseDados(dadosOntem);
+            let leiturasAteHora = arrayHoje.filter(item => item.timestamp <= limiteTs);
 
-        // Nível Final do dia de ontem
-        let valOntem = null;
-        let keysOntem = Object.keys(dadosOntemParsed).sort();
-        if (keysOntem.length > 0) {
-            valOntem = extractLevel(dadosOntemParsed[keysOntem[keysOntem.length - 1]]);
+            if (leiturasAteHora.length > 0) {
+                 hourlyLevels[h] = leiturasAteHora[leiturasAteHora.length - 1].nivel;
+            } else {
+                 hourlyLevels[h] = valOntem; 
+            }
         }
 
-        let hourlyLevels = new Array(24).fill(null);
-        let lastKnownLevel = valOntem;
-        let ultimoAbastecimentoTime = null;
+        let concatReais = [];
+        if (valOntem !== null) {
+            concatReais.push({ timestamp: new Date(dataStr + "T00:00:00").getTime(), nivel: valOntem });
+        }
+        concatReais = concatReais.concat(arrayHoje);
 
-        // Distribui os registros de hoje nas 24 horas (Sempre pega a última leitura daquela hora)
-        let keysHoje = Object.keys(dadosHojeParsed).sort();
-        keysHoje.forEach(k => {
-             let h = parseInt(k.split(':')[0]);
-             let val = extractLevel(dadosHojeParsed[k]);
-             if (!isNaN(h) && h >= 0 && h <= 23 && val !== null) {
-                  hourlyLevels[h] = val; // Sobrescreve para usar o último minuto que salvou naquela hora
-                  
-                  if (lastKnownLevel !== null && val > lastKnownLevel + 5) {
-                       ultimoAbastecimentoTime = k;
-                  }
-                  lastKnownLevel = val;
-             }
-        });
+        for (let i = 1; i < concatReais.length; i++) {
+            let prev = concatReais[i-1];
+            let curr = concatReais[i];
 
-        // Preenchimento de Rampa e Limpeza
-        if (hourlyLevels[0] === null && valOntem !== null) hourlyLevels[0] = valOntem;
-        
-        let lastValidIdx = -1;
-        for (let i = 0; i <= currentHour; i++) {
-            if (hourlyLevels[i] !== null) {
-                if (lastValidIdx !== -1 && i - lastValidIdx > 1) {
-                    let startV = hourlyLevels[lastValidIdx];
-                    let endV = hourlyLevels[i];
-                    let diffPerBin = (endV - startV) / (i - lastValidIdx);
-                    for (let j = lastValidIdx + 1; j < i; j++) {
-                        hourlyLevels[j] = Math.round(startV + diffPerBin * (j - lastValidIdx));
+            if (prev.nivel > curr.nivel) {
+                let diffLitros = calcularVolumeLitros(prev.nivel) - calcularVolumeLitros(curr.nivel);
+                if (diffLitros > 0 && diffLitros <= (capacidadeTotal * 0.50)) {
+                    let hourOfDrop = new Date(curr.timestamp).getHours();
+                    if (hourOfDrop >= 0 && hourOfDrop <= 23) {
+                        consumoFinal[hourOfDrop] += diffLitros;
                     }
                 }
-                lastValidIdx = i;
+            } else if (curr.nivel >= prev.nivel + 5) { 
+                let d = new Date(curr.timestamp);
+                ultimoAbastecimentoTime = String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0');
             }
         }
-        
-        if (lastValidIdx !== -1 && lastValidIdx < currentHour) {
-             let lastV = hourlyLevels[lastValidIdx];
-             for(let i = lastValidIdx + 1; i <= currentHour; i++) hourlyLevels[i] = lastV;
-        }
 
-        for (let i = 0; i < 24; i++) niveisLine[i] = hourlyLevels[i];
-
-        // --- CÁLCULO DE CONSUMO ---
-        // Distribui suavemente as quedas entre as horas se ficou travado no topo
-        for (let h = 0; h <= currentHour; h++) {
-            let valAtual = hourlyLevels[h];
-            let valAnterior = (h === 0) ? valOntem : hourlyLevels[h-1];
-            
-            if (valAtual !== null && valAnterior !== null) {
-                 let diffLitros = calcularVolumeLitros(valAnterior) - calcularVolumeLitros(valAtual);
-                 if (diffLitros > 0 && diffLitros < (capacidadeTotal * 0.50)) {
-                      consumoFinal[h] += diffLitros;
-                 }
+        for (let i = 0; i < 24; i++) {
+            if (isToday && i > currentHour) {
+                hourlyLevels[i] = null;
             }
         }
-        
-        for(let i=0; i<24; i++) consumoFinal[i] = Math.round(consumoFinal[i]);
 
-        // Insights Panel
         if (isToday) {
             try {
-                let nivelAgora = niveisLine[lastValidIdx] || 0;
-                let nivelAntes = (lastValidIdx > 0) ? niveisLine[lastValidIdx - 1] : valOntem;
+                let nivelAgora = hourlyLevels[currentHour];
+                let nivelAntes = (currentHour > 0) ? hourlyLevels[currentHour - 1] : valOntem;
                 if(nivelAntes === null) nivelAntes = nivelAgora;
+                if(nivelAgora === null) nivelAgora = nivelAntes;
                 
                 let elUltimaHora = document.getElementById('insight-ultima-hora');
                 let elConsumoHora = document.getElementById('insight-consumo-hora');
                 let elStatus = document.getElementById('insight-status');
                 
-                if (elUltimaHora && elConsumoHora) {
+                if (elUltimaHora && elConsumoHora && nivelAgora !== null && nivelAntes !== null) {
                     let diffPct = nivelAgora - nivelAntes;
                     if (diffPct <= -1) {
                         let litrosCaiu = calcularVolumeLitros(nivelAntes) - calcularVolumeLitros(nivelAgora);
@@ -999,7 +1004,7 @@ async function carregarHistoricoEConsumo() {
             } catch(e) {}
         }
 
-        result = { labelsLine: labelsLine, niveisLine: niveisLine, consumo: consumoFinal }; 
+        let result = { labelsLine: labelsLine, niveisLine: hourlyLevels, consumo: consumoFinal }; 
         atualizarGraficosHistorico(result); 
         atualizarGraficosConsumo(result); 
     } 
@@ -1007,7 +1012,7 @@ async function carregarHistoricoEConsumo() {
 
 /* --- STREAMING_CHUNK:Lógica de Abastecimento Automático --- */
 async function registrarAbastecimentoAutomatico(litros, nivelAntes, nivelDepois) {
-    if (Date.now() - lastAutoRefillTime < 300000) return; // Segurança contra flood
+    if (Date.now() - lastAutoRefillTime < 300000) return; 
     lastAutoRefillTime = Date.now();
     const agora = new Date();
     const dados = { litros: Number(litros), timestamp: agora.getTime(), data_legivel: agora.toISOString(), tipo: 'automatico', detalhes: `Subida de ${nivelAntes}% para ${nivelDepois}%` };
@@ -1021,7 +1026,7 @@ function checkAutoRefill(currentLevel) {
     if (arLastLevel === -1) { arLastLevel = currentLevel; arMinLevel = currentLevel; return; }
 
     const agora = Date.now();
-    const noiseThreshold = 2; // Ignora marolas de 2%
+    const noiseThreshold = 2;
 
     if (currentLevel <= arLastLevel - noiseThreshold) {
         if (arState === 'FILLING') {
@@ -1047,9 +1052,7 @@ function checkAutoRefill(currentLevel) {
         arStableTime = agora;
 
     } else {
-        // --- 5 MINUTOS DE CONFIRMAÇÃO ---
-        // Se ficou FILLING e parou por 5 minutos (300000ms), confirma o abastecimento!
-        if (arState === 'FILLING' && (agora - arStableTime > 300000)) {
+        if (arState === 'FILLING' && (agora - arStableTime > 180000)) {
             const diff = arMaxLevel - arMinLevel;
             if (diff >= 5) {
                 const litros = calcularVolumeLitros(arMaxLevel) - calcularVolumeLitros(arMinLevel);
@@ -1068,20 +1071,53 @@ async function carregarHistoricoAbastecimento() {
     if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; 
     try { 
         let dados = null; 
-        try { const r = await safeFetch(`${PATH_ABASTECIMENTO}?orderBy="$key"&limitToLast=100`); if (r) dados = r; } catch(e) {} 
+        try { const r = await safeFetch(`${PATH_ABASTECIMENTO}`); if (r) dados = r; } catch(e) {} 
         if(listaUL) listaUL.innerHTML = ''; 
-        if (dados) { 
-            const ids = Object.keys(dados).sort().reverse(); 
-            const idsParaLista = ids.slice(0, 5); 
-            if (idsParaLista.length === 0) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; 
+        let chartLabels = [];
+        let chartData = [];
+
+        if (dados && Object.keys(dados).length > 0) { 
+            const ids = Object.keys(dados).sort((a,b) => dados[a].timestamp - dados[b].timestamp); 
+            
+            const idsParaLista = [...ids].reverse().slice(0, 5); 
+            if (idsParaLista.length === 0 && listaUL) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; 
             idsParaLista.forEach(id => { 
                 const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); 
                 li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; 
                 listaUL.appendChild(li); 
             }); 
+            
+            const elMes = document.getElementById('mesAbastecimento');
+            const selSemana = document.getElementById('filtroSemana');
+            let targetMonth = elMes && elMes.value ? elMes.value : getLocalISODate(new Date()).substring(0,7);
+            let filterWeek = selSemana ? selSemana.value : 'todas';
+            
+            let dailyTotals = {};
+            ids.forEach(id => {
+                let item = dados[id];
+                let dObj = new Date(item.timestamp);
+                let localD = getLocalISODate(dObj);
+                if (localD.startsWith(targetMonth)) {
+                    let day = dObj.getDate();
+                    let weekNum = Math.ceil(day / 7);
+                    if (filterWeek === 'todas' || filterWeek == weekNum || (filterWeek == '4' && weekNum >= 4)) {
+                        dailyTotals[localD] = (dailyTotals[localD] || 0) + Number(item.litros);
+                    }
+                }
+            });
+            
+            chartLabels = Object.keys(dailyTotals).sort();
+            chartData = chartLabels.map(k => dailyTotals[k]);
+            chartLabels = chartLabels.map(k => k.split('-')[2] + '/' + k.split('-')[1]);
         } else { 
             if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; 
         } 
+        
+        if (chartAbastecimento) {
+            chartAbastecimento.data.labels = chartLabels;
+            chartAbastecimento.data.datasets[0].data = chartData;
+            chartAbastecimento.update();
+        }
     } catch (e) {} 
 }
 
@@ -1098,7 +1134,7 @@ async function salvarAbastecimento(litros) {
             let novoNivel = (nivelAtual > 0 ? nivelAtual : 0) + pctToAdd;
             if (novoNivel > 100) novoNivel = 100;
             await fetch(PATH_TEMPO_REAL, { method: 'PATCH', body: JSON.stringify({ nivel_pct: novoNivel, timestamp: agora.getTime() }) });
-            renderNivel(novoNivel, true);
+            renderNivel(novoNivel, false);
         }
         document.getElementById('litros-abastecidos').value = ''; 
         carregarHistoricoAbastecimento(); 
@@ -1129,7 +1165,6 @@ async function carregarConfiguracoesGerais() {
     } catch (e) {} 
 }
 
-/* --- STREAMING_CHUNK:Lógica de Contatos (E-mail) Restaurada --- */
 async function carregarContatos() {
     const listaUL = document.getElementById('lista-contatos');
     if(!listaUL) return;
@@ -1183,12 +1218,12 @@ window.removerContato = async function(id) {
 };
 
 /* --- STREAMING_CHUNK:Renderizando status e animação no DOM --- */
-function renderNivel(nivelPct, isSimulado = false) {
+function renderNivel(nivelPct, isOfflineStatus = false) {
     nivelAtual = nivelPct; 
     const elTexto = document.getElementById("status-level");
     if (elTexto) {
         elTexto.innerText = `${Math.round(nivelPct)}%`;
-        if (isSimulado) elTexto.style.color = '#d97706'; 
+        if (isOfflineStatus) elTexto.style.color = 'var(--level-offline)'; 
         else if (nivelPct > 60) elTexto.style.color = 'var(--level-ok)';
         else if (nivelPct > nivelAlertaConfigurado) elTexto.style.color = 'var(--level-warn)';
         else elTexto.style.color = 'var(--level-danger)';
@@ -1198,9 +1233,20 @@ function renderNivel(nivelPct, isSimulado = false) {
     if (elBarra) {
         elBarra.style.height = `${nivelPct}%`;
         elBarra.innerText = `${Math.round(nivelPct)}%`;
-        if (nivelPct > 60) elBarra.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
-        else if (nivelPct > nivelAlertaConfigurado) elBarra.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
-        else elBarra.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+        
+        if (isOfflineStatus) {
+            elBarra.style.background = 'linear-gradient(to top, #94a3b8, #cbd5e1)';
+            elBarra.style.color = '#fff';
+        } else if (nivelPct > 60) {
+            elBarra.style.background = 'linear-gradient(to top, #00ffcc, #1e90ff)';
+            elBarra.style.color = 'white';
+        } else if (nivelPct > nivelAlertaConfigurado) {
+            elBarra.style.background = 'linear-gradient(to top, #ffff66, #ffcc00)';
+            elBarra.style.color = 'white';
+        } else {
+            elBarra.style.background = 'linear-gradient(to top, #ff3333, #990000)';
+            elBarra.style.color = 'white';
+        }
     }
 
     const statusDisplay = document.getElementById('status-display');
@@ -1218,9 +1264,12 @@ function renderNivel(nivelPct, isSimulado = false) {
         ledVermelho.classList.remove('aceso');
         ledAmarelo.classList.remove('aceso');
         ledVerde.classList.remove('aceso');
-        if (nivelPct > 60) ledVerde.classList.add('aceso');
-        else if (nivelPct > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
-        else ledVermelho.classList.add('aceso');
+        
+        if (!isOfflineStatus) {
+            if (nivelPct > 60) ledVerde.classList.add('aceso');
+            else if (nivelPct > nivelAlertaConfigurado) ledAmarelo.classList.add('aceso');
+            else ledVermelho.classList.add('aceso');
+        }
     }
 
     if(document.getElementById('status-litros')) {
@@ -1228,16 +1277,19 @@ function renderNivel(nivelPct, isSimulado = false) {
     }
     if(document.getElementById('status-time')) {
         const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('status-time').innerText = isSimulado ? timeStr + "*" : timeStr;
+        document.getElementById('status-time').innerText = timeStr;
     }
     
     const liveIndicator = document.getElementById('live-indicator');
-    const simIndicator = document.getElementById('simulated-indicator');
     if (liveIndicator) {
-        if (isSimulado) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); } 
+        if (isOfflineStatus) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); } 
         else { liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online'); }
     }
-    if (simIndicator) { simIndicator.style.display = isSimulado ? 'inline-flex' : 'none'; }
+    
+    const offlineWarning = document.getElementById('offline-warning-msg');
+    if (offlineWarning) {
+        offlineWarning.style.display = isOfflineStatus ? 'block' : 'none';
+    }
 }
 
 async function salvarUltimaLeituraValida(nivel, timestamp) {
@@ -1247,29 +1299,8 @@ async function salvarUltimaLeituraValida(nivel, timestamp) {
 
 async function buscarBackupUltimaValidaFirebase() {
     const url = `${PATH_CONFIG_BASE}/ultima_leitura_valida.json`;
-    try { const r = await safeFetch(url); if (r && r.nivel) return r; } catch(e) {}
+    try { const r = await safeFetch(url); if (r && r.timestamp) return r; } catch(e) {}
     return null;
-}
-
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
-    const agora = Date.now();
-    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
-    let nivelSimulado = nivelInicial;
-    let quedasAplicadas = 0;
-    while (horasPassadas > 0 && nivelSimulado > 0) {
-        let duracaoBloco = 2; 
-        quedasAplicadas++;
-        if (quedasAplicadas <= 4) { duracaoBloco = 2; }
-        else if (quedasAplicadas <= 6) { duracaoBloco = 6; }
-        else if (quedasAplicadas <= 8) { duracaoBloco = 4; }
-        else { duracaoBloco = 2; }
-        
-        if (horasPassadas >= duracaoBloco) {
-            nivelSimulado -= 5;
-            horasPassadas -= duracaoBloco;
-        } else { break; }
-    }
-    return Math.max(0, nivelSimulado);
 }
 
 /* --- STREAMING_CHUNK:Loop de atualização do Iframe (Live) --- */
@@ -1283,52 +1314,75 @@ async function loopDeAtualizacao() {
 
   try {
     const dados = await safeFetch(PATH_TEMPO_REAL);
-    let nivelCru = extractLevel(dados);
+    let nivelCru = aplicarFiltroMediana(extractLevel(dados));
     let nivelFinal = 0;
-    let isSimulado = false;
+    let isOfflineStatus = false;
+    const agora = Date.now();
 
-    if (nivelCru !== null && nivelCru > 0) {
-        nivelFinal = nivelCru; 
-        isSimulado = false;
+    if (dados) {
+        let currentUptime = dados.timestamp ?? dados.time ?? dados.ts ?? dados.tempo_atividade ?? JSON.stringify(dados);
+        let statusPlaca = dados.status_leitura ?? null;
 
-        checkAutoRefill(nivelFinal);
-
-        const agora = Date.now();
-        
-        // SALVAMENTO VITAL: Grava a cada 1 minuto ou se a água variar 1% na hora!
-        if (agora - lastSavedValidTime >= 60000 || Math.abs(nivelFinal - lastSavedLevel) >= 1.0) {
-            await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real'); 
-            salvarUltimaLeituraValida(nivelFinal, agora);
-            lastSavedValidTime = agora;
-            lastSavedLevel = nivelFinal;
-            
-            // INJEÇÃO AO VIVO NO GRÁFICO (Entorta a linha do gráfico imediatamente)
-            if (typeof chartLinha !== 'undefined' && chartLinha && currentView === 'diario') {
-                const h = new Date().getHours();
-                if (chartLinha.data.datasets[0].data.length >= 24) {
-                     chartLinha.data.datasets[0].data[h] = nivelFinal;
-                     chartLinha.update('none'); // Update sem animação para parecer suave e contínuo
-                }
+        if (isFirstLoad) {
+            lastUptime = currentUptime;
+            const backup = await buscarBackupUltimaValidaFirebase();
+            if (backup) {
+                 if (backup.timestamp) lastRealTime = backup.timestamp;
+                 if (backup.nivel) backupCacheNivel = backup.nivel;
+            } else {
+                 lastRealTime = 0; // Assume offline na dúvida se não houver backup
+            }
+            isFirstLoad = false;
+        } else {
+            if (currentUptime !== lastUptime) {
+                lastUptime = currentUptime;
+                lastRealTime = agora;
+                if (nivelCru > 0) salvarUltimaLeituraValida(nivelCru, agora);
             }
         }
 
-    } else {
-        isSimulado = true;
-        let baseNivel = 0;
-        let baseTime = 0;
-
-        const backup = await buscarBackupUltimaValidaFirebase();
-        if (backup) {
-            baseNivel = backup.nivel;
-            baseTime = backup.timestamp;
+        if (agora - lastRealTime > 300000 || statusPlaca === "FALHA") {
+            isOfflineStatus = true;
         }
-
-        if (baseNivel > 0) { nivelFinal = calcularNivelSimuladoLatch(baseNivel, baseTime); } 
-        else { nivelFinal = 0; }
+    } else {
+        isOfflineStatus = true; 
     }
 
-    renderNivel(nivelFinal, isSimulado);
-    ultimoUpdateEmMs = Date.now();
+    if (nivelCru !== null && nivelCru > 0) {
+        nivelFinal = nivelCru; 
+
+        if (!isOfflineStatus) {
+            checkAutoRefill(nivelFinal);
+            
+            if (agora - lastSavedValidTime >= 3600000 || Math.abs(nivelFinal - lastSavedLevel) >= 1.0) {
+                await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real'); 
+                lastSavedValidTime = agora;
+                lastSavedLevel = nivelFinal;
+                
+                if (typeof chartLinha !== 'undefined' && chartLinha && currentView === 'diario') {
+                    const h = new Date().getHours();
+                    if (chartLinha.data.datasets[0].data.length >= 24) {
+                         chartLinha.data.datasets[0].data[h] = nivelFinal;
+                         chartLinha.update('none'); 
+                    }
+                }
+            }
+        }
+    } 
+
+    if (isOfflineStatus || nivelCru === null || nivelCru <= 0) {
+        if (lastSavedLevel > 0) {
+            nivelFinal = lastSavedLevel;
+        } else if (backupCacheNivel > 0) {
+            nivelFinal = backupCacheNivel;
+        } else {
+            nivelFinal = 0;
+        }
+        isOfflineStatus = true;
+    }
+
+    renderNivel(nivelFinal, isOfflineStatus);
+    ultimoUpdateEmMs = agora;
 
   } catch (e) {}
 }
@@ -1398,7 +1452,10 @@ window.addEventListener('load', function() {
     const hoje = new Date(); 
     const mesAtual = getLocalISODate(hoje).substring(0, 7); 
     const elMesAbast = document.getElementById('mesAbastecimento'); 
-    if(elMesAbast) { elMesAbast.value = mesAtual; } 
+    if(elMesAbast) { elMesAbast.value = mesAtual; elMesAbast.addEventListener('change', carregarHistoricoAbastecimento); } 
+    
+    const selSemanaAbast = document.getElementById('filtroSemana');
+    if (selSemanaAbast) { selSemanaAbast.addEventListener('change', carregarHistoricoAbastecimento); }
     
     const btnAtAbast = document.getElementById('btnAtualizarAbastecimento'); 
     if(btnAtAbast) { btnAtAbast.onclick = carregarHistoricoAbastecimento; }
@@ -1493,6 +1550,9 @@ const listSAU = [
     { id: 'sau14', name: 'SAU 14', city: 'Contagem', coords: '-19.885817,-44.050631', monitor: false, active: false, telegramBot: 'Bot_Da_SAU14', firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
 ];
 
+const unitStates = {}; 
+let isUpdatingDashboard = false;
+
 function renderGrid(containerId, list, iconClass) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
@@ -1516,7 +1576,6 @@ function renderGrid(containerId, list, iconClass) {
                 <div class="card-water-bg" id="bg-${item.id}"></div>
                 <div class="card-content">
                     <div class="live-dot" style="display: ${item.active && !item.maintenance ? 'block' : 'none'};"></div>
-                    <div class="simulated-badge" title="Valor Estimado" style="display: none;">!</div>
                     <i class="${iconClass} card-icon"></i>
                     <div class="card-title">${item.name}</div>
                     ${pillHtml}
@@ -1561,7 +1620,6 @@ function prepararAbertura(id) {
     rawHTML = rawHTML.replace(/__FIREBASE_DATA_PATH__/g, item.firebaseDataPath);
     rawHTML = rawHTML.replace(/__FIREBASE_CONFIG_PATH__/g, item.firebaseConfigPath);
     rawHTML = rawHTML.replace(/__FIREBASE_HIST_PATH__/g, item.firebaseHistPath);
-    rawHTML = rawHTML.replace(/__STORAGE_KEY_PREFIX__/g, item.id); 
 
     abrirApp(rawHTML);
 }
@@ -1583,29 +1641,6 @@ function fecharApp() {
     dashboardInterval = setInterval(updateDashboardData, 10000); 
 }
 
-function calcularNivelSimuladoLatch(nivelInicial, timestampInicial) {
-    const agora = Date.now();
-    let horasPassadas = (agora - timestampInicial) / (1000 * 60 * 60);
-    let nivelSimulado = nivelInicial;
-    let quedasAplicadas = 0;
-
-    while (horasPassadas > 0 && nivelSimulado > 0) {
-        let duracaoBloco = 2;
-        quedasAplicadas++;
-        if (quedasAplicadas <= 4) { duracaoBloco = 8; }
-        else if (quedasAplicadas <= 6) { duracaoBloco = 6; }
-        else if (quedasAplicadas <= 8) { duracaoBloco = 4; }
-        else { duracaoBloco = 2; }
-
-        if (horasPassadas >= duracaoBloco) {
-            nivelSimulado -= 5;
-            horasPassadas -= duracaoBloco;
-        } else { break; }
-    }
-    if (nivelSimulado < 0) nivelSimulado = 0;
-    return nivelSimulado;
-}
-
 function cleanFirebaseUrl(baseUrl, path) {
     let cleanBase = baseUrl.trim();
     if(cleanBase.endsWith('/')) cleanBase = cleanBase.slice(0, -1);
@@ -1623,15 +1658,19 @@ async function safeFetchDashboard(url) {
 }
 
 async function updateDashboardData() {
+    if (isUpdatingDashboard) return;
+    isUpdatingDashboard = true;
+
     const allItems = [...listPP, ...listSAU];
+    const agora = Date.now();
     
-    for (const item of allItems) {
+    // Promise.all garante velocidade máxima varrendo tudo em paralelo
+    await Promise.all(allItems.map(async (item) => {
         const card = document.getElementById(`card-${item.id}`);
         const elLvl = document.getElementById(`lvl-${item.id}`);
         const elBg = document.getElementById(`bg-${item.id}`);
         const statusTxt = card ? card.querySelector('.card-status') : null;
         const dot = card ? card.querySelector('.live-dot') : null;
-        const badge = card ? card.querySelector('.simulated-badge') : null;
 
         if (item.maintenance) {
             item.active = true;
@@ -1642,12 +1681,11 @@ async function updateDashboardData() {
                 
                 if(statusTxt) statusTxt.innerText = 'Em manutenção';
                 if(dot) dot.style.display = 'none';
-                if(badge) badge.style.display = 'none';
                 
                 if(elLvl) { elLvl.innerText = '0%'; elLvl.style.color = 'var(--text-sec)'; }
                 if(elBg) elBg.style.height = `0%`;
             }
-            continue; 
+            return; 
         }
 
         if (!item.monitor) {
@@ -1658,42 +1696,63 @@ async function updateDashboardData() {
                 card.setAttribute('data-status', 'danger');
                 if(statusTxt) statusTxt.innerText = 'Manual';
                 if(dot) dot.style.display = 'none';
-                if(badge) badge.style.display = 'none';
                 if(elLvl) { elLvl.innerText = '--%'; elLvl.style.color = 'var(--text-sec)'; }
                 if(elBg) elBg.style.height = `0%`;
             }
-            continue; 
+            return; 
         }
 
         try {
             const urlReal = cleanFirebaseUrl(DB_BASE, item.firebaseDataPath);
             const d = await safeFetchDashboard(urlReal);
             
-            let lvl = 0; let isSimulated = false; let rawLvl = 0;
+            let rawLvl = 0; let isOffline = false;
+
+            if (!unitStates[item.id]) {
+                unitStates[item.id] = { lastUptime: null, lastRealTime: 0, lastValidPct: 0, initialized: false };
+            }
+            let state = unitStates[item.id];
 
             if(d) {
                 if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
                 else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
                 else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
-            }
-            
-            if (rawLvl > 0) {
-                lvl = rawLvl; isSimulated = false;
-            } else {
-                let lastValidPct = 0; let lastValidTime = 0;
-                if (d && d.ultima_valida_pct > 0 && d.ultima_valida_time > 0) {
-                      lastValidPct = d.ultima_valida_pct; lastValidTime = d.ultima_valida_time;
-                } 
-                if (lastValidPct === 0) {
+                
+                // O Heartbeat Universal: Qualquer alteração significa que a placa está VIVA
+                let currentUptime = d.timestamp ?? d.time ?? d.ts ?? d.tempo_atividade ?? JSON.stringify(d);
+                let isFalha = d.status_leitura === "FALHA";
+
+                if (!state.initialized) {
+                    state.lastUptime = currentUptime;
+                    state.lastRealTime = 0; // Inicia duvidando da conexão
+                    
                     try {
                         const urlBackup = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
                         const backup = await safeFetchDashboard(urlBackup);
-                        if(backup && backup.nivel) { lastValidPct = backup.nivel; lastValidTime = backup.timestamp; }
-                    } catch(e2){}
+                        if(backup && backup.timestamp) {
+                            state.lastRealTime = backup.timestamp;
+                            state.lastValidPct = backup.nivel || 0;
+                        }
+                    } catch(e) {}
+                    
+                    state.initialized = true;
+                } else {
+                    if (currentUptime !== state.lastUptime) {
+                        state.lastUptime = currentUptime;
+                        state.lastRealTime = agora; 
+                        if (rawLvl > 0) state.lastValidPct = rawLvl;
+                    }
                 }
-                if (lastValidPct > 0) { lvl = calcularNivelSimuladoLatch(lastValidPct, lastValidTime); isSimulated = true; } 
-                else { lvl = 0; }
+
+                if (agora - state.lastRealTime > 300000 || isFalha) {
+                    isOffline = true;
+                }
+            } else {
+                isOffline = true;
             }
+            
+            let lvl = (rawLvl > 0) ? rawLvl : state.lastValidPct;
+            if (lvl === 0 && rawLvl === 0) isOffline = true;
             
             if (lvl > 0) {
                 item.active = true;
@@ -1702,15 +1761,23 @@ async function updateDashboardData() {
                     card.setAttribute('onclick', `prepararAbertura('${item.id}')`);
                     card.removeAttribute('data-status');
                     
-                    if(lvl > 60) { card.setAttribute('data-status', 'ok'); if(elLvl) elLvl.style.color = 'var(--level-ok)'; } 
-                    else if (lvl > 30) { card.setAttribute('data-status', 'warn'); if(elLvl) elLvl.style.color = 'var(--level-warn)'; } 
-                    else { card.setAttribute('data-status', 'danger'); if(elLvl) elLvl.style.color = 'var(--level-danger)'; }
+                    if (isOffline) {
+                        card.setAttribute('data-status', 'offline'); 
+                        if(elLvl) elLvl.style.color = 'var(--level-offline)';
+                        if(statusTxt) statusTxt.innerText = 'Offline (Última lida)';
+                        if(dot) dot.style.display = 'none';
+                        if(elBg) { elBg.style.height = `${lvl}%`; elBg.style.background = 'linear-gradient(to top, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.5))'; }
+                    } else {
+                        if(lvl > 60) { card.setAttribute('data-status', 'ok'); if(elLvl) elLvl.style.color = 'var(--level-ok)'; } 
+                        else if (lvl > 30) { card.setAttribute('data-status', 'warn'); if(elLvl) elLvl.style.color = 'var(--level-warn)'; } 
+                        else { card.setAttribute('data-status', 'danger'); if(elLvl) elLvl.style.color = 'var(--level-danger)'; }
+                        
+                        if(statusTxt) statusTxt.innerText = 'Online';
+                        if(dot) dot.style.display = 'block';
+                        if(elBg) { elBg.style.height = `${lvl}%`; elBg.style.background = ''; } 
+                    }
 
-                    if(statusTxt) statusTxt.innerText = isSimulated ? 'Estimado (Sem Sinal)' : 'Online';
-                    if(dot) dot.style.display = isSimulated ? 'none' : 'block';
-                    if(badge) badge.style.display = isSimulated ? 'flex' : 'none';
                     if(elLvl) elLvl.innerText = `${lvl}%`;
-                    if(elBg) elBg.style.height = `${lvl}%`;
                 }
             } else {
                 item.active = false;
@@ -1721,14 +1788,14 @@ async function updateDashboardData() {
                     
                     if(statusTxt) statusTxt.innerText = 'Offline';
                     if(dot) dot.style.display = 'none';
-                    if(badge) badge.style.display = 'none';
-                    
                     if(elLvl) { elLvl.innerText = '--%'; elLvl.style.color = 'var(--text-sec)'; }
-                    if(elBg) elBg.style.height = `0%`;
+                    if(elBg) { elBg.style.height = `0%`; elBg.style.background = ''; }
                 }
             }
         } catch(e) {}
-    }
+    }));
+
+    isUpdatingDashboard = false;
 }
 
 let isDark = false;
