@@ -202,6 +202,13 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
         <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
         <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo Via Cristais" onerror="this.style.display='none'; document.querySelector('h1').style.marginTop='20px'">
         <h1>Central de Monitoramento</h1>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px; margin-top:12px;">
+            <div style="font-size:0.82rem; color:var(--text-sec); font-weight:600;"><i class="fas fa-share-nodes" style="margin-right:5px;"></i>Compartilhar o monitoramento — clique aqui</div>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button onclick="compartilharLink('whatsapp')" title="Enviar link pelo WhatsApp" style="border:none; background:#25D366; color:#fff; padding:8px 14px; border-radius:10px; font-weight:600; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px;"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                <button onclick="compartilharLink('email')" title="Enviar link por e-mail" style="border:none; background:#64748b; color:#fff; padding:8px 14px; border-radius:10px; font-weight:600; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px;"><i class="fas fa-envelope"></i> E-mail</button>
+            </div>
+        </div>
     </div>
 
     <div class="section-title">Praças de Pedágio</div>
@@ -212,7 +219,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 </div>
 
 <div id="app-overlay">
-    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
+    <iframe id="app-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation allow-downloads"></iframe>
 </div>
 
 <!-- --- STREAMING_CHUNK:Renderizando Template da Pagina Secundária --- -->
@@ -232,6 +239,7 @@ h1 { font-size: 1.2rem; color: var(--text-sec); margin: 0; font-weight: 600; tex
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* CSS do App Interno */
 :root { --bg-body: #f0f2f5; --text-main: #1e293b; --text-sec: #64748b; --card-bg: rgba(255, 255, 255, 0.95); --card-border: rgba(226, 232, 240, 0.8); --header-bg: rgba(255, 255, 255, 0.98); --accent: #06b6d4; --accent-hover: #0891b2; --input-bg: #f8fafc; --input-border: #cbd5e1; --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); --level-ok: #10b981; --level-warn: #f59e0b; --level-danger: #ef4444; --level-offline: #94a3b8;}
@@ -508,6 +516,10 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
         <div class="kpi-title">Status do Consumo</div>
         <div class="kpi-value" id="kpi-consumo-status" style="font-size: 1.2rem; margin-top: 5px;">Normal</div>
     </div>
+    <div class="kpi-card glass-panel">
+        <div class="kpi-title">Média de Consumo</div>
+        <div class="kpi-value" id="kpi-consumo-media" style="color: var(--accent);">-- L/h</div>
+    </div>
 </div>
 
 <div class="controls" style="display:flex; align-items: center; justify-content:center; gap:10px; margin-bottom: 15px;">
@@ -532,6 +544,16 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo ViaCristais">
 <h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
 <div class="config-board">
+<div class="config-card glass-panel" style="grid-column: 1 / -1;">
+<h2><i class="fas fa-file-export" style="color:var(--accent);"></i> Relatórios do Gráfico</h2>
+<p style="font-size:0.75rem; color:var(--text-sec); margin:0 0 10px;">Exporta as leituras do dia selecionado no gráfico (nível e consumo).</p>
+<div style="display:flex; gap:10px; flex-wrap:wrap;">
+<button onclick="exportarPDF()" class="modern-button" style="background:#ef4444; color:#fff; flex:1; min-width:120px;"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+<button onclick="exportarCSV()" class="modern-button" style="background:#22a06b; color:#fff; flex:1; min-width:120px;"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+<button onclick="enviarRelatorioEmail()" class="modern-button" style="background:#334155; color:#fff; flex:1; min-width:120px;"><i class="fas fa-envelope"></i> Enviar por e-mail</button>
+</div>
+<div id="status-exportar" class="small" style="font-weight:bold; margin-top:8px;"></div>
+</div>
 <div class="config-card glass-panel">
 <h2>Capacidade (L)</h2>
 <div class="form-group">
@@ -616,7 +638,6 @@ O volume reservado para <strong>combate a incêndio não é monitorado</strong> 
 </div>
 </div>
 
-<button id="info-open-btn" title="Sobre o monitoramento" style="position:fixed; right:14px; bottom:14px; z-index:1500; width:42px; height:42px; border-radius:50%; border:none; background:#64748b; color:#fff; font-size:1rem; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,0.25);"><i class="fas fa-info"></i></button>
 <div class="header-right" id="date-controls" style="display: none;">
 <div class="view-selector">
 <button id="btn-view-diario" class="view-btn active" data-view="diario">Hoje</button>
@@ -669,7 +690,18 @@ window.toggleTheme = function(e) {
     isDarkMode = !isDarkMode; 
     applyTheme(); 
 };
-function checkAutoTheme() { try { const savedTheme = localStorage.getItem('theme'); if (savedTheme) { isDarkMode = (savedTheme === 'dark'); applyTheme(); return; } } catch (e) {} const hora = new Date().getHours(); isDarkMode = (hora >= 18 || hora < 6); applyTheme(); }
+let ultimoPeriodoTema = null;
+function periodoTema() { const h = new Date().getHours(); return (h >= 18 || h < 6) ? 'noite' : 'dia'; }
+// Tema automatico por horario: 18h -> escuro, 6h -> claro. Muda ao CRUZAR o
+// horario (assim um toque manual no tema vale ate o proximo 6h/18h).
+function checkAutoTheme(forcar) {
+    const p = periodoTema();
+    if (!forcar && p === ultimoPeriodoTema) return;
+    ultimoPeriodoTema = p;
+    isDarkMode = (p === 'noite');
+    applyTheme();
+}
+setInterval(() => { try { checkAutoTheme(false); } catch(e){} }, 60000);
 function applyTheme() { const body = document.body; const icon = document.querySelector('.nav-button-icon-only[title="Alternar Tema"] i'); if (isDarkMode) { body.setAttribute('data-theme', 'dark'); if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } try { localStorage.setItem('theme', 'dark'); } catch(e){} } else { body.removeAttribute('data-theme'); body.style.display='none'; body.offsetHeight; body.style.display=''; if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } try { localStorage.setItem('theme', 'light'); } catch(e){} } try { criarGraficos(); if(activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); if(activeTab === 'abastecimento') carregarHistoricoAbastecimento(); } catch(e){} }
 
 try { const savedTheme = localStorage.getItem('theme'); if (savedTheme === 'dark') { isDarkMode = true; document.body.setAttribute('data-theme', 'dark'); } } catch (e) {}
@@ -697,6 +729,10 @@ let backupCacheNivel = 0;
 
 // Filtro Fantasma
 let ghostFilterBuffer = [];
+// Dados do ultimo dia carregado no grafico (para exportar PDF/Excel)
+let ultimoDadosRelatorio = null;
+// Dados de abastecimento para o relatorio PDF
+let ultimoAbastecimentoDados = { labels: [], data: [], lista: [] };
 
 let audioContext, oscillator, gainNode, lfo, lfoGain, isAlarmPlaying = false;
 
@@ -812,8 +848,12 @@ function atualizarGraficosConsumo(result) {
     const lblTotal = document.getElementById('lbl-consumo-total');
     
     if (elTotal && elPico && elStatus) {
-        let totalConsumo = consumoData.reduce((a, b) => a + (b || 0), 0);
-        let picoConsumo = Math.max(...consumoData.map(v => v || 0));
+        let totalConsumo = (result.somaConsumoReal !== undefined) ? result.somaConsumoReal : consumoData.reduce((a, b) => a + (b || 0), 0);
+        let picoConsumo = (result.picoConsumoReal !== undefined) ? result.picoConsumoReal : Math.max(...consumoData.map(v => v || 0));
+
+        const elMedia = document.getElementById('kpi-consumo-media');
+        if (elMedia) elMedia.innerText = (result.mediaConsumo || 0).toFixed(0) + ' L/h';
+
         elTotal.innerText = totalConsumo.toFixed(0) + ' L';
         
         if (currentView === 'diario') {
@@ -832,6 +872,250 @@ function atualizarGraficosConsumo(result) {
             }
         }
     }
+}
+
+/* ===== EXPORTAR RELATORIOS (PDF / EXCEL / E-MAIL) ===== */
+function statusExportar(msg, cor) {
+    const el = document.getElementById('status-exportar');
+    if (el) { el.innerText = msg; el.style.color = cor || 'var(--text-sec)'; }
+}
+
+// SALVA o arquivo. No computador, baixa direto. No celular (WebView do Kodular),
+// o download comum de blob nao funciona, entao abrimos a folha do Android, onde
+// ha "Salvar em Arquivos" (alem de Drive, WhatsApp, Gmail).
+async function salvarArquivo(blob, filename) {
+    const ehCelular = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+
+    // Celular: folha de compartilhamento (inclui "Salvar em Arquivos")
+    if (ehCelular) {
+        try {
+            const file = new File([blob], filename, { type: blob.type });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: filename, text: filename });
+                statusExportar('Toque em "Salvar em Arquivos" para baixar (ou escolha enviar).', 'var(--level-ok)');
+                return;
+            }
+        } catch(e) {
+            if (e && e.name === 'AbortError') { statusExportar('Cancelado.', 'var(--text-sec)'); return; }
+        }
+    }
+
+    // Computador (ou celular sem compartilhamento): download direto
+    try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.rel = 'noopener';
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000);
+        statusExportar('Baixado: ' + filename, 'var(--level-ok)');
+    } catch(e) {
+        try { window.open(URL.createObjectURL(blob), '_blank'); statusExportar('Arquivo aberto — use o menu do navegador para salvar.', 'var(--level-warn)'); }
+        catch(e2) { statusExportar('Não foi possível gerar o arquivo.', 'var(--level-danger)'); }
+    }
+}
+
+// Renderiza um grafico FORA da tela (tamanho fixo) e devolve a imagem PNG em alta
+// qualidade, garantindo boa imagem no PDF mesmo sem abrir a aba do grafico.
+function imagemGraficoOffscreen(config, w, h) {
+    return new Promise((resolve) => {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.style.cssText = 'position:fixed; left:-99999px; top:0;';
+            document.body.appendChild(canvas);
+            config.options = Object.assign({ responsive:false, animation:false, maintainAspectRatio:false, devicePixelRatio:2 }, config.options || {});
+            const ch = new Chart(canvas.getContext('2d'), config);
+            setTimeout(() => {
+                let img = null;
+                try { img = ch.toBase64Image('image/png', 1); } catch(e){}
+                try { ch.destroy(); } catch(e){}
+                canvas.remove();
+                resolve(img);
+            }, 80);
+        } catch(e) { resolve(null); }
+    });
+}
+
+function opcoesGraficoPDF(maxY) {
+    const o = { plugins: { legend:{display:false}, datalabels:{display:false} },
+        scales: { x:{ ticks:{ color:'#334155', font:{size:9} }, grid:{display:false} },
+                  y:{ ticks:{ color:'#334155', font:{size:9} }, grid:{color:'#e2e8f0'}, beginAtZero:true } } };
+    if (maxY) o.scales.y.max = maxY;
+    return o;
+}
+
+async function gerarPDFBlob() {
+    // garante dados atualizados mesmo sem abrir as abas
+    try { await carregarHistoricoEConsumo(); } catch(e){}
+    try { await carregarHistoricoAbastecimento(); } catch(e){}
+
+    const d = ultimoDadosRelatorio;
+    if (!d) { statusExportar('Sem dados para gerar o relatório.', 'var(--level-warn)'); return null; }
+    if (!window.jspdf || !window.jspdf.jsPDF) { statusExportar('Biblioteca de PDF não carregou (verifique a internet).', 'var(--level-danger)'); return null; }
+
+    statusExportar('Gerando PDF...', 'var(--text-main)');
+
+    // Gera as imagens dos 3 graficos
+    const imgNivel = await imagemGraficoOffscreen({
+        type:'line',
+        data:{ labels:d.labels, datasets:[{ data:d.niveis, borderColor:'#0891b2', backgroundColor:'rgba(8,145,178,0.15)', fill:true, tension:0.25, pointRadius:0, borderWidth:2, spanGaps:true }] },
+        options: opcoesGraficoPDF(100)
+    }, 900, 320);
+
+    const imgConsumo = await imagemGraficoOffscreen({
+        type:'bar',
+        data:{ labels:d.labels, datasets:[{ data:d.consumo, backgroundColor:'#0ea5e9', borderRadius:3 }] },
+        options: opcoesGraficoPDF()
+    }, 900, 320);
+
+    const temAbast = ultimoAbastecimentoDados.data && ultimoAbastecimentoDados.data.length > 0;
+    const imgAbast = temAbast ? await imagemGraficoOffscreen({
+        type:'bar',
+        data:{ labels:ultimoAbastecimentoDados.labels, datasets:[{ data:ultimoAbastecimentoDados.data, backgroundColor:'#22a06b', borderRadius:3 }] },
+        options: opcoesGraficoPDF()
+    }, 900, 300) : null;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const W = 210;
+    const [aa, mm, dd] = d.data.split('-');
+    const dataBR = `${dd}/${mm}/${aa}`;
+
+    // ---- Cabecalho ----
+    doc.setFillColor(8, 145, 178);
+    doc.rect(0, 0, W, 28, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold'); doc.setFontSize(17);
+    doc.text('Relatório de Monitoramento', 14, 13);
+    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    doc.text(`Caixa: ${currentAppId.toUpperCase()}`, 14, 21);
+    doc.setFontSize(10);
+    doc.text('Via Cristais', W-14, 13, { align:'right' });
+    doc.text(dataBR, W-14, 21, { align:'right' });
+
+    let y = 36;
+
+    // ---- KPIs de consumo ----
+    const boxW = (W - 28 - 8) / 3;
+    function kpiBox(x, titulo, valor, bg, txt) {
+        doc.setFillColor(bg[0],bg[1],bg[2]);
+        doc.roundedRect(x, y, boxW, 20, 3, 3, 'F');
+        doc.setTextColor(txt[0],txt[1],txt[2]);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8);
+        doc.text(titulo, x+4, y+7);
+        doc.setFont('helvetica','bold'); doc.setFontSize(13);
+        doc.text(valor, x+4, y+16);
+    }
+    kpiBox(14,           'CONSUMO TOTAL', `${d.total} L`,    [224,242,254], [3,105,161]);
+    kpiBox(14+boxW+4,    'MÉDIA / HORA',  `${d.media} L/h`,  [204,251,241], [13,148,136]);
+    kpiBox(14+2*(boxW+4),'PICO / HORA',   `${d.pico} L/h`,   [255,237,213], [194,65,12]);
+    y += 28;
+
+    function secao(titulo) {
+        doc.setFillColor(241,245,249);
+        doc.roundedRect(14, y, W-28, 8, 2, 2, 'F');
+        doc.setTextColor(30,41,59); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+        doc.text(titulo, 17, y+5.6);
+        y += 12;
+    }
+
+    // ---- Grafico de nivel ----
+    secao('Nível da Caixa (Hora a Hora)  -  %');
+    if (imgNivel) { doc.addImage(imgNivel, 'PNG', 14, y, W-28, 60); y += 64; }
+
+    // ---- Grafico de consumo ----
+    if (y > 210) { doc.addPage(); y = 16; }
+    secao('Consumo por Hora  -  Litros');
+    if (imgConsumo) { doc.addImage(imgConsumo, 'PNG', 14, y, W-28, 60); y += 64; }
+
+    // ---- Abastecimentos ----
+    if (y > 200) { doc.addPage(); y = 16; }
+    secao('Abastecimentos');
+    if (imgAbast) { doc.addImage(imgAbast, 'PNG', 14, y, W-28, 50); y += 54; }
+    doc.setTextColor(51,65,85); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text('Últimos abastecimentos:', 14, y); y += 5;
+    doc.setFont('helvetica','normal');
+    if (ultimoAbastecimentoDados.lista.length === 0) {
+        doc.text('Nenhum abastecimento registrado.', 14, y); y += 5;
+    } else {
+        ultimoAbastecimentoDados.lista.forEach(a => {
+            if (y > 285) { doc.addPage(); y = 16; }
+            doc.text(`• ${a.data} às ${a.hora}  —  ${a.litros} L`, 14, y); y += 5;
+        });
+    }
+
+    // ---- Tabela hora a hora ----
+    if (y > 250) { doc.addPage(); y = 16; }
+    y += 3;
+    secao('Detalhamento por Hora');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(30,41,59);
+    doc.text('Hora', 16, y); doc.text('Nível (%)', 45, y); doc.text('Consumo (L)', 80, y);
+    y += 2; doc.setDrawColor(203,213,225); doc.line(14, y, W-14, y); y += 4;
+    doc.setFont('helvetica','normal'); doc.setTextColor(51,65,85);
+    for (let h = 0; h < 24; h++) {
+        if (y > 288) { doc.addPage(); y = 16; }
+        doc.text(String(d.labels[h]), 16, y);
+        doc.text(d.niveis[h] == null ? '-' : String(d.niveis[h]), 45, y);
+        doc.text(d.consumo[h] == null ? '-' : String(d.consumo[h]), 80, y);
+        y += 5;
+    }
+
+    // ---- Rodape em todas as paginas ----
+    const totalPags = doc.internal.getNumberOfPages();
+    const geradoEm = new Date().toLocaleString('pt-BR');
+    for (let p = 1; p <= totalPags; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(226,232,240); doc.line(14, 291, W-14, 291);
+        doc.setTextColor(148,163,184); doc.setFontSize(7);
+        doc.text(`Gerado em ${geradoEm}`, 14, 295);
+        doc.text(`Página ${p}/${totalPags}`, W-14, 295, { align:'right' });
+    }
+
+    return doc.output('blob');
+}
+
+async function exportarPDF() {
+    const blob = await gerarPDFBlob();
+    if (!blob) return;
+    salvarArquivo(blob, `relatorio_${currentAppId}_${ultimoDadosRelatorio.data}.pdf`);
+}
+
+function exportarCSV() {
+    const d = ultimoDadosRelatorio;
+    if (!d) { statusExportar('Abra a aba Gráfico primeiro para carregar os dados.', 'var(--level-warn)'); return; }
+    let linhas = ['Hora;Nivel (%);Consumo (L)'];
+    for (let h = 0; h < 24; h++) {
+        const nivel = (d.niveis[h] == null) ? '' : d.niveis[h];
+        const cons  = (d.consumo[h] == null) ? '' : d.consumo[h];
+        linhas.push(`${d.labels[h]};${nivel};${cons}`);
+    }
+    linhas.push('');
+    linhas.push(`Total consumo (L);;${d.total}`);
+    linhas.push(`Media consumo (L/h);;${d.media}`);
+    linhas.push(`Pico consumo (L/h);;${d.pico}`);
+    const csv = '\uFEFF' + linhas.join('\r\n');
+    salvarArquivo(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `relatorio_${currentAppId}_${d.data}.csv`);
+}
+
+// Envia por e-mail: gera o PDF e abre o compartilhamento nativo (Gmail aparece na
+// lista, com o PDF anexado). Se nao suportar anexo, baixa e abre o e-mail.
+async function enviarRelatorioEmail() {
+    const blob = await gerarPDFBlob();
+    if (!blob) return;
+    const d = ultimoDadosRelatorio;
+    const filename = `relatorio_${currentAppId}_${d.data}.pdf`;
+    const assunto = `Relatório ${currentAppId.toUpperCase()} - ${d.data}`;
+    const corpo = `Segue o relatório de ${currentAppId.toUpperCase()} (${d.data}).\nTotal: ${d.total} L | Média: ${d.media} L/h | Pico: ${d.pico} L/h`;
+    try {
+        const file = new File([blob], filename, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: assunto, text: corpo });
+            statusExportar('Enviado/compartilhado com sucesso.', 'var(--level-ok)');
+            return;
+        }
+    } catch(e) { /* cancelado ou nao suportado */ }
+    salvarArquivo(blob, filename);
+    try { window.location.href = 'mailto:?subject=' + encodeURIComponent(assunto) + '&body=' + encodeURIComponent(corpo + '\n\n(Anexe o PDF que acabou de ser baixado.)'); } catch(e) {}
 }
 
 function criarGraficos() { 
@@ -1106,6 +1390,25 @@ async function carregarHistoricoEConsumo() {
             }
         }
 
+        // Media e preenchimento: nenhuma hora fica vazia. As horas com consumo 0
+        // recebem a MEDIA das horas que tiveram consumo (replicada). O total e o
+        // pico usam os valores REAIS (antes do preenchimento) para ficarem corretos.
+        const horaLimite = isToday ? currentHour : 23;
+        let horasComConsumo = [];
+        for (let h = 0; h <= horaLimite; h++) {
+            if (consumoFinal[h] > 0) horasComConsumo.push(consumoFinal[h]);
+        }
+        let somaConsumoReal = horasComConsumo.reduce((a, b) => a + b, 0);
+        let picoConsumoReal = horasComConsumo.length ? Math.max(...horasComConsumo) : 0;
+        let mediaConsumo = horasComConsumo.length ? Math.round(somaConsumoReal / horasComConsumo.length) : 0;
+        // Consumo "atual" = ultima hora fechada com consumo real (ou a media)
+        let consumoAtual = consumoFinal[horaLimite] > 0 ? consumoFinal[horaLimite] : mediaConsumo;
+
+        // Replica a media para as horas (anteriores) que estao zeradas
+        for (let h = 0; h <= horaLimite; h++) {
+            if (consumoFinal[h] === 0) consumoFinal[h] = mediaConsumo;
+        }
+
         // Detecta ultimo abastecimento (subida >= 5%) para o insight
         let concatReais = [];
         if (valOntem !== null) concatReais.push({ timestamp: new Date(dataStr + "T00:00:00").getTime(), nivel: valOntem });
@@ -1153,7 +1456,8 @@ async function carregarHistoricoEConsumo() {
             } catch(e) {}
         }
 
-        let result = { labelsLine: labelsLine, niveisLine: hourlyLevels, consumo: consumoFinal }; 
+        let result = { labelsLine: labelsLine, niveisLine: hourlyLevels, consumo: consumoFinal, mediaConsumo: mediaConsumo, somaConsumoReal: somaConsumoReal, picoConsumoReal: picoConsumoReal, consumoAtual: consumoAtual }; 
+        ultimoDadosRelatorio = { data: dataStr, labels: labelsLine, niveis: hourlyLevels, consumo: consumoFinal, media: mediaConsumo, total: somaConsumoReal, pico: picoConsumoReal };
         atualizarGraficosHistorico(result); 
         atualizarGraficosConsumo(result); 
     } 
@@ -1230,10 +1534,12 @@ async function carregarHistoricoAbastecimento() {
             
             const idsParaLista = [...ids].reverse().slice(0, 5); 
             if (idsParaLista.length === 0 && listaUL) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; 
+            ultimoAbastecimentoDados.lista = [];
             idsParaLista.forEach(id => { 
                 const item = dados[id]; const li = document.createElement('li'); const d = new Date(item.timestamp); 
                 li.innerHTML = `<div class="abastecimento-info"><span>${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span><strong>${item.litros} L</strong></div><button class="delete-abastecimento-btn" data-id="${id}"><i class="fas fa-times"></i></button>`; 
                 listaUL.appendChild(li); 
+                ultimoAbastecimentoDados.lista.push({ data: d.toLocaleDateString('pt-BR'), hora: d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), litros: item.litros });
             }); 
             
             const elMes = document.getElementById('mesAbastecimento');
@@ -1260,7 +1566,10 @@ async function carregarHistoricoAbastecimento() {
             chartLabels = chartLabels.map(k => k.split('-')[2] + '/' + k.split('-')[1]);
         } else { 
             if(listaUL) listaUL.innerHTML = '<li class="small">Nenhum abastecimento.</li>'; 
+            ultimoAbastecimentoDados.lista = [];
         } 
+        ultimoAbastecimentoDados.labels = chartLabels;
+        ultimoAbastecimentoDados.data = chartData;
         
         if (chartAbastecimento) {
             chartAbastecimento.data.labels = chartLabels;
@@ -1357,12 +1666,37 @@ async function adicionarContato() {
     }
 }
 
+// Confirmacao propria (o confirm() nativo nao funciona na WebView do Kodular)
+function confirmarModal(mensagem) {
+    return new Promise((resolve) => {
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed; inset:0; z-index:3000; background:rgba(15,23,42,0.55); display:flex; align-items:center; justify-content:center; backdrop-filter:blur(5px);';
+        ov.innerHTML = `<div style="background:var(--card-bg); width:88%; max-width:340px; border-radius:16px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.35); border:1px solid var(--card-border);">
+            <div style="padding:20px; color:var(--text-main); font-size:0.95rem; line-height:1.5;">${mensagem}</div>
+            <div style="display:flex; gap:8px; padding:14px; background:rgba(148,163,184,0.08);">
+                <button id="cm-nao" style="flex:1; border:none; background:#e2e8f0; color:#334155; padding:10px; border-radius:10px; font-weight:600; cursor:pointer; font-family:inherit;">Cancelar</button>
+                <button id="cm-sim" style="flex:1; border:none; background:#ef4444; color:#fff; padding:10px; border-radius:10px; font-weight:600; cursor:pointer; font-family:inherit;">Excluir</button>
+            </div></div>`;
+        document.body.appendChild(ov);
+        ov.querySelector('#cm-sim').onclick = () => { ov.remove(); resolve(true); };
+        ov.querySelector('#cm-nao').onclick = () => { ov.remove(); resolve(false); };
+    });
+}
+
 window.removerContato = async function(id) {
-    if(confirm('Remover este contato?')) {
-        try {
-            await fetch(`${PATH_CONTATOS.replace('.json', '')}/${id}.json`, { method: 'DELETE' });
+    const ok = await confirmarModal('Remover este e-mail da lista?');
+    if (!ok) return;
+    const statusEl = document.getElementById('status-lista-contatos');
+    try {
+        const resp = await fetch(`${PATH_CONTATOS.replace('.json', '')}/${id}.json`, { method: 'DELETE' });
+        if (resp.ok) {
+            if (statusEl) { statusEl.innerText = 'E-mail removido.'; statusEl.style.color = 'var(--level-ok)'; setTimeout(()=>{ if(statusEl) statusEl.innerText=''; }, 2000); }
             carregarContatos();
-        } catch (e) {}
+        } else {
+            if (statusEl) { statusEl.innerText = 'Falha ao remover (verifique as regras do Firebase).'; statusEl.style.color = 'var(--level-danger)'; }
+        }
+    } catch (e) {
+        if (statusEl) { statusEl.innerText = 'Erro de rede ao remover.'; statusEl.style.color = 'var(--level-danger)'; }
     }
 };
 
@@ -1625,7 +1959,7 @@ window.addEventListener('load', function() {
         }); 
     });
     
-    try { checkAutoTheme(); } catch(e){}
+    try { checkAutoTheme(true); } catch(e){}
     try { setupAudio(); } catch(e){}
     
     const hoje = new Date(); 
@@ -1643,13 +1977,11 @@ window.addEventListener('load', function() {
     
     const modalBtn = document.getElementById('modal-close-btn'); if(modalBtn) modalBtn.addEventListener('click', confirmarAlerta);
 
-    // Popup de observacao (uso comum x incendio)
+    // Popup de observacao (uso comum x incendio) - aparece uma vez ao abrir
     const infoModal = document.getElementById('info-modal');
-    const infoOpen = document.getElementById('info-open-btn');
     const infoClose = document.getElementById('info-close-btn');
-    if (infoOpen && infoModal) infoOpen.addEventListener('click', () => { infoModal.style.display = 'flex'; });
     if (infoClose && infoModal) infoClose.addEventListener('click', () => { infoModal.style.display = 'none'; });
-    if (infoModal) setTimeout(() => { infoModal.style.display = 'flex'; }, 800); // mostra uma vez ao abrir
+    if (infoModal) setTimeout(() => { infoModal.style.display = 'flex'; }, 800);
     
     const idsBotoes = [
         ['btn-salvar-abastecimento', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)],
@@ -1791,6 +2123,23 @@ function findItemById(id) {
 }
 
 let dashboardInterval = null;
+
+/* Compartilha o link da pagina publicada por WhatsApp ou e-mail, para o
+   destinatario abrir no navegador. Usa a Web Share API quando disponivel. */
+const URL_PAGINA = 'https://esp306217-droid.github.io/Monitoramento-caixa-d-gua/';
+function compartilharLink(via) {
+    const url = URL_PAGINA;
+    const texto = `Central de Monitoramento de Caixas d'Água - Via Cristais:\n${url}`;
+    try {
+        if (via === 'whatsapp') {
+            window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(texto), '_blank');
+        } else if (via === 'email') {
+            window.location.href = 'mailto:?subject=' + encodeURIComponent('Monitoramento Via Cristais') + '&body=' + encodeURIComponent(texto);
+        }
+    } catch(e) {
+        try { if (navigator.share) navigator.share({ title: 'Monitoramento Via Cristais', text: texto, url: url }); } catch(e2) {}
+    }
+}
 let dashboardWarmup = null;
 
 /* Warm-up do painel central: logo apos abrir/voltar, consulta as caixas mais
@@ -2083,18 +2432,32 @@ async function updateDashboardData() {
 }
 
 let isDark = false;
-function toggleTheme() {
-    isDark = !isDark;
+function aplicarTemaDash() {
+    const i = document.querySelector('.theme-toggle i');
     if(isDark) {
         document.body.setAttribute('data-theme', 'dark');
-        document.querySelector('.theme-toggle i').classList.replace('fa-moon', 'fa-sun');
+        if(i) i.classList.replace('fa-moon', 'fa-sun');
     } else {
         document.body.removeAttribute('data-theme');
-        document.querySelector('.theme-toggle i').classList.replace('fa-sun', 'fa-moon');
+        if(i) i.classList.replace('fa-sun', 'fa-moon');
     }
 }
+function toggleTheme() { isDark = !isDark; aplicarTemaDash(); }
+
+// Tema automatico por horario: 18h -> escuro, 6h -> claro (muda ao cruzar o horario)
+let ultimoPeriodoTemaDash = null;
+function checkAutoThemeDash(forcar) {
+    const h = new Date().getHours();
+    const p = (h >= 18 || h < 6) ? 'noite' : 'dia';
+    if (!forcar && p === ultimoPeriodoTemaDash) return;
+    ultimoPeriodoTemaDash = p;
+    isDark = (p === 'noite');
+    aplicarTemaDash();
+}
+setInterval(() => { try { checkAutoThemeDash(false); } catch(e){} }, 60000);
 
 window.onload = () => {
+    checkAutoThemeDash(true);
     renderGrid('grid-pp', listPP, 'fas fa-road'); 
     renderGrid('grid-sau', listSAU, 'fas fa-home'); 
     updateDashboardData();
