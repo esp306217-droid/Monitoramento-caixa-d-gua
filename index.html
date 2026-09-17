@@ -599,6 +599,24 @@ Atenção: Solicitar abastecimento ao CCO. (Nível Crítico)
 </div>
 </div>
 </div>
+
+<div id="info-modal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background:rgba(15,23,42,0.55); align-items:center; justify-content:center; backdrop-filter:blur(6px);">
+<div style="background:var(--card-bg); width:90%; max-width:380px; border-radius:18px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.35); border:1px solid var(--card-border);">
+<div style="display:flex; align-items:center; gap:10px; padding:18px 22px; background:linear-gradient(135deg, #f8fafc, #eef2f7); border-bottom:1px solid rgba(0,0,0,0.06);">
+<div style="width:34px; height:34px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b;"><i class="fas fa-info"></i></div>
+<span style="font-weight:600; color:#334155; font-size:1rem;">Observação</span>
+</div>
+<div style="padding:22px; color:var(--text-main); font-size:0.92rem; line-height:1.55;">
+O monitoramento apresentado refere-se à <strong>capacidade de uso comum da água</strong> (consumo do dia a dia).<br><br>
+O volume reservado para <strong>combate a incêndio não é monitorado</strong> por este sistema.
+</div>
+<div style="padding:14px 20px; text-align:right; background:rgba(148,163,184,0.08);">
+<button id="info-close-btn" style="border:none; background:#334155; color:#fff; padding:9px 20px; border-radius:10px; font-weight:600; cursor:pointer; font-family:inherit;">Entendi</button>
+</div>
+</div>
+</div>
+
+<button id="info-open-btn" title="Sobre o monitoramento" style="position:fixed; right:14px; bottom:14px; z-index:1500; width:42px; height:42px; border-radius:50%; border:none; background:#64748b; color:#fff; font-size:1rem; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,0.25);"><i class="fas fa-info"></i></button>
 <div class="header-right" id="date-controls" style="display: none;">
 <div class="view-selector">
 <button id="btn-view-diario" class="view-btn active" data-view="diario">Hoje</button>
@@ -664,8 +682,10 @@ let alertaConfirmadoPeloUsuario = false;
 // Variáveis Vitais de Loop e Atualização
 let loopInterval = null;
 let watchdogInterval = null;
+let warmupInterval = null;
+let appOnline = false;
 let ultimoUpdateEmMs = 0;
-const UPDATE_MS = 2500;
+const UPDATE_MS = 1500;
 let lastSavedValidTime = 0; 
 let lastSavedLevel = -1;
 
@@ -711,6 +731,50 @@ function controlarAlarme(play) { if (!audioContext) return; if (audioContext.sta
 function mostrarAlertaModal() { document.getElementById('alert-modal').style.display = 'flex'; }
 function fecharAlertaModal() { document.getElementById('alert-modal').style.display = 'none'; }
 function confirmarAlerta() { fecharAlertaModal(); controlarAlarme(false); alertaModalMostrado = false; alertaConfirmadoPeloUsuario = true; }
+
+/* Vibra o celular (funciona na WebView Android do Kodular). */
+function dispararVibracao() {
+    try { if (navigator && typeof navigator.vibrate === 'function') navigator.vibrate([500,200,500,200,800]); } catch(e){}
+}
+
+/* Ponte com o app Kodular (App Inventor WebViewer).
+   Ao mudar a WebViewString, o Kodular pode: mostrar notificacao, trazer o app
+   para frente, tocar som e vibrar de forma NATIVA — mesmo em segundo plano. */
+function sinalizarKodular(evento, nivel) {
+    try {
+        const msg = JSON.stringify({ evento: evento, caixa: currentAppId, nivel: Math.round(nivel), ts: Date.now() });
+        if (window.AppInventor && typeof window.AppInventor.setWebViewString === 'function') {
+            window.AppInventor.setWebViewString(msg);
+        }
+    } catch(e){}
+}
+
+/* Verifica o nivel minimo definido na aba Configuracoes e dispara o alerta:
+   som + popup + vibracao + sinal para o Kodular. Rearma quando o nivel sobe. */
+function verificarAlerta(nivelPct, isOfflineStatus) {
+    if (isOfflineStatus) return;                 // nao alarma quando offline
+    if (!verificacaoInicialConcluida) return;    // evita alarme no 1o carregamento
+    if (!(Number(nivelPct) > 0)) return;         // ignora leitura invalida/0
+
+    const limite = Number(nivelAlertaConfigurado);   // nivel EXATO definido na aba Config
+    if (!(limite > 0 && limite < 100)) return;       // sem valor valido configurado -> nao alarma
+    const atingiuMinimo = Number(nivelPct) <= limite;
+
+    if (atingiuMinimo) {
+        if (!alertaModalMostrado && !alertaConfirmadoPeloUsuario) {
+            alertaModalMostrado = true;
+            try { mostrarAlertaModal(); } catch(e){}
+            try { controlarAlarme(true); } catch(e){}
+            dispararVibracao();
+            sinalizarKodular('ALERTA_NIVEL_MINIMO', nivelPct);
+        }
+    } else {
+        // Nivel voltou acima do minimo: rearma o alerta para a proxima vez
+        alertaConfirmadoPeloUsuario = false;
+        if (alertaModalMostrado) { alertaModalMostrado = false; }
+        try { controlarAlarme(false); } catch(e){}
+    }
+}
 
 /* --- STREAMING_CHUNK:Atualização de gráficos e Chart.js --- */
 function atualizarGraficosHistorico(result) { 
@@ -786,7 +850,7 @@ function criarGraficos() {
         if(chartLinha) chartLinha.destroy(); 
         chartLinha = new Chart(ctxL, { 
             type: 'line', 
-            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.2, pointRadius: 2, borderWidth: 3, spanGaps: true }] }, 
+            data: { labels: [], datasets: [{ label: 'Nível (%)', data: [], fill: true, backgroundColor: gradL, borderColor: isDark ? '#22d3ee' : '#0891b2', tension: 0.2, pointRadius: 0, pointHoverRadius: 0, borderWidth: 3, spanGaps: true }] }, 
             options: { animation: false, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, zoom: zoomOptions }, scales: { x: xAxisConfig, y: { ticks: { color: textColor }, min: 0, max: 100, grid: { color: gridColor } } }, layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } } } }); 
     } 
 
@@ -835,7 +899,20 @@ async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
     const url = `${PATH_HISTORICO}/${localDate}/${horaKey}.json`; 
     
     const dados = { nivel_pct: Math.round(nivel * 10) / 10, timestamp: timestamp, tipo: tipo }; 
-    try { await fetch(url, { method: 'PUT', body: JSON.stringify(dados) }); } catch (e) {} 
+    try {
+        const resp = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
+        if (!resp.ok) {
+            let txt = '';
+            try { txt = await resp.text(); } catch(e2) {}
+            console.error(`[HISTORICO] Firebase RECUSOU a gravacao (${resp.status}) em ${url}. Resposta: ${txt}. >> Verifique as REGRAS (rules) do Realtime Database: a escrita no caminho de historico precisa estar liberada.`);
+            return false;
+        }
+        console.log(`[HISTORICO] Leitura ${dados.nivel_pct}% salva no Firebase em ${localDate} ${horaKey}`);
+        return true;
+    } catch (e) {
+        console.error('[HISTORICO] Erro de rede ao salvar leitura no Firebase:', e);
+        return false;
+    }
 }
 
 function extractLevel(entry) {
@@ -848,32 +925,58 @@ function extractLevel(entry) {
     return isNaN(v) ? null : v;
 }
 
-// Extrator Universal Recursivo
-function extrairDadosUniversais(dadosNode) {
+// Deriva um timestamp a partir da CHAVE do registro (quando o registro nao
+// tem um campo timestamp interno). Aceita "HH:MM", "HH:MM:SS" e epoch (s ou ms).
+function tsFromKey(key, baseDateStr) {
+    if (key === null || key === undefined) return null;
+    let k = String(key).trim();
+
+    let mHora = k.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (mHora && baseDateStr) {
+        let p = baseDateStr.split('-');
+        let d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]),
+                         Number(mHora[1]), Number(mHora[2]), Number(mHora[3] || 0));
+        return d.getTime();
+    }
+
+    if (/^\d+$/.test(k)) {
+        let n = Number(k);
+        if (k.length >= 13) return n;        // epoch em milissegundos
+        if (k.length >= 10) return n * 1000; // epoch em segundos
+    }
+    return null;
+}
+
+// Extrator Universal: le o no de um dia e devolve [{timestamp, nivel}] ordenado.
+// Funciona para qualquer formato salvo no Firebase:
+//   { "08:30": 75 }                                   (valor numerico + hora na chave)
+//   { "08:30": { nivel_pct: 75 } }                    (objeto sem timestamp)
+//   { "08:30": { nivel_pct: 75, timestamp: 170... } } (formato novo)
+//   { "1700000000000": 75 } / { "1700000000000": {...} } (epoch na chave)
+function extrairDadosUniversais(dadosNode, baseDateStr) {
     let results = [];
-    if (!dadosNode) return results;
+    if (!dadosNode || typeof dadosNode !== 'object') return results;
 
-    function traverse(node) {
-        if (node !== null && typeof node === 'object' && !Array.isArray(node)) {
-            let lvl = extractLevel(node);
-            let ts = node.timestamp || node.time || node.ts;
+    for (let k in dadosNode) {
+        let v = dadosNode[k];
+        let lvl = extractLevel(v);
 
-            if (lvl !== null && ts && lvl > 0) {
-                results.push({ timestamp: Number(ts), nivel: lvl });
-            } else {
-                for (let k in node) {
-                    if (typeof node[k] === 'object') {
-                        traverse(node[k]);
-                    }
-                }
-            }
+        let ts = null;
+        if (v !== null && typeof v === 'object') {
+            ts = v.timestamp || v.time || v.ts || null;
+        }
+        if (!ts) ts = tsFromKey(k, baseDateStr);
+
+        if (lvl !== null && lvl > 0 && ts) {
+            results.push({ timestamp: Number(ts), nivel: lvl });
+        } else if (v !== null && typeof v === 'object' && lvl === null) {
+            // Estrutura aninhada inesperada: tenta um nivel abaixo
+            results = results.concat(extrairDadosUniversais(v, baseDateStr));
         }
     }
 
-    traverse(dadosNode);
-
     results.sort((a, b) => a.timestamp - b.timestamp);
-    
+
     let unique = [];
     let seen = new Set();
     for (let item of results) {
@@ -883,6 +986,42 @@ function extrairDadosUniversais(dadosNode) {
         }
     }
     return unique;
+}
+
+/* Descobre os dias que realmente tem historico no Firebase (consulta leve com
+   ?shallow=true, que retorna so as chaves de dia). Se o dia atualmente
+   selecionado nao tiver dados, pula automaticamente para o dia mais recente que
+   tem leituras — assim o grafico SEMPRE mostra as leituras antigas ao abrir. */
+async function ajustarDataParaUltimoDiaComDados() {
+    if (currentView !== 'diario') return;
+    try {
+        const dias = await safeFetch(`${PATH_HISTORICO}.json?shallow=true`);
+        if (!dias || typeof dias !== 'object') return;
+
+        const chaves = Object.keys(dias).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+        if (chaves.length === 0) return;
+
+        const el = document.getElementById('dataEscolhida');
+        if (!el) return;
+
+        // Se o dia selecionado ja tem dados, respeita a escolha do usuario
+        if (dias[el.value]) return;
+
+        const hoje = getLocalISODate(new Date());
+        const candidatos = chaves.filter(k => k <= hoje);
+        const alvo = candidatos.length ? candidatos[candidatos.length - 1] : chaves[chaves.length - 1];
+
+        el.value = alvo;
+        const elC = document.getElementById('dataEscolhidaConsumo');
+        if (elC) elC.value = alvo;
+        console.log(`[GRAFICO] Dia atual sem leituras; exibindo o dia mais recente com dados: ${alvo}`);
+    } catch (e) {}
+}
+
+// Abre o grafico ja posicionado num dia que tenha leituras
+async function carregarGraficoComAjuste() {
+    await ajustarDataParaUltimoDiaComDados();
+    await carregarHistoricoEConsumo();
 }
 
 async function carregarHistoricoEConsumo() { 
@@ -910,8 +1049,11 @@ async function carregarHistoricoEConsumo() {
         let dadosOntem = null; 
         try { const rOntem = await safeFetch(urlOntem); if (rOntem) dadosOntem = rOntem; } catch(e) {} 
 
-        let arrayOntem = extrairDadosUniversais(dadosOntem);
-        let arrayHoje = extrairDadosUniversais(dadosHoje);
+        let arrayOntem = extrairDadosUniversais(dadosOntem, dataAnteriorStr);
+        let arrayHoje = extrairDadosUniversais(dadosHoje, dataStr);
+
+        console.log(`[GRAFICO] ${dataStr}: ${arrayHoje.length} leitura(s) do Firebase.`);
+
 
         let valOntem = arrayOntem.length > 0 ? arrayOntem[arrayOntem.length - 1].nivel : null;
 
@@ -924,47 +1066,54 @@ async function carregarHistoricoEConsumo() {
             labelsLine.push(String(h).padStart(2, '0') + ":00"); 
         }
 
+        // 1) Nivel por hora: ultima leitura conhecida ate o fim de cada hora
         for (let h = 0; h <= 23; h++) {
             let limiteMs = new Date(dataStr + "T00:00:00");
             limiteMs.setHours(h, 59, 59, 999);
             let limiteTs = limiteMs.getTime();
-
             let leiturasAteHora = arrayHoje.filter(item => item.timestamp <= limiteTs);
+            hourlyLevels[h] = leiturasAteHora.length > 0 ? leiturasAteHora[leiturasAteHora.length - 1].nivel : null;
+        }
 
-            if (leiturasAteHora.length > 0) {
-                 hourlyLevels[h] = leiturasAteHora[leiturasAteHora.length - 1].nivel;
+        // 2) Repete a ULTIMA LEITURA anterior para nao ficar 0/buraco na linha.
+        //    (parte do nivel de fim do dia anterior, quando existir)
+        let ultimoConhecido = valOntem;
+        for (let h = 0; h <= 23; h++) {
+            if (isToday && h > currentHour) { hourlyLevels[h] = null; continue; }
+            if (hourlyLevels[h] === null || hourlyLevels[h] === undefined) {
+                hourlyLevels[h] = ultimoConhecido;      // repete a leitura anterior
             } else {
-                 hourlyLevels[h] = valOntem; 
+                ultimoConhecido = hourlyLevels[h];       // fecha a leitura da hora
             }
         }
 
+        // 3) Consumo da hora = (queda de % na hora) x (litros por 1%).
+        //    litros por 1% vem da CAPACIDADE definida na aba Configuracoes.
+        //    Ex.: 8000 L -> 1% = 80 L; caiu 2% na hora -> 160 L.
+        const litrosPor1Pct = capacidadeTotal / 100;
+        for (let h = 0; h <= 23; h++) {
+            if (isToday && h > currentHour) { consumoFinal[h] = 0; continue; }
+            let nivelFim = hourlyLevels[h];
+            let nivelIni = (h === 0) ? valOntem : hourlyLevels[h - 1];
+            if (nivelIni == null || nivelFim == null) { consumoFinal[h] = 0; continue; }
+            let quedaPct = nivelIni - nivelFim;          // so conta quando desce
+            if (quedaPct > 0) {
+                let litros = quedaPct * litrosPor1Pct;
+                // ignora quedas anomalas (troca de sensor) acima de 50% da caixa
+                consumoFinal[h] = (litros <= capacidadeTotal * 0.50) ? Math.round(litros) : 0;
+            } else {
+                consumoFinal[h] = 0;
+            }
+        }
+
+        // Detecta ultimo abastecimento (subida >= 5%) para o insight
         let concatReais = [];
-        if (valOntem !== null) {
-            concatReais.push({ timestamp: new Date(dataStr + "T00:00:00").getTime(), nivel: valOntem });
-        }
+        if (valOntem !== null) concatReais.push({ timestamp: new Date(dataStr + "T00:00:00").getTime(), nivel: valOntem });
         concatReais = concatReais.concat(arrayHoje);
-
         for (let i = 1; i < concatReais.length; i++) {
-            let prev = concatReais[i-1];
-            let curr = concatReais[i];
-
-            if (prev.nivel > curr.nivel) {
-                let diffLitros = calcularVolumeLitros(prev.nivel) - calcularVolumeLitros(curr.nivel);
-                if (diffLitros > 0 && diffLitros <= (capacidadeTotal * 0.50)) {
-                    let hourOfDrop = new Date(curr.timestamp).getHours();
-                    if (hourOfDrop >= 0 && hourOfDrop <= 23) {
-                        consumoFinal[hourOfDrop] += diffLitros;
-                    }
-                }
-            } else if (curr.nivel >= prev.nivel + 5) { 
-                let d = new Date(curr.timestamp);
+            if (concatReais[i].nivel >= concatReais[i-1].nivel + 5) {
+                let d = new Date(concatReais[i].timestamp);
                 ultimoAbastecimentoTime = String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0');
-            }
-        }
-
-        for (let i = 0; i < 24; i++) {
-            if (isToday && i > currentHour) {
-                hourlyLevels[i] = null;
             }
         }
 
@@ -1290,6 +1439,9 @@ function renderNivel(nivelPct, isOfflineStatus = false) {
     if (offlineWarning) {
         offlineWarning.style.display = isOfflineStatus ? 'block' : 'none';
     }
+
+    // Verifica o nivel minimo e dispara alarme/popup/vibracao se necessario
+    try { verificarAlerta(nivelPct, isOfflineStatus); } catch(e){}
 }
 
 async function salvarUltimaLeituraValida(nivel, timestamp) {
@@ -1341,7 +1493,7 @@ async function loopDeAtualizacao() {
             }
         }
 
-        if (agora - lastRealTime > 300000 || statusPlaca === "FALHA") {
+        if (agora - lastRealTime > 30000 || statusPlaca === "FALHA") {
             isOfflineStatus = true;
         }
     } else {
@@ -1353,18 +1505,26 @@ async function loopDeAtualizacao() {
 
         if (!isOfflineStatus) {
             checkAutoRefill(nivelFinal);
-            
-            if (agora - lastSavedValidTime >= 3600000 || Math.abs(nivelFinal - lastSavedLevel) >= 1.0) {
-                await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real'); 
+        }
+
+        // Gravacao do historico no Firebase: acontece sempre que existe uma leitura
+        // REAL positiva (independente do heartbeat), com limite de 1x por hora OU
+        // quando o nivel muda >= 1%. Assim o grafico sempre acumula o dia no banco.
+        // Registro no Firebase: 1x a cada 60 min OU sempre que o nivel muda >= 1%
+        // (toda descida e capturada; subidas tambem, para o grafico mostrar
+        //  abastecimentos). A leitura ja passou pelo filtro de fantasmas.
+        if (agora - lastSavedValidTime >= 3600000 || Math.abs(nivelFinal - lastSavedLevel) >= 1.0) {
+            const okSalvou = await salvarLeituraNoFirebase(Number(nivelFinal), agora, 'real');
+            if (okSalvou) {
                 lastSavedValidTime = agora;
                 lastSavedLevel = nivelFinal;
-                
-                if (typeof chartLinha !== 'undefined' && chartLinha && currentView === 'diario') {
-                    const h = new Date().getHours();
-                    if (chartLinha.data.datasets[0].data.length >= 24) {
-                         chartLinha.data.datasets[0].data[h] = nivelFinal;
-                         chartLinha.update('none'); 
-                    }
+            }
+
+            if (typeof chartLinha !== 'undefined' && chartLinha && currentView === 'diario') {
+                const h = new Date().getHours();
+                if (chartLinha.data.datasets[0].data.length >= 24) {
+                     chartLinha.data.datasets[0].data[h] = nivelFinal;
+                     chartLinha.update('none'); 
                 }
             }
         }
@@ -1381,6 +1541,7 @@ async function loopDeAtualizacao() {
         isOfflineStatus = true;
     }
 
+    appOnline = !isOfflineStatus;
     renderNivel(nivelFinal, isOfflineStatus);
     ultimoUpdateEmMs = agora;
 
@@ -1390,8 +1551,25 @@ async function loopDeAtualizacao() {
 function iniciarWatchdog() {
   if (watchdogInterval) clearInterval(watchdogInterval);
   watchdogInterval = setInterval(() => {
-    if (Date.now() - ultimoUpdateEmMs > 10000) { loopDeAtualizacao(); }
-  }, 5000);
+    if (Date.now() - ultimoUpdateEmMs > 4000) { loopDeAtualizacao(); }
+  }, 3000);
+}
+
+/* Warm-up: logo apos abrir, consulta o Firebase mais rapido (1s) para reconhecer
+   que a placa esta online o quanto antes, evitando ficar mostrando "offline" por
+   muito tempo. NAO altera a verificacao do heartbeat: apenas consulta mais vezes
+   nos primeiros segundos e para assim que o sistema se reconhece online. */
+function iniciarWarmup() {
+  if (warmupInterval) clearInterval(warmupInterval);
+  let tentativas = 0;
+  warmupInterval = setInterval(async () => {
+    tentativas++;
+    try { await loopDeAtualizacao(); } catch(e) {}
+    if (appOnline || tentativas >= 40) {
+      clearInterval(warmupInterval);
+      warmupInterval = null;
+    }
+  }, 600);
 }
 
 function iniciarAtualizacao() {
@@ -1399,6 +1577,7 @@ function iniciarAtualizacao() {
   if (loopInterval) clearInterval(loopInterval);
   loopInterval = setInterval(loopDeAtualizacao, UPDATE_MS);
   iniciarWatchdog();
+  iniciarWarmup();
 }
 
 window.addEventListener('load', function() {
@@ -1415,7 +1594,7 @@ window.addEventListener('load', function() {
         if (btns[viewName]) { btns[viewName].classList.add('active'); } 
         if(dateControls) dateControls.style.display = 'none'; 
         try {
-            if (viewName === 'grafico' || viewName === 'consumo') { carregarHistoricoEConsumo(); } 
+            if (viewName === 'grafico' || viewName === 'consumo') { carregarGraficoComAjuste(); } 
             else if (viewName === 'abastecimento') { carregarHistoricoAbastecimento(); } 
             else if (viewName === 'config') { carregarConfiguracoesGerais(); carregarContatos(); }
             
@@ -1463,6 +1642,14 @@ window.addEventListener('load', function() {
     if(btnAt) btnAt.onclick = () => { if (activeTab === 'grafico' || activeTab === 'consumo') carregarHistoricoEConsumo(); }; 
     
     const modalBtn = document.getElementById('modal-close-btn'); if(modalBtn) modalBtn.addEventListener('click', confirmarAlerta);
+
+    // Popup de observacao (uso comum x incendio)
+    const infoModal = document.getElementById('info-modal');
+    const infoOpen = document.getElementById('info-open-btn');
+    const infoClose = document.getElementById('info-close-btn');
+    if (infoOpen && infoModal) infoOpen.addEventListener('click', () => { infoModal.style.display = 'flex'; });
+    if (infoClose && infoModal) infoClose.addEventListener('click', () => { infoModal.style.display = 'none'; });
+    if (infoModal) setTimeout(() => { infoModal.style.display = 'flex'; }, 800); // mostra uma vez ao abrir
     
     const idsBotoes = [
         ['btn-salvar-abastecimento', () => salvarAbastecimento(document.getElementById('litros-abastecidos').value)],
@@ -1499,20 +1686,30 @@ window.addEventListener('load', function() {
     const elMesEsc = document.getElementById('mesEscolhido'); if(elMesEsc) elMesEsc.value = mesFim; 
     const elDataIni = document.getElementById('dataInicio'); if(elDataIni) elDataIni.value = dataIni; 
     const elDataFim = document.getElementById('dataFim'); if(elDataFim) elDataFim.value = dataFim; 
+
+    // Ao escolher uma data no grafico, recarrega imediatamente (respeitando a escolha)
+    if (elDataEsc) elDataEsc.addEventListener('change', () => {
+        const elC = document.getElementById('dataEscolhidaConsumo');
+        if (elC) elC.value = elDataEsc.value;
+        carregarHistoricoEConsumo();
+    });
     
     switchView('caixa'); 
     
     try { carregarConfiguracoesGerais(); } catch(e){}
-    try { carregarHistoricoEConsumo(); } catch(e){}
+    try { carregarGraficoComAjuste(); } catch(e){}
     
     iniciarAtualizacao();
     
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
         iniciarAtualizacao(); 
-        try { carregarHistoricoEConsumo(); } catch(e){}
+        try { carregarGraficoComAjuste(); } catch(e){}
       }
     });
+    // Kodular/WebView: ao voltar do segundo plano tambem dispara estes eventos
+    window.addEventListener("pageshow", () => { try { iniciarAtualizacao(); carregarGraficoComAjuste(); } catch(e){} });
+    window.addEventListener("focus", () => { try { carregarGraficoComAjuste(); } catch(e){} });
 });
 </script>
 </body>
@@ -1594,6 +1791,21 @@ function findItemById(id) {
 }
 
 let dashboardInterval = null;
+let dashboardWarmup = null;
+
+/* Warm-up do painel central: logo apos abrir/voltar, consulta as caixas mais
+   rapido (a cada 2s) por alguns ciclos para os cards saírem de "offline"
+   rapidamente. NAO altera a verificacao de atualizacao do Firebase; apenas
+   consulta com mais frequencia nos primeiros segundos. */
+function iniciarWarmupDashboard() {
+    if (dashboardWarmup) clearInterval(dashboardWarmup);
+    let tentativas = 0;
+    dashboardWarmup = setInterval(() => {
+        tentativas++;
+        updateDashboardData();
+        if (tentativas >= 10) { clearInterval(dashboardWarmup); dashboardWarmup = null; }
+    }, 2000);
+}
 
 function prepararAbertura(id) {
     const item = findItemById(id);
@@ -1607,7 +1819,7 @@ function prepararAbertura(id) {
         mapsButton = `<button onclick="abrirAppExterno('maps', '${item.coords}')" class="nav-button-icon-only" title="Ver Localização" style="width:32px; height:32px; font-size:0.9rem; background: var(--input-bg);"><i class="fas fa-map-marker-alt" style="color: #ef4444;"></i></button>`;
     }
     
-    let telegramBotName = 'Caixadguap7_bot';
+    let telegramBotName = item.telegramBot ? item.telegramBot : 'Caixadguap7_bot';
     let telegramBotToken = item.telegramBotToken ? item.telegramBotToken : '';
     let isMaintenanceMode = item.maintenance === true ? 'true' : 'false';
 
@@ -1638,7 +1850,8 @@ function fecharApp() {
     iframe.srcdoc = "";
     overlay.classList.remove('active');
     updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 10000); 
+    dashboardInterval = setInterval(updateDashboardData, 6000); 
+    iniciarWarmupDashboard();
 }
 
 function cleanFirebaseUrl(baseUrl, path) {
@@ -1647,6 +1860,71 @@ function cleanFirebaseUrl(baseUrl, path) {
     let cleanPath = path.trim();
     if(!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
     return `${cleanBase}${cleanPath}?nocache=${Date.now()}`;
+}
+
+/* --- HISTORICO GLOBAL (Painel Central) ---
+   Enquanto o painel principal estiver aberto, ele grava no Firebase o historico
+   de TODAS as caixas que estao online. Assim o grafico de cada caixa mostra as
+   leituras antigas mesmo que ninguem tenha aberto a pagina daquela caixa. */
+const histDashboardState = {}; // { [id]: { lastTime, lastLevel } }
+
+/* Filtro de leituras fantasmas no PAINEL, por caixa (mediana de 3 amostras).
+   Cada caixa tem seu proprio buffer para nao misturar os valores. Um pico
+   isolado (ruido do sensor) e descartado ao ficar no meio da mediana. */
+const ghostBufferDash = {}; // { [id]: [v1, v2, v3] }
+function filtrarFantasmaDash(id, valor) {
+    if (valor === null || valor === undefined || isNaN(valor)) return valor;
+    if (!ghostBufferDash[id]) ghostBufferDash[id] = [];
+    const buf = ghostBufferDash[id];
+    buf.push(valor);
+    if (buf.length > 3) buf.shift();
+    if (buf.length === 3) {
+        const ord = [...buf].sort((a, b) => a - b);
+        return ord[1]; // valor do meio (descarta o pico fantasma)
+    }
+    return valor;
+}
+
+function dashLocalISODate(dateObj) {
+    const d = dateObj || new Date();
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+}
+
+async function salvarHistoricoDashboard(item, nivel) {
+    if (!item || !item.firebaseHistPath) return;
+    if (nivel === null || nivel === undefined || nivel <= 0) return;
+
+    const agora = Date.now();
+    const st = histDashboardState[item.id] || { lastTime: 0, lastLevel: -1 };
+
+    // Mesma regra do app interno: 1x por hora OU quando muda >= 1%
+    // Registro no Firebase: 1x a cada 60 min OU quando o nivel muda >= 1%
+    // (leitura ja filtrada contra fantasmas antes de chegar aqui)
+    if (!(agora - st.lastTime >= 3600000 || Math.abs(nivel - st.lastLevel) >= 1.0)) return;
+
+    const d = new Date(agora);
+    const localDate = dashLocalISODate(d);
+    const horaKey = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const url = `${DB_BASE}${item.firebaseHistPath}/${localDate}/${horaKey}.json`;
+    const dados = { nivel_pct: Math.round(nivel * 10) / 10, timestamp: agora, tipo: 'real' };
+
+    // Marca antes de aguardar para evitar gravacoes duplicadas em paralelo
+    histDashboardState[item.id] = { lastTime: agora, lastLevel: nivel };
+
+    try {
+        const resp = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
+        if (!resp.ok) {
+            let txt = ''; try { txt = await resp.text(); } catch(e2) {}
+            console.error(`[HISTORICO ${item.id}] Firebase RECUSOU (${resp.status}) em ${url}. ${txt} >> Verifique as REGRAS do Realtime Database (escrita liberada no historico).`);
+            histDashboardState[item.id] = st; // desfaz a marca para tentar de novo
+        } else {
+            console.log(`[HISTORICO ${item.id}] ${dados.nivel_pct}% gravado (${localDate} ${horaKey})`);
+        }
+    } catch (e) {
+        console.error(`[HISTORICO ${item.id}] Erro de rede:`, e);
+        histDashboardState[item.id] = st; // desfaz a marca para tentar de novo
+    }
 }
 
 async function safeFetchDashboard(url) {
@@ -1717,6 +1995,9 @@ async function updateDashboardData() {
                 if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
                 else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
                 else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
+
+                // Filtro de leituras fantasmas (mediana por caixa) antes de exibir/gravar
+                rawLvl = filtrarFantasmaDash(item.id, rawLvl);
                 
                 // O Heartbeat Universal: Qualquer alteração significa que a placa está VIVA
                 let currentUptime = d.timestamp ?? d.time ?? d.ts ?? d.tempo_atividade ?? JSON.stringify(d);
@@ -1744,7 +2025,7 @@ async function updateDashboardData() {
                     }
                 }
 
-                if (agora - state.lastRealTime > 300000 || isFalha) {
+                if (agora - state.lastRealTime > 30000 || isFalha) {
                     isOffline = true;
                 }
             } else {
@@ -1775,6 +2056,9 @@ async function updateDashboardData() {
                         if(statusTxt) statusTxt.innerText = 'Online';
                         if(dot) dot.style.display = 'block';
                         if(elBg) { elBg.style.height = `${lvl}%`; elBg.style.background = ''; } 
+
+                        // Grava o historico desta caixa no Firebase (throttle interno)
+                        salvarHistoricoDashboard(item, lvl);
                     }
 
                     if(elLvl) elLvl.innerText = `${lvl}%`;
@@ -1814,7 +2098,8 @@ window.onload = () => {
     renderGrid('grid-pp', listPP, 'fas fa-road'); 
     renderGrid('grid-sau', listSAU, 'fas fa-home'); 
     updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 10000); 
+    dashboardInterval = setInterval(updateDashboardData, 6000); 
+    iniciarWarmupDashboard();
 };
 </script>
 </body>
