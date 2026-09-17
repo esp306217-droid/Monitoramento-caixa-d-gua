@@ -544,9 +544,9 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo ViaCristais">
 <h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
 <div class="config-board">
-<div class="config-card glass-panel" style="grid-column: 1 / -1;">
+<div class="config-card glass-panel" id="card-relatorios" style="grid-column: 1 / -1;">
 <h2><i class="fas fa-file-export" style="color:var(--accent);"></i> Relatórios do Gráfico</h2>
-<p style="font-size:0.75rem; color:var(--text-sec); margin:0 0 10px;">Exporta as leituras do dia selecionado no gráfico (nível e consumo).</p>
+<p style="font-size:0.75rem; color:var(--text-sec); margin:0 0 10px;">Exporta as leituras do dia selecionado no gráfico (nível e consumo). Disponível na versão para computador.</p>
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
 <button onclick="exportarPDF()" class="modern-button" style="background:#ef4444; color:#fff; flex:1; min-width:120px;"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
 <button onclick="exportarCSV()" class="modern-button" style="background:#22a06b; color:#fff; flex:1; min-width:120px;"><i class="fas fa-file-excel"></i> Exportar Excel</button>
@@ -880,19 +880,41 @@ function statusExportar(msg, cor) {
     if (el) { el.innerText = msg; el.style.color = cor || 'var(--text-sec)'; }
 }
 
-// SALVA o arquivo. No computador, baixa direto. No celular (WebView do Kodular),
-// o download comum de blob nao funciona, entao abrimos a folha do Android, onde
-// ha "Salvar em Arquivos" (alem de Drive, WhatsApp, Gmail).
+// Converte um Blob em base64 (sem o prefixo data:)
+function blobParaBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(',')[1] || '');
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+    });
+}
+
+// SALVA o arquivo, escolhendo o metodo conforme o ambiente:
+//  - Dentro do app Kodular (WebView): envia para o app via WebViewString (unico
+//    jeito confiavel; o download de blob e bloqueado pelo WebView do Android).
+//  - Celular no navegador: folha de compartilhamento (inclui "Salvar em Arquivos").
+//  - Computador: download direto.
 async function salvarArquivo(blob, filename) {
+    // 1) App Kodular -> ponte nativa
+    try {
+        if (window.AppInventor && typeof window.AppInventor.setWebViewString === 'function') {
+            const b64 = await blobParaBase64(blob);
+            window.AppInventor.setWebViewString('SALVAR|' + filename + '|' + (blob.type || 'application/octet-stream') + '|' + b64);
+            statusExportar('Arquivo enviado ao app para salvar (' + filename + ').', 'var(--level-ok)');
+            return;
+        }
+    } catch(e) {}
+
     const ehCelular = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
 
-    // Celular: folha de compartilhamento (inclui "Salvar em Arquivos")
+    // 2) Celular no navegador -> folha de compartilhamento
     if (ehCelular) {
         try {
             const file = new File([blob], filename, { type: blob.type });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({ files: [file], title: filename, text: filename });
-                statusExportar('Toque em "Salvar em Arquivos" para baixar (ou escolha enviar).', 'var(--level-ok)');
+                statusExportar('Toque em "Salvar em Arquivos" para baixar.', 'var(--level-ok)');
                 return;
             }
         } catch(e) {
@@ -900,7 +922,7 @@ async function salvarArquivo(blob, filename) {
         }
     }
 
-    // Computador (ou celular sem compartilhamento): download direto
+    // 3) Computador -> download direto
     try {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -2027,6 +2049,16 @@ window.addEventListener('load', function() {
     });
     
     switchView('caixa'); 
+
+    // Relatorios (PDF/Excel/E-mail) somente na versao para COMPUTADOR.
+    // No celular (app Kodular ou navegador mobile) o card e removido.
+    try {
+        const ehMobile = (window.AppInventor && typeof window.AppInventor.setWebViewString === 'function')
+            || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+            || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+        const cardRel = document.getElementById('card-relatorios');
+        if (ehMobile && cardRel) cardRel.style.display = 'none';
+    } catch(e){}
     
     try { carregarConfiguracoesGerais(); } catch(e){}
     try { carregarGraficoComAjuste(); } catch(e){}
