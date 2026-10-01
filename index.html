@@ -321,7 +321,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 .config-card .form-group input, .config-card .form-group select, #abastecimento-form .form-group input { width: 100%; min-width: 0; text-align: center; padding: 8px; font-size: 0.95rem; }
 .config-card .form-group button, #abastecimento-form .form-group button { width: 100%; padding: 8px; min-width: 0; margin-top: 0; font-size: 0.9rem; }
 .config-card:last-child { grid-column: 1 / -1; }
-@media (max-width: 800px) { .main-header { overflow-x: hidden; justify-content: center; padding-left: 0; } .nav-group { width: 100%; justify-content: center; overflow-x: auto; } .nav-button span { display: none; } .nav-button i { font-size: 1.3rem; } .nav-button { padding: 10px 15px; } .reservatorio-wrapper { transform: scale(0.8); margin: -50px auto 0 auto; transform-origin: top center; } canvas { height: 260px !important; } }
+@media (max-width: 800px) { .main-header { overflow-x: hidden; justify-content: center; padding-left: 0; } .nav-group { width: 100%; justify-content: center; overflow-x: auto; } .nav-button span { display: none; } .nav-button i { font-size: 1.3rem; } .nav-button { padding: 10px 15px; } .reservatorio-wrapper { transform: scale(0.8); margin: -50px auto 0 auto; transform-origin: top center; } canvas { height: 260px !important; } .apenas-desktop, .apenas-desktop > * { display: none !important; } }
 @media (max-height: 700px) { .reservatorio-wrapper { transform: scale(0.7); margin-top: -60px; } }
 #reservatorio-svg .estrutura-solida { fill: url(#grad-metal); stroke: #475569; stroke-width: 2.5; opacity: 0.8; }
 #reservatorio-svg .base-concreto { fill: #cbd5e1; stroke: #475569; stroke-width: 2; opacity: 0.9; }
@@ -549,8 +549,10 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <p style="font-size:0.75rem; color:var(--text-sec); margin:0 0 10px;">Exporta as leituras do dia selecionado no gráfico (nível e consumo).</p>
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
 <button onclick="exportarPDF()" class="modern-button" style="background:#ef4444; color:#fff; flex:1; min-width:120px;"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+<div class="apenas-desktop" style="display:contents">
 <button onclick="exportarCSV()" class="modern-button" style="background:#22a06b; color:#fff; flex:1; min-width:120px;"><i class="fas fa-file-excel"></i> Exportar Excel</button>
 <button onclick="enviarRelatorioEmail()" class="modern-button" style="background:#334155; color:#fff; flex:1; min-width:120px;"><i class="fas fa-envelope"></i> Enviar por e-mail</button>
+</div>
 </div>
 <div id="status-exportar" class="small" style="font-weight:bold; margin-top:8px;"></div>
 </div>
@@ -637,6 +639,7 @@ O volume reservado para <strong>combate a incêndio não é monitorado</strong> 
 </div>
 </div>
 </div>
+
 
 <div class="header-right" id="date-controls" style="display: none;">
 <div class="view-selector">
@@ -728,6 +731,15 @@ let isFirstLoad = true;
 let backupCacheNivel = 0;
 
 // Filtro Fantasma
+let slewLast = null, slewPend = 0;
+const SLEW_MAX_PCT_IF = 12, SLEW_CONFIRMA_IF = 3;
+function filtroSlewIframe(valor) {
+    if (valor === null || valor === undefined || isNaN(valor)) return valor;
+    if (slewLast === null) { slewLast = valor; return valor; }
+    if (Math.abs(valor - slewLast) <= SLEW_MAX_PCT_IF) { slewLast = valor; slewPend = 0; return valor; }
+    if (++slewPend >= SLEW_CONFIRMA_IF) { slewLast = valor; slewPend = 0; return valor; }
+    return slewLast;
+}
 let ghostFilterBuffer = [];
 // Dados do ultimo dia carregado no grafico (para exportar PDF/Excel)
 let ultimoDadosRelatorio = null;
@@ -743,6 +755,7 @@ let arMaxLevel = 0;
 let arLastLevel = -1;
 let arStableTime = 0;
 let lastAutoRefillTime = 0;
+let ultimoMinutoHistorico = "";
 
 function calcularVolumeLitros(nivelPercentual) { if (nivelPercentual <= 0) return 0; if (nivelPercentual > 100) nivelPercentual = 100; return Math.floor((nivelPercentual / 100) * capacidadeTotal); }
 function getLocalISODate(dateObj) { const d = dateObj || new Date(); const offset = d.getTimezoneOffset() * 60000; const localDate = new Date(d.getTime() - offset); return localDate.toISOString().split('T')[0]; }
@@ -1308,8 +1321,140 @@ async function carregarGraficoComAjuste() {
     await carregarHistoricoEConsumo();
 }
 
+
+/* ============================================================
+   RECONSTRUCAO A PARTIR DO HISTORICO (abastecimento + consumo)
+   Le /<ID>_historico/AAAA-MM-DD e deriva tudo, sem depender do
+   navegador ter capturado ao vivo.
+   ============================================================ */
+
+async function coletarLeiturasIntervalo(dataIniStr, dataFimStr) {
+    let dias = [];
+    let d = new Date(dataIniStr + "T00:00:00");
+    let fim = new Date(dataFimStr + "T00:00:00");
+    while (d <= fim) { dias.push(getLocalISODate(d)); d.setDate(d.getDate() + 1); }
+    let todas = [];
+    await Promise.all(dias.map(async (dataStr) => {
+        try {
+            const node = await safeFetch(`${PATH_HISTORICO}/${dataStr}.json`);
+            const arr = extrairDadosUniversais(node, dataStr);
+            if (arr && arr.length) todas = todas.concat(arr);
+        } catch (e) {}
+    }));
+    todas.sort((a, b) => a.timestamp - b.timestamp);
+    return todas;
+}
+
+function detectarAbastecimentosDoHistorico(leituras) {
+    const RUIDO = 2, MIN_DIFF = 5;
+    let refills = [];
+    let min = null, max = null, last = null, state = 0, maxTs = null;
+    for (let r of leituras) {
+        let nivel = r.nivel;
+        if (last === null) { last = min = max = nivel; maxTs = r.timestamp; continue; }
+        if (nivel <= last - RUIDO) {
+            if (state === 2) {
+                let diff = max - min;
+                if (diff >= MIN_DIFF) refills.push({ timestamp: maxTs, litros: Math.round(capacidadeTotal * diff / 100), antes: Math.round(min), depois: Math.round(max) });
+                min = max = nivel;
+            } else if (nivel < min) min = nivel;
+            state = 1; last = nivel;
+        } else if (nivel >= last + RUIDO) {
+            if (state !== 2) { max = nivel; maxTs = r.timestamp; }
+            else if (nivel > max) { max = nivel; maxTs = r.timestamp; }
+            state = 2; last = nivel;
+        } else { last = nivel; }
+    }
+    if (state === 2) {
+        let diff = max - min;
+        if (diff >= MIN_DIFF) refills.push({ timestamp: maxTs, litros: Math.round(capacidadeTotal * diff / 100), antes: Math.round(min), depois: Math.round(max) });
+    }
+    return refills;
+}
+
+async function montarAbastecimentosDoMes() {
+    const elMes = document.getElementById('mesAbastecimento');
+    let mes = (elMes && elMes.value) ? elMes.value : getLocalISODate(new Date()).substring(0, 7);
+    let [ano, mm] = mes.split('-').map(Number);
+    let ini = mes + "-01";
+    let fim = mes + "-" + String(new Date(ano, mm, 0).getDate()).padStart(2, '0');
+
+    let dados = {};
+    try {
+        let leituras = await coletarLeiturasIntervalo(ini, fim);
+        let autos = detectarAbastecimentosDoHistorico(leituras);
+        autos.forEach((a, i) => {
+            dados["auto_" + a.timestamp + "_" + i] = { timestamp: a.timestamp, litros: a.litros, tipo: 'automatico', detalhes: `Subida de ${a.antes}% para ${a.depois}%` };
+        });
+    } catch (e) {}
+    try {
+        const r = await safeFetch(`${PATH_ABASTECIMENTO}`);
+        if (r) Object.keys(r).forEach(id => {
+            let it = r[id];
+            if (it && it.tipo === 'manual' && it.timestamp) dados["manual_" + id] = it;
+        });
+    } catch (e) {}
+    return dados;
+}
+
+async function carregarConsumoIntervalo() {
+    let ini, fim;
+    if (currentView === 'mensal') {
+        const el = document.getElementById('mesEscolhido');
+        let mes = (el && el.value) ? el.value : getLocalISODate(new Date()).substring(0, 7);
+        let [ano, mm] = mes.split('-').map(Number);
+        ini = mes + "-01";
+        fim = mes + "-" + String(new Date(ano, mm, 0).getDate()).padStart(2, '0');
+    } else if (currentView === 'intervalo') {
+        ini = (document.getElementById('dataInicio') || {}).value;
+        fim = (document.getElementById('dataFim') || {}).value;
+        if (!ini || !fim) return;
+    } else {
+        let hoje = new Date();
+        fim = getLocalISODate(hoje);
+        let d0 = new Date(hoje); d0.setDate(d0.getDate() - 6);
+        ini = getLocalISODate(d0);
+    }
+
+    let leituras = await coletarLeiturasIntervalo(ini, fim);
+
+    let dias = [];
+    let d = new Date(ini + "T00:00:00"), fimD = new Date(fim + "T00:00:00");
+    while (d <= fimD) { dias.push(getLocalISODate(d)); d.setDate(d.getDate() + 1); }
+
+    let consumoPorDia = {}, nivelFimDia = {};
+    dias.forEach(k => { consumoPorDia[k] = 0; nivelFimDia[k] = null; });
+
+    const litrosPor1Pct = capacidadeTotal / 100;
+    for (let i = 1; i < leituras.length; i++) {
+        let queda = leituras[i - 1].nivel - leituras[i].nivel;
+        if (queda > 0) {
+            let litros = queda * litrosPor1Pct;
+            if (litros <= capacidadeTotal * 0.50) {
+                let k = getLocalISODate(new Date(leituras[i].timestamp));
+                if (consumoPorDia[k] !== undefined) consumoPorDia[k] += litros;
+            }
+        }
+    }
+    leituras.forEach(r => { let k = getLocalISODate(new Date(r.timestamp)); if (nivelFimDia[k] !== undefined) nivelFimDia[k] = r.nivel; });
+
+    let labels = dias.map(k => k.split('-')[2] + '/' + k.split('-')[1]);
+    let consumo = dias.map(k => Math.round(consumoPorDia[k]));
+    let niveis = dias.map(k => nivelFimDia[k]);
+
+    let comConsumo = consumo.filter(v => v > 0);
+    let soma = comConsumo.reduce((a, b) => a + b, 0);
+    let pico = comConsumo.length ? Math.max(...comConsumo) : 0;
+    let media = comConsumo.length ? Math.round(soma / comConsumo.length) : 0;
+
+    let result = { labelsLine: labels, niveisLine: niveis, consumo: consumo, somaConsumoReal: soma, picoConsumoReal: pico, mediaConsumo: media, consumoAtual: consumo[consumo.length - 1] || media };
+    try { ultimoDadosRelatorio = { data: `${ini} a ${fim}`, labels: labels, niveis: niveis, consumo: consumo, media: media, total: soma, pico: pico }; } catch (e) {}
+    atualizarGraficosHistorico(result);
+    atualizarGraficosConsumo(result);
+}
+
 async function carregarHistoricoEConsumo() { 
-    if (currentView === 'semanal' || currentView === 'mensal' || currentView === 'intervalo') return;
+    if (currentView === 'mensal' || currentView === 'intervalo' || currentView === 'semanal') { await carregarConsumoIntervalo(); return; }
     
     if (currentView === 'diario') { 
         const dataEl = document.getElementById('dataEscolhida'); 
@@ -1519,12 +1664,29 @@ function checkAutoRefill(currentLevel) {
 }
 
 async function removerAbastecimento(id) { try { await fetch(`${PATH_ABASTECIMENTO.replace('.json', '')}/${id}.json`, { method: 'DELETE' }); carregarHistoricoAbastecimento(); } catch (e) {} }
+
+// Paliativo: enquanto o navegador estiver aberto, grava o historico igual
+// a placa gravaria (uma vez por slot de 5 minutos). Quando o firmware novo
+// estiver em campo, isso fica redundante e nao estorva.
+async function gravarHistoricoNavegador(nivel) {
+    if (nivel === null || nivel === undefined || isNaN(nivel) || nivel <= 0) return;
+    const agora = new Date();
+    const slot5 = Math.floor(agora.getMinutes() / 5) * 5;
+    const chaveMinuto = `${agora.getHours().toString().padStart(2,'0')}:${slot5.toString().padStart(2,'0')}`;
+    const chaveData = getLocalISODate(agora);
+    const chaveCompleta = chaveData + " " + chaveMinuto;
+    if (chaveCompleta === ultimoMinutoHistorico) return;   // ja gravou esse slot
+    ultimoMinutoHistorico = chaveCompleta;
+    const url = `${PATH_HISTORICO}/${chaveData}/${chaveMinuto}.json`;
+    const body = JSON.stringify({ nivel_pct: Number(nivel.toFixed(1)), timestamp: agora.getTime(), tipo: 'navegador' });
+    try { await fetch(url, { method: 'PUT', body }); } catch(e) {}
+}
 async function carregarHistoricoAbastecimento() { 
     const listaUL = document.getElementById('lista-abastecimentos'); 
     if(listaUL) listaUL.innerHTML = '<li class="small">Carregando...</li>'; 
     try { 
         let dados = null; 
-        try { const r = await safeFetch(`${PATH_ABASTECIMENTO}`); if (r) dados = r; } catch(e) {} 
+        try { dados = await montarAbastecimentosDoMes(); } catch(e) {} 
         if(listaUL) listaUL.innerHTML = ''; 
         let chartLabels = [];
         let chartData = [];
@@ -1800,7 +1962,7 @@ async function loopDeAtualizacao() {
 
   try {
     const dados = await safeFetch(PATH_TEMPO_REAL);
-    let nivelCru = aplicarFiltroMediana(extractLevel(dados));
+    let nivelCru = filtroSlewIframe(extractLevel(dados));
     let nivelFinal = 0;
     let isOfflineStatus = false;
     const agora = Date.now();
@@ -1838,7 +2000,7 @@ async function loopDeAtualizacao() {
         nivelFinal = nivelCru; 
 
         if (!isOfflineStatus) {
-            checkAutoRefill(nivelFinal);
+            /* checkAutoRefill(nivelFinal); desativado: abastecimento reconstruido do historico */
         }
 
         // Gravacao do historico no Firebase: acontece sempre que existe uma leitura
@@ -1877,6 +2039,7 @@ async function loopDeAtualizacao() {
 
     appOnline = !isOfflineStatus;
     renderNivel(nivelFinal, isOfflineStatus);
+    if (!isOfflineStatus) gravarHistoricoNavegador(nivelFinal);
     ultimoUpdateEmMs = agora;
 
   } catch (e) {}
@@ -1966,6 +2129,7 @@ window.addEventListener('load', function() {
     const mesAtual = getLocalISODate(hoje).substring(0, 7); 
     const elMesAbast = document.getElementById('mesAbastecimento'); 
     if(elMesAbast) { elMesAbast.value = mesAtual; elMesAbast.addEventListener('change', carregarHistoricoAbastecimento); } 
+    ['mesEscolhido','dataInicio','dataFim'].forEach(idc => { const e = document.getElementById(idc); if (e) e.addEventListener('change', () => { const b = document.getElementById('btnAtualizar'); if (b) b.click(); }); });
     
     const selSemanaAbast = document.getElementById('filtroSemana');
     if (selSemanaAbast) { selSemanaAbast.addEventListener('change', carregarHistoricoAbastecimento); }
@@ -2220,6 +2384,18 @@ const histDashboardState = {}; // { [id]: { lastTime, lastLevel } }
 /* Filtro de leituras fantasmas no PAINEL, por caixa (mediana de 3 amostras).
    Cada caixa tem seu proprio buffer para nao misturar os valores. Um pico
    isolado (ruido do sensor) e descartado ao ficar no meio da mediana. */
+const slewDash = {};
+const SLEW_MAX_PCT = 12;
+const SLEW_CONFIRMA = 3;
+function filtroSlewDash(id, valor) {
+    if (valor === null || valor === undefined || isNaN(valor)) return valor;
+    if (!slewDash[id]) slewDash[id] = { last: null, pend: 0 };
+    const st = slewDash[id];
+    if (st.last === null) { st.last = valor; return valor; }
+    if (Math.abs(valor - st.last) <= SLEW_MAX_PCT) { st.last = valor; st.pend = 0; return valor; }
+    if (++st.pend >= SLEW_CONFIRMA) { st.last = valor; st.pend = 0; return valor; }
+    return st.last;
+}
 const ghostBufferDash = {}; // { [id]: [v1, v2, v3] }
 function filtrarFantasmaDash(id, valor) {
     if (valor === null || valor === undefined || isNaN(valor)) return valor;
@@ -2346,7 +2522,7 @@ async function updateDashboardData() {
                 else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
 
                 // Filtro de leituras fantasmas (mediana por caixa) antes de exibir/gravar
-                rawLvl = filtrarFantasmaDash(item.id, rawLvl);
+                rawLvl = filtroSlewDash(item.id, rawLvl);
                 
                 // O Heartbeat Universal: Qualquer alteração significa que a placa está VIVA
                 let currentUptime = d.timestamp ?? d.time ?? d.ts ?? d.tempo_atividade ?? JSON.stringify(d);
