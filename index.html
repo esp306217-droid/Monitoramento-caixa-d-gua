@@ -720,7 +720,7 @@ let watchdogInterval = null;
 let warmupInterval = null;
 let appOnline = false;
 let ultimoUpdateEmMs = 0;
-const UPDATE_MS = 1500;
+const UPDATE_MS = 700;
 let lastSavedValidTime = 0; 
 let lastSavedLevel = -1;
 
@@ -732,7 +732,7 @@ let backupCacheNivel = 0;
 
 // Filtro Fantasma
 let slewLast = null, slewPend = 0;
-const SLEW_MAX_PCT_IF = 12, SLEW_CONFIRMA_IF = 3;
+const SLEW_MAX_PCT_IF = 12, SLEW_CONFIRMA_IF = 2;  // reduzido: mais responsivo
 function filtroSlewIframe(valor) {
     if (valor === null || valor === undefined || isNaN(valor)) return valor;
     if (slewLast === null) { slewLast = valor; return valor; }
@@ -767,10 +767,10 @@ function getNoCacheUrl(url) {
 }
 
 /* --- STREAMING_CHUNK:Funções base e API --- */
-async function safeFetch(url, timeoutMs = 8000) {
+async function safeFetch(url, timeoutMs = 2500) {
     let controller = null; let signal = null; let t = null;
     if (typeof AbortController !== 'undefined') { controller = new AbortController(); signal = controller.signal; t = setTimeout(() => controller.abort(), timeoutMs); }
-    const options = { cache: 'no-store' }; if (signal) options.signal = signal;
+    const options = { cache: 'no-store', keepalive: true, priority: 'high' }; if (signal) options.signal = signal;
     try { const response = await fetch(getNoCacheUrl(url), options); if (t) clearTimeout(t); if (!response.ok) throw new Error(response.statusText); return await response.json(); } 
     catch(e) { if (t) clearTimeout(t); return null; }
 }
@@ -1212,12 +1212,33 @@ async function salvarLeituraNoFirebase(nivel, timestamp, tipo = 'real') {
     }
 }
 
+const GAP_SENSOR_CM = 25;  // zona morta do sensor (igual firmware)
+
+// Recalcula o % localmente com a altura ATUAL configurada, sempre que a placa
+// enviar a distância em cm. Assim, trocar a altura na aba Configurações faz o
+// desenho mudar na hora, sem esperar a placa buscar o config novo.
+function recalcularPctComAltura(distanciaCm) {
+    if (!alturaCaixa || alturaCaixa <= GAP_SENSOR_CM) return null;
+    const alturaUtil = alturaCaixa - GAP_SENSOR_CM;
+    const alturaAgua = Math.max(0, alturaCaixa - distanciaCm);
+    let pct = (alturaAgua / alturaUtil) * 100;
+    return Math.max(0, Math.min(100, pct));
+}
+
 function extractLevel(entry) {
     if (entry === null || entry === undefined) return null;
     if (typeof entry === 'number' || typeof entry === 'string') {
         let n = Number(String(entry).replace('%', ''));
         return isNaN(n) ? null : n;
     }
+    // Se a placa mandou distância em cm E a altura está configurada, RECALCULA
+    // localmente - isso faz o desenho reagir na hora às mudanças de altura.
+    let distCm = Number(entry.distancia_filtrada_cm ?? entry.altura_cm ?? null);
+    if (!isNaN(distCm) && distCm > 0 && alturaCaixa > 0) {
+        let pctRecalc = recalcularPctComAltura(distCm);
+        if (pctRecalc !== null) return pctRecalc;
+    }
+    // Fallback: usa o % que a placa já calculou (comportamento original)
     let v = Number(entry.nivel_pct ?? entry.nivel ?? entry.percentual_atual ?? entry.ultima_valida_pct ?? null);
     return isNaN(v) ? null : v;
 }
@@ -1764,8 +1785,21 @@ async function salvarAbastecimento(litros) {
 
 /* --- STREAMING_CHUNK:Configurações e Auxiliares --- */
 async function salvarConfig(endpoint, valor) { try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {} }
-async function salvarCapacidade(valor) { if(!valor || valor <= 0) return; await salvarConfig('capacidade', valor); capacidadeTotal = valor; animarBotaoSucesso('btn-salvar-capacidade'); }
-async function salvarAltura(valor) { if(!valor || valor <= 0) return; await salvarConfig('altura', valor); alturaCaixa = valor; animarBotaoSucesso('btn-salvar-altura'); }
+async function salvarCapacidade(valor) {
+    if(!valor || valor <= 0) return;
+    await salvarConfig('capacidade', valor);
+    capacidadeTotal = valor;
+    animarBotaoSucesso('btn-salvar-capacidade');
+    if (typeof loopDeAtualizacao === 'function') loopDeAtualizacao();
+}
+async function salvarAltura(valor) {
+    if(!valor || valor <= 0) return;
+    await salvarConfig('altura', valor);
+    alturaCaixa = valor;
+    animarBotaoSucesso('btn-salvar-altura');
+    // Força leitura imediata do Firebase pra recalcular o % com a altura nova
+    if (typeof loopDeAtualizacao === 'function') loopDeAtualizacao();
+}
 async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = parseInt(valor); animarBotaoSucesso('btn-salvar-nivel-alerta'); }
 
 async function carregarConfiguracoesGerais() { 
@@ -1952,7 +1986,39 @@ async function buscarBackupUltimaValidaFirebase() {
 }
 
 /* --- STREAMING_CHUNK:Loop de atualização do Iframe (Live) --- */
+let preloadUsado = false;
+function tentarUsarPreload() {
+    if (preloadUsado) return null;
+    preloadUsado = true;
+    try {
+        const idAtual = (window.parent && window.parent.sessionStorage) ? window.parent.sessionStorage.getItem('preload_current_id') : sessionStorage.getItem('preload_current_id');
+        if (!idAtual) return null;
+        const store = (window.parent && window.parent.sessionStorage) ? window.parent.sessionStorage : sessionStorage;
+        const raw = store.getItem('preload_' + idAtual);
+        if (!raw) return null;
+        const pack = JSON.parse(raw);
+        // Preload so vale se for recente (ate 10s)
+        if (Date.now() - pack.timestamp > 10000) return null;
+        return pack.dados;
+    } catch(e) { return null; }
+}
+
 async function loopDeAtualizacao() {
+    // Se tem dado pre-carregado do painel, renderiza INSTANTANEAMENTE antes de buscar
+    const preload = tentarUsarPreload();
+    if (preload) {
+        try {
+            let nivelCruPre = filtroSlewIframe(extractLevel(preload));
+            if (nivelCruPre !== null && !isNaN(nivelCruPre)) {
+                renderNivel(nivelCruPre, false);
+                ultimoUpdateEmMs = Date.now();
+            }
+        } catch(e) {}
+    }
+    return await loopDeAtualizacaoReal();
+}
+
+async function loopDeAtualizacaoReal() {
   if (IS_MAINTENANCE) {
       renderNivel(0, false);
       const elTexto = document.getElementById("status-level");
@@ -2346,6 +2412,14 @@ function prepararAbertura(id) {
     rawHTML = rawHTML.replace(/__FIREBASE_CONFIG_PATH__/g, item.firebaseConfigPath);
     rawHTML = rawHTML.replace(/__FIREBASE_HIST_PATH__/g, item.firebaseHistPath);
 
+    // ---- PRELOADING: entrega os dados que o painel ja tem direto ao iframe ----
+    // Isso faz a caixa abrir com dado JA renderizado, sem esperar 1a requisicao.
+    try {
+        const preload = dadosAoVivo[item.id];
+        if (preload) sessionStorage.setItem('preload_' + item.id, JSON.stringify({ dados: preload, timestamp: Date.now() }));
+        sessionStorage.setItem('preload_current_id', item.id);
+    } catch(e) {}
+
     abrirApp(rawHTML);
 }
 
@@ -2363,7 +2437,7 @@ function fecharApp() {
     iframe.srcdoc = "";
     overlay.classList.remove('active');
     updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 6000); 
+    dashboardInterval = setInterval(updateDashboardData, 1500); 
     iniciarWarmupDashboard();
 }
 
@@ -2385,8 +2459,9 @@ const histDashboardState = {}; // { [id]: { lastTime, lastLevel } }
    Cada caixa tem seu proprio buffer para nao misturar os valores. Um pico
    isolado (ruido do sensor) e descartado ao ficar no meio da mediana. */
 const slewDash = {};
+const dadosAoVivo = {};   // cache do painel: {id: ultimoJsonDoFirebase}
 const SLEW_MAX_PCT = 12;
-const SLEW_CONFIRMA = 3;
+const SLEW_CONFIRMA = 2;   // reduzido: aceita mudanca real mais rapido
 function filtroSlewDash(id, valor) {
     if (valor === null || valor === undefined || isNaN(valor)) return valor;
     if (!slewDash[id]) slewDash[id] = { last: null, pend: 0 };
@@ -2454,8 +2529,8 @@ async function salvarHistoricoDashboard(item, nivel) {
 
 async function safeFetchDashboard(url) {
     let controller = null; let signal = null; let id = null;
-    if (typeof AbortController !== 'undefined') { controller = new AbortController(); id = setTimeout(() => controller.abort(), 4000); signal = controller.signal; }
-    const options = { cache: 'no-store' }; if (signal) options.signal = signal;
+    if (typeof AbortController !== 'undefined') { controller = new AbortController(); id = setTimeout(() => controller.abort(), 1800); signal = controller.signal; }
+    const options = { cache: 'no-store', keepalive: true, priority: 'high' }; if (signal) options.signal = signal;
     try { const response = await fetch(url, options); if(id) clearTimeout(id); if(!response.ok) return null; return response.json(); } 
     catch(e) { if(id) clearTimeout(id); return null; }
 }
@@ -2517,7 +2592,16 @@ async function updateDashboardData() {
             let state = unitStates[item.id];
 
             if(d) {
-                if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
+                // Prioridade: se tem distancia + altura configurada, RECALCULA com a altura atual
+                // (igual a pagina de detalhe faz). Assim as duas paginas mostram o MESMO valor.
+                dadosAoVivo[item.id] = d;   // guarda ultima leitura para preloading do iframe
+                let distCmP = Number(d.distancia_filtrada_cm ?? d.altura_cm ?? NaN);
+                let alturaP = Number(d.altura_configurada_cm ?? NaN);
+                if (!isNaN(distCmP) && distCmP > 0 && !isNaN(alturaP) && alturaP > 25) {
+                    const util = alturaP - 25;
+                    const agua = Math.max(0, alturaP - distCmP);
+                    rawLvl = Math.max(0, Math.min(100, (agua / util) * 100));
+                } else if(d.nivel_pct !== undefined) rawLvl = Number(d.nivel_pct);
                 else if(d.nivel !== undefined) rawLvl = Number(d.nivel);
                 else if(d.percentual_atual !== undefined) rawLvl = Number(d.percentual_atual);
 
@@ -2637,7 +2721,7 @@ window.onload = () => {
     renderGrid('grid-pp', listPP, 'fas fa-road'); 
     renderGrid('grid-sau', listSAU, 'fas fa-home'); 
     updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 6000); 
+    dashboardInterval = setInterval(updateDashboardData, 1500); 
     iniciarWarmupDashboard();
 };
 </script>
