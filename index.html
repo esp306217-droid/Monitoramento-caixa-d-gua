@@ -583,7 +583,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <div id="status-contato" class="small" style="font-weight:bold; margin-top: 5px;"></div>
 </div>
 
-<div class="config-card glass-panel" id="card-telegram-bot" style="display:none;">
+<div class="config-card glass-panel" id="card-telegram-bot">
 <h2><i class="fab fa-telegram-plane" style="color:#229ED9;"></i> Notificações Telegram</h2>
 <div class="form-group" style="flex-direction:column; gap:10px;">
 <p style="font-size:0.75rem; color:var(--text-sec);">Receba o status desta caixa a cada 30 min no Telegram.</p>
@@ -733,6 +733,27 @@ let backupCacheNivel = 0;
 // Filtro Fantasma
 let slewLast = null, slewPend = 0;
 const SLEW_MAX_PCT_IF = 12, SLEW_CONFIRMA_IF = 2;  // reduzido: mais responsivo
+
+// Mesma logica do painel, mas para o iframe. Ativa automaticamente nas caixas
+// com fantasma conhecido (PP03 e SAU06) - pega sempre a MENOR leitura da janela.
+const CAIXAS_PIOR_CASO_IF = ['pp3', 'sau06'];
+const JANELA_PIOR_CASO_MS_IF = 30000;
+let buffPiorIf = [];
+function idDestaPagina() {
+    try {
+        const store = (window.parent && window.parent.sessionStorage) ? window.parent.sessionStorage : sessionStorage;
+        return store.getItem('preload_current_id');
+    } catch(e) { return null; }
+}
+function filtroPiorCasoIf(valor) {
+    if (valor === null || valor === undefined || isNaN(valor) || valor <= 0) return valor;
+    const idAtual = idDestaPagina();
+    if (!CAIXAS_PIOR_CASO_IF.includes(idAtual)) return valor;
+    const agora = Date.now();
+    buffPiorIf.push({ t: agora, v: valor });
+    buffPiorIf = buffPiorIf.filter(e => agora - e.t <= JANELA_PIOR_CASO_MS_IF);
+    return Math.min(...buffPiorIf.map(e => e.v));
+}
 function filtroSlewIframe(valor) {
     if (valor === null || valor === undefined || isNaN(valor)) return valor;
     if (slewLast === null) { slewLast = valor; return valor; }
@@ -2008,7 +2029,7 @@ async function loopDeAtualizacao() {
     const preload = tentarUsarPreload();
     if (preload) {
         try {
-            let nivelCruPre = filtroSlewIframe(extractLevel(preload));
+            let nivelCruPre = filtroPiorCasoIf(filtroSlewIframe(extractLevel(preload)));
             if (nivelCruPre !== null && !isNaN(nivelCruPre)) {
                 renderNivel(nivelCruPre, false);
                 ultimoUpdateEmMs = Date.now();
@@ -2028,7 +2049,7 @@ async function loopDeAtualizacaoReal() {
 
   try {
     const dados = await safeFetch(PATH_TEMPO_REAL);
-    let nivelCru = filtroSlewIframe(extractLevel(dados));
+    let nivelCru = filtroPiorCasoIf(filtroSlewIframe(extractLevel(dados)));
     let nivelFinal = 0;
     let isOfflineStatus = false;
     const agora = Date.now();
@@ -2460,6 +2481,24 @@ const histDashboardState = {}; // { [id]: { lastTime, lastLevel } }
    isolado (ruido do sensor) e descartado ao ficar no meio da mediana. */
 const slewDash = {};
 const dadosAoVivo = {};   // cache do painel: {id: ultimoJsonDoFirebase}
+const LIMITE_OFFLINE_24H_MS = 24 * 60 * 60 * 1000;   // 24h sem envio = offline de verdade
+
+// Caixas com leitura fantasma conhecida: sempre pega a MENOR leitura numa janela.
+// Melhor subestimar o nivel (acionar abastecimento a toa) que superestimar
+// (achar que tem agua quando a caixa esta vazia).
+const CAIXAS_PIOR_CASO = ['pp3', 'sau06'];
+const JANELA_PIOR_CASO_MS = 30000;   // janela de 30 segundos
+const buffPior = {};                 // {id: [{t, v}, ...]}
+function filtroPiorCaso(id, valor) {
+    if (valor === null || valor === undefined || isNaN(valor) || valor <= 0) return valor;
+    if (!buffPior[id]) buffPior[id] = [];
+    const agora = Date.now();
+    buffPior[id].push({ t: agora, v: valor });
+    // descarta leituras velhas (fora da janela)
+    buffPior[id] = buffPior[id].filter(e => agora - e.t <= JANELA_PIOR_CASO_MS);
+    // retorna a MENOR da janela
+    return Math.min(...buffPior[id].map(e => e.v));
+}
 const SLEW_MAX_PCT = 12;
 const SLEW_CONFIRMA = 2;   // reduzido: aceita mudanca real mais rapido
 function filtroSlewDash(id, valor) {
@@ -2607,6 +2646,7 @@ async function updateDashboardData() {
 
                 // Filtro de leituras fantasmas (mediana por caixa) antes de exibir/gravar
                 rawLvl = filtroSlewDash(item.id, rawLvl);
+                if (CAIXAS_PIOR_CASO.includes(item.id)) rawLvl = filtroPiorCaso(item.id, rawLvl);
                 
                 // O Heartbeat Universal: Qualquer alteração significa que a placa está VIVA
                 let currentUptime = d.timestamp ?? d.time ?? d.ts ?? d.tempo_atividade ?? JSON.stringify(d);
@@ -2634,15 +2674,18 @@ async function updateDashboardData() {
                     }
                 }
 
-                if (agora - state.lastRealTime > 30000 || isFalha) {
-                    isOffline = true;
+                // NOVA LOGICA: so marca OFFLINE DE VERDADE se nao enviou nada por mais de 24h.
+                // Entre 0 e 24h sem atualizacao, mantem como ONLINE usando o ultimo valor valido.
+                if (agora - state.lastRealTime > LIMITE_OFFLINE_24H_MS) {
+                    isOffline = true;    // offline de verdade (>24h sem envio)
                 }
+                // Falha de leitura NAO marca mais como offline (placa pode estar sem agua)
             } else {
-                isOffline = true;
+                // Sem dado nenhum: so considera offline se nao tiver backup recente
+                if (!state.lastValidPct || agora - state.lastRealTime > LIMITE_OFFLINE_24H_MS) isOffline = true;
             }
             
             let lvl = (rawLvl > 0) ? rawLvl : state.lastValidPct;
-            if (lvl === 0 && rawLvl === 0) isOffline = true;
             
             if (lvl > 0) {
                 item.active = true;
@@ -2652,10 +2695,11 @@ async function updateDashboardData() {
                     card.removeAttribute('data-status');
                     
                     if (isOffline) {
+                        // OFFLINE DE VERDADE (>24h sem envio): bolinha vermelha + overlay cinza
                         card.setAttribute('data-status', 'offline'); 
                         if(elLvl) elLvl.style.color = 'var(--level-offline)';
-                        if(statusTxt) statusTxt.innerText = 'Offline (Última lida)';
-                        if(dot) dot.style.display = 'none';
+                        if(statusTxt) statusTxt.innerText = 'Sem conexão';
+                        if(dot) { dot.style.display = 'block'; dot.style.backgroundColor = 'var(--level-danger)'; }
                         if(elBg) { elBg.style.height = `${lvl}%`; elBg.style.background = 'linear-gradient(to top, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.5))'; }
                     } else {
                         if(lvl > 60) { card.setAttribute('data-status', 'ok'); if(elLvl) elLvl.style.color = 'var(--level-ok)'; } 
@@ -2663,7 +2707,7 @@ async function updateDashboardData() {
                         else { card.setAttribute('data-status', 'danger'); if(elLvl) elLvl.style.color = 'var(--level-danger)'; }
                         
                         if(statusTxt) statusTxt.innerText = 'Online';
-                        if(dot) dot.style.display = 'block';
+                        if(dot) { dot.style.display = 'block'; dot.style.backgroundColor = 'var(--level-ok)'; }
                         if(elBg) { elBg.style.height = `${lvl}%`; elBg.style.background = ''; } 
 
                         // Grava o historico desta caixa no Firebase (throttle interno)
