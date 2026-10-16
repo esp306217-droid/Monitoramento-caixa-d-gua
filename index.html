@@ -548,7 +548,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <img class="logo" src="https://viacristais.com.br/wp-content/uploads/2025/01/ViaCristais_compact_RGB-800x600.jpg" alt="Logo ViaCristais">
 <h1><i class="fas fa-cog" style="color: var(--accent);"></i> Configurações</h1>
 <div class="config-board">
-<div class="config-card glass-panel" style="grid-column: 1 / -1;">
+<div class="config-card glass-panel apenas-desktop" style="grid-column: 1 / -1;">
 <h2><i class="fas fa-file-export" style="color:var(--accent);"></i> Relatórios do Gráfico</h2>
 <p style="font-size:0.75rem; color:var(--text-sec); margin:0 0 10px;">Exporta as leituras do dia selecionado no gráfico (nível e consumo).</p>
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -2425,7 +2425,11 @@ function prepararAbertura(id) {
         mapsButton = `<button onclick="abrirAppExterno('maps', '${item.coords}')" class="nav-button-icon-only" title="Ver Localização" style="width:32px; height:32px; font-size:0.9rem; background: var(--input-bg);"><i class="fas fa-map-marker-alt" style="color: #ef4444;"></i></button>`;
     }
     
-    let telegramBotName = item.telegramBot ? item.telegramBot : 'Caixadguap7_bot';
+    // ====== BOT UNICO DO TELEGRAM (todas as caixas usam o mesmo) ======
+    // TROQUE pelo @username REAL do seu bot (sem o @). Ex.: 'MonitoramentoVCR_bot'
+    // O username tem que terminar em "bot" e existir no @BotFather.
+    const BOT_TELEGRAM_UNICO = 'Caixadguap7_bot';
+    let telegramBotName = BOT_TELEGRAM_UNICO;
     let telegramBotToken = item.telegramBotToken ? item.telegramBotToken : '';
     let isMaintenanceMode = item.maintenance === true ? 'true' : 'false';
 
