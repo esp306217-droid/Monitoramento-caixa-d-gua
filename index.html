@@ -591,7 +591,7 @@ li { background: var(--input-bg); padding: 12px 15px; border-radius: 10px; margi
 <h2><i class="fab fa-telegram-plane" style="color:#229ED9;"></i> Notificações Telegram</h2>
 <div class="form-group" style="flex-direction:column; gap:10px;">
 <p style="font-size:0.75rem; color:var(--text-sec);">Receba o status desta caixa a cada 30 min no Telegram.</p>
-<button onclick="abrirBotERegistrar()" class="modern-button" style="background-color:#229ED9; color:white; width:100%;">
+<button onclick="window.open('https://t.me/' + TELEGRAM_BOT_NAME + '?start=' + currentAppId, '_blank')" class="modern-button" style="background-color:#229ED9; color:white; width:100%;">
 <i class="fab fa-telegram-plane"></i> Iniciar Bot no Telegram
 </button>
 <p id="telegram-info" style="font-size:0.7rem; color:var(--level-ok); margin:0;"></p>
