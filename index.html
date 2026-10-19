@@ -1532,6 +1532,28 @@ async function carregarHistoricoEConsumo() {
 
         let valOntem = arrayOntem.length > 0 ? arrayOntem[arrayOntem.length - 1].nivel : null;
 
+        // Se o dia anterior nao tem leitura, busca ate 7 dias atras para nao deixar
+        // buraco no grafico (puxa a ultima leitura conhecida atraves dos vazios).
+        if (valOntem === null) {
+            for (let dback = 2; dback <= 7 && valOntem === null; dback++) {
+                let dObj = new Date(dataParts[0], dataParts[1] - 1, dataParts[2]);
+                dObj.setDate(dObj.getDate() - dback);
+                let dStr = getLocalISODate(dObj);
+                try {
+                    const rBack = await safeFetch(`${PATH_HISTORICO}/${dStr}.json`);
+                    let arrBack = extrairDadosUniversais(rBack, dStr);
+                    if (arrBack.length > 0) valOntem = arrBack[arrBack.length - 1].nivel;
+                } catch(e) {}
+            }
+        }
+        // Fallback final: a ultima leitura valida salva no config
+        if (valOntem === null) {
+            try {
+                const rUlt = await safeFetch(`${PATH_CONFIG_BASE}/ultima_leitura_valida.json`);
+                if (rUlt && rUlt.nivel > 0) valOntem = rUlt.nivel;
+            } catch(e) {}
+        }
+
         let labelsLine = [];
         let hourlyLevels = new Array(24).fill(null);
         let consumoFinal = new Array(24).fill(0);
