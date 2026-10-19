@@ -2055,6 +2055,7 @@ async function loopDeAtualizacaoReal() {
     const dados = await safeFetch(PATH_TEMPO_REAL);
     let nivelCru = filtroPiorCasoIf(filtroSlewIframe(extractLevel(dados)));
     if (currentAppId === 'pp2') nivelCru = 96;   // PP02 fixado em 96% (manual)
+    const FORCAR_ONLINE = (currentAppId !== 'pp6');   // todas sempre online, exceto PP06 (offline)
     let nivelFinal = 0;
     let isOfflineStatus = false;
     const agora = Date.now();
@@ -2081,7 +2082,7 @@ async function loopDeAtualizacaoReal() {
             }
         }
 
-        if (agora - lastRealTime > 30000 || statusPlaca === "FALHA") {
+        if (!FORCAR_ONLINE && (agora - lastRealTime > 30000 || statusPlaca === "FALHA")) {
             isOfflineStatus = true;
         }
     } else {
@@ -2705,6 +2706,11 @@ async function updateDashboardData() {
             } else {
                 if (!state.lastValidPct || agora - state.lastRealTime > LIMITE_OFFLINE_24H_MS) isOffline = true;
             }
+            // ===== SEM CONFERENCIA: card sempre mostra o nivel (exceto PP06 = offline) =====
+            // A bolinha (LED) indica comunicacao REAL: verde=comunicando, vermelho=sem comunicacao
+            const comunicando = (state.lastRealTime > 0 && (agora - state.lastRealTime < 90000));
+            if (item.id === 'pp6') isOffline = true;   // PP06 forcado OFFLINE
+            else isOffline = false;                    // todas as outras: sempre online (sem conferencia)
             
             let lvl = (rawLvl > 0) ? rawLvl : state.lastValidPct;
             
@@ -2727,8 +2733,8 @@ async function updateDashboardData() {
                         else if (lvl > 30) { card.setAttribute('data-status', 'warn'); if(elLvl) elLvl.style.color = 'var(--level-warn)'; } 
                         else { card.setAttribute('data-status', 'danger'); if(elLvl) elLvl.style.color = 'var(--level-danger)'; }
                         
-                        if(statusTxt) statusTxt.innerText = 'Online';
-                        if(dot) { dot.style.display = 'block'; dot.style.backgroundColor = 'var(--level-ok)'; }
+                        if(statusTxt) statusTxt.innerText = comunicando ? 'Online' : 'Sem comunicação';
+                        if(dot) { dot.style.display = 'block'; dot.style.backgroundColor = comunicando ? 'var(--level-ok)' : 'var(--level-danger)'; }
                         if(elBg) { elBg.style.height = `${lvl}%`; elBg.style.background = ''; } 
 
                         // Grava o historico desta caixa no Firebase (throttle interno)
