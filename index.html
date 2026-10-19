@@ -1986,14 +1986,17 @@ function renderNivel(nivelPct, isOfflineStatus = false) {
     
     const liveIndicator = document.getElementById('live-indicator');
     if (liveIndicator) {
-        if (isOfflineStatus) { liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline'); } 
-        else { liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online'); }
+        if (window.semComunicacaoLED) {
+            liveIndicator.classList.remove('online'); liveIndicator.classList.add('offline');
+            liveIndicator.style.backgroundColor = 'var(--level-danger)';   // VERMELHO: sem comunicacao
+        } else {
+            liveIndicator.classList.remove('offline'); liveIndicator.classList.add('online');
+            liveIndicator.style.backgroundColor = '';   // VERDE: comunicando (classe online)
+        }
     }
-    
+    // Aviso grande de offline sempre escondido (sem conferencia)
     const offlineWarning = document.getElementById('offline-warning-msg');
-    if (offlineWarning) {
-        offlineWarning.style.display = isOfflineStatus ? 'block' : 'none';
-    }
+    if (offlineWarning) offlineWarning.style.display = 'none';
 
     // Verifica o nivel minimo e dispara alarme/popup/vibracao se necessario
     try { verificarAlerta(nivelPct, isOfflineStatus); } catch(e){}
@@ -2054,7 +2057,6 @@ async function loopDeAtualizacaoReal() {
   try {
     const dados = await safeFetch(PATH_TEMPO_REAL);
     let nivelCru = filtroPiorCasoIf(filtroSlewIframe(extractLevel(dados)));
-    if (currentAppId === 'pp2') nivelCru = 96;   // PP02 fixado em 96% (manual)
     const FORCAR_ONLINE = (currentAppId !== 'pp6');   // todas sempre online, exceto PP06 (offline)
     let nivelFinal = 0;
     let isOfflineStatus = false;
@@ -2082,12 +2084,11 @@ async function loopDeAtualizacaoReal() {
             }
         }
 
-        if (!FORCAR_ONLINE && (agora - lastRealTime > 30000 || statusPlaca === "FALHA")) {
-            isOfflineStatus = true;
-        }
-    } else {
-        isOfflineStatus = true; 
     }
+    // SEM COMUNICACAO = o timestamp nao muda ha mais de 90s (ou nao ha dados). So controla o LED.
+    let semComunicacao = (!dados) || (agora - lastRealTime > 90000);
+    window.semComunicacaoLED = semComunicacao;
+    isOfflineStatus = false;   // NUNCA esconde o nivel (sem conferencia)
 
     if (nivelCru !== null && nivelCru > 0) {
         nivelFinal = nivelCru; 
@@ -2119,20 +2120,16 @@ async function loopDeAtualizacaoReal() {
         }
     } 
 
-    if (isOfflineStatus || nivelCru === null || nivelCru <= 0) {
-        if (lastSavedLevel > 0) {
-            nivelFinal = lastSavedLevel;
-        } else if (backupCacheNivel > 0) {
-            nivelFinal = backupCacheNivel;
-        } else {
-            nivelFinal = 0;
-        }
-        isOfflineStatus = true;
+    // Se nao veio leitura nova valida, usa a ULTIMA LEITURA VALIDA (nunca zera o desenho)
+    if (nivelCru === null || nivelCru <= 0) {
+        if (lastSavedLevel > 0) nivelFinal = lastSavedLevel;
+        else if (backupCacheNivel > 0) nivelFinal = backupCacheNivel;
+        else nivelFinal = 0;
     }
 
-    appOnline = !isOfflineStatus;
-    renderNivel(nivelFinal, isOfflineStatus);
-    if (!isOfflineStatus) gravarHistoricoNavegador(nivelFinal);
+    appOnline = !semComunicacao;
+    renderNivel(nivelFinal, false);   // SEMPRE mostra o nivel (LED controlado a parte)
+    gravarHistoricoNavegador(nivelFinal);
     ultimoUpdateEmMs = agora;
 
   } catch (e) {}
@@ -2658,7 +2655,6 @@ async function updateDashboardData() {
                 // Filtro de leituras fantasmas (mediana por caixa) antes de exibir/gravar
                 rawLvl = filtroSlewDash(item.id, rawLvl);
                 if (CAIXAS_PIOR_CASO.includes(item.id)) rawLvl = filtroPiorCaso(item.id, rawLvl);
-                if (item.id === 'pp2') rawLvl = 96;   // PP02 fixado em 96% (manual)
                 
                 // O Heartbeat Universal: Qualquer alteração significa que a placa está VIVA
                 let currentUptime = d.timestamp ?? d.time ?? d.ts ?? d.tempo_atividade ?? JSON.stringify(d);
@@ -2668,10 +2664,14 @@ async function updateDashboardData() {
                 // Guarda {millis_placa, epoch_real}. Qualquer navegador que abrir le isso
                 // e sabe quando a placa realmente parou de atualizar, independe de sessao.
                 if (!state.initialized) {
-                    // Assume ONLINE de cara (nao pisca "sem conexao" ao abrir).
-                    // So marca offline se o carimbo PERSISTENTE provar que faz mais de 36h.
                     state.lastUptime = currentUptime;
                     state.lastRealTime = Date.now();
+                    // Busca a ULTIMA LEITURA VALIDA salva (pra mostrar 79% mesmo que a placa mande 0 agora)
+                    try {
+                        const urlUlt = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
+                        const ult = await safeFetchDashboard(urlUlt);
+                        if (ult && ult.nivel > 0) state.lastValidPct = ult.nivel;
+                    } catch(e) {}
                     try {
                         const urlCarimbo = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/_server_ts.json`);
                         const carimbo = await safeFetchDashboard(urlCarimbo);
@@ -2698,23 +2698,23 @@ async function updateDashboardData() {
                         fetch(urlCarimboPut, { method: 'PUT', body: JSON.stringify({ millis_placa: currentUptime, epoch_real: agora }), keepalive: true });
                     } catch(e) {}
                 }
-                // 36h sem a placa atualizar -> OFFLINE DE VERDADE
-                if (state.lastRealTime > 0 && agora - state.lastRealTime > LIMITE_OFFLINE_24H_MS) {
-                    isOffline = true;
-                }
-                if (isFalha) { /* status FALHA do sensor nao marca mais como offline da placa */ }
-            } else {
-                if (!state.lastValidPct || agora - state.lastRealTime > LIMITE_OFFLINE_24H_MS) isOffline = true;
+                // (conferencia de 36h REMOVIDA - sem checagem de offline por tempo)
             }
-            // ===== SEM CONFERENCIA: card sempre mostra o nivel (exceto PP06 = offline) =====
+            // ===== SEM CONFERENCIA: card sempre mostra o nivel =====
             // A bolinha (LED) indica comunicacao REAL: verde=comunicando, vermelho=sem comunicacao
             const comunicando = (state.lastRealTime > 0 && (agora - state.lastRealTime < 90000));
-            if (item.id === 'pp6') isOffline = true;   // PP06 forcado OFFLINE
-            else isOffline = false;                    // todas as outras: sempre online (sem conferencia)
+            isOffline = false;   // SEM CONFERENCIA: nenhuma caixa fica "sem conexao" (manutencao/AP tratadas antes)
+            // Salva a ultima leitura valida no Firebase sempre que houver leitura real
+            if (rawLvl > 0 && comunicando) {
+                try {
+                    const urlSalvar = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
+                    fetch(urlSalvar, { method: 'PUT', body: JSON.stringify({ nivel: Math.round(rawLvl), timestamp: agora }), keepalive: true });
+                } catch(e) {}
+            }
             
             let lvl = (rawLvl > 0) ? rawLvl : state.lastValidPct;
             
-            if (lvl > 0) {
+            if (lvl > 0 || !isOffline) {   // mostra online mesmo com nivel 0 (so PP06 cai no else)
                 item.active = true;
                 if(card) {
                     card.classList.remove('inactive');
