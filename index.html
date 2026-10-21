@@ -797,7 +797,7 @@ function getNoCacheUrl(url) {
 }
 
 /* --- STREAMING_CHUNK:Funções base e API --- */
-async function safeFetch(url, timeoutMs = 2500) {
+async function safeFetch(url, timeoutMs = 5000) {
     let controller = null; let signal = null; let t = null;
     if (typeof AbortController !== 'undefined') { controller = new AbortController(); signal = controller.signal; t = setTimeout(() => controller.abort(), timeoutMs); }
     const options = { cache: 'no-store', keepalive: true, priority: 'high' }; if (signal) options.signal = signal;
@@ -1954,7 +1954,9 @@ function renderNivel(nivelPct, isOfflineStatus = false) {
     const elTexto = document.getElementById("status-level");
     if (elTexto) {
         const _r = Math.round(nivelPct);
-        elTexto.innerText = (_r > 0) ? `${_r}%` : '--%';   // 2.14: nunca mostra 0%
+        let _show = _r;
+        if (!(_r > 0)) { try { const _ls=(window.parent&&window.parent.localStorage)?window.parent.localStorage:localStorage; _show = Number(_ls.getItem('lvl_'+currentAppId))||0; } catch(e){} }
+        elTexto.innerText = (_show > 0) ? `${_show}%` : '...';   // 2.15: ultima leitura salva; nunca 0%/--%
         if (isOfflineStatus) elTexto.style.color = 'var(--level-offline)'; 
         else if (nivelPct > 60) elTexto.style.color = 'var(--level-ok)';
         else if (nivelPct > nivelAlertaConfigurado) elTexto.style.color = 'var(--level-warn)';
@@ -2315,6 +2317,16 @@ window.addEventListener('load', function() {
     try { carregarGraficoComAjuste(); } catch(e){}
     
     iniciarAtualizacao();
+
+    // 2.15: fecha a tela sozinha apos inatividade (economia de download no celular)
+    let inatInner = null;
+    const INAT_INNER_MS = 120000; // 2 min sem toque -> fecha a tela
+    function resetInatInner() {
+        if (inatInner) clearTimeout(inatInner);
+        inatInner = setTimeout(() => { try { if (window.parent && window.parent.fecharApp) window.parent.fecharApp(); } catch(e){} }, INAT_INNER_MS);
+    }
+    ['click','touchstart','scroll','keydown','pointerdown'].forEach(ev => document.addEventListener(ev, resetInatInner, { passive: true }));
+    resetInatInner();
     
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
@@ -2602,12 +2614,42 @@ async function salvarHistoricoDashboard(item, nivel) {
     }
 }
 
-async function safeFetchDashboard(url) {
-    let controller = null; let signal = null; let id = null;
-    if (typeof AbortController !== 'undefined') { controller = new AbortController(); id = setTimeout(() => controller.abort(), 1800); signal = controller.signal; }
-    const options = { cache: 'no-store', keepalive: true, priority: 'high' }; if (signal) options.signal = signal;
-    try { const response = await fetch(url, options); if(id) clearTimeout(id); if(!response.ok) return null; return response.json(); } 
-    catch(e) { if(id) clearTimeout(id); return null; }
+/* 2.16: timeout de 1,8s era curto demais - com o Firebase lento as mesmas caixas
+   (SAU10, PP02, SAU02...) perdiam a corrida e nunca carregavam. Agora 3s + 1 retentativa. */
+async function safeFetchDashboard(url, timeoutMs = 3000, tentativas = 2) {
+    for (let k = 0; k < tentativas; k++) {
+        let controller = null; let signal = null; let id = null;
+        if (typeof AbortController !== 'undefined') { controller = new AbortController(); id = setTimeout(() => controller.abort(), timeoutMs); signal = controller.signal; }
+        const options = { cache: 'no-store', keepalive: true, priority: 'high' }; if (signal) options.signal = signal;
+        try {
+            const response = await fetch(url, options);
+            if (id) clearTimeout(id);
+            if (response.ok) return await response.json();
+        } catch(e) { if (id) clearTimeout(id); }
+    }
+    return null;
+}
+
+/* 2.16: ultima leitura salva (cache do navegador; se nao houver, busca no Firebase 1x) */
+const seedPedido = {};   // {id: instante da ultima tentativa}
+async function ultimaSalva(item) {
+    let v = 0;
+    try { v = Number(localStorage.getItem('lvl_' + item.id)) || 0; } catch(e) {}
+    if (v > 0) return v;
+    // 2.17: pode tentar DE NOVO a cada 30s. Antes, 1 falha travava a caixa em "..." para sempre.
+    const _ag = Date.now();
+    if (seedPedido[item.id] && (_ag - seedPedido[item.id]) < 30000) return 0;
+    seedPedido[item.id] = _ag;
+    try {
+        const u = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
+        const r = await safeFetchDashboard(u);
+        if (r && r.nivel > 0) {
+            const n = Math.round(r.nivel);
+            try { localStorage.setItem('lvl_' + item.id, String(n)); } catch(e) {}
+            return n;
+        }
+    } catch(e) {}
+    return 0;
 }
 
 async function updateDashboardData() {
@@ -2618,7 +2660,7 @@ async function updateDashboardData() {
     const agora = Date.now();
     
     // Promise.all garante velocidade máxima varrendo tudo em paralelo
-    await Promise.all(allItems.map(async (item) => {
+    const processarItem = async (item) => {
         const card = document.getElementById(`card-${item.id}`);
         const elLvl = document.getElementById(`lvl-${item.id}`);
         const elBg = document.getElementById(`bg-${item.id}`);
@@ -2635,7 +2677,7 @@ async function updateDashboardData() {
                 if(statusTxt) statusTxt.innerText = 'Em manutenção';
                 if(dot) dot.style.display = 'none';
                 
-                if(elLvl) { elLvl.innerText = '--%'; elLvl.style.color = 'var(--text-sec)'; }
+                if(elLvl) { const _u = await ultimaSalva(item); elLvl.innerText = _u>0?`${_u}%`:'...'; elLvl.style.color = 'var(--text-sec)'; }
                 if(elBg) elBg.style.height = `0%`;
             }
             return; 
@@ -2649,7 +2691,7 @@ async function updateDashboardData() {
                 card.setAttribute('data-status', 'danger');
                 if(statusTxt) statusTxt.innerText = 'Manual';
                 if(dot) dot.style.display = 'none';
-                if(elLvl) { elLvl.innerText = '--%'; elLvl.style.color = 'var(--text-sec)'; }
+                if(elLvl) { const _u = await ultimaSalva(item); elLvl.innerText = _u>0?`${_u}%`:'...'; elLvl.style.color = 'var(--text-sec)'; }
                 if(elBg) elBg.style.height = `0%`;
             }
             return; 
@@ -2671,12 +2713,9 @@ async function updateDashboardData() {
             if (!state.seeded) {
                 state.seeded = true;
                 // 2.12: pinta imediatamente com a ultima leitura guardada no navegador
-                try { const ls = Number(localStorage.getItem('lvl_'+item.id)); if (ls > 0) state.lastValidPct = ls; } catch(e){}
-                try {
-                    const urlSeed = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
-                    const seed = await safeFetchDashboard(urlSeed);
-                    if (seed && seed.nivel > 0 && !(state.lastValidPct > 0)) state.lastValidPct = seed.nivel;
-                } catch(e) {}
+                // 2.16: usa o cache; so consulta o Firebase se nao houver nada guardado
+                const _s = await ultimaSalva(item);
+                if (_s > 0 && !(state.lastValidPct > 0)) state.lastValidPct = _s;
             }
 
             if(d) {
@@ -2776,8 +2815,12 @@ async function updateDashboardData() {
                         if(elLvl) elLvl.innerText = `${lvl}%`;
                         if(elBg) { elBg.style.height = `${lvl}%`; elBg.style.background = ''; }
                     } else {
-                        if(elLvl) { elLvl.innerText = '--%'; elLvl.style.color = 'var(--text-sec)'; }
-                        if(elBg) { elBg.style.height = `0%`; elBg.style.background = ''; }
+                        // 2.17: busca a ultima leitura salva no Firebase e GUARDA no estado,
+                        //       para a caixa em FALHA (SAU02/SAU10/PP02) parar de ficar sem nivel.
+                        const _u = await ultimaSalva(item);
+                        if (_u > 0) state.lastValidPct = _u;
+                        if(elLvl) { elLvl.innerText = _u>0?`${_u}%`:'...'; elLvl.style.color = _u>0?'var(--level-offline)':'var(--text-sec)'; }
+                        if(elBg) { elBg.style.height = _u>0?`${_u}%`:`0%`; elBg.style.background = ''; }
                     }
                     if (comunicando) {
                         if(statusTxt) statusTxt.innerText = 'Online';
@@ -2798,12 +2841,16 @@ async function updateDashboardData() {
                     
                     if(statusTxt) statusTxt.innerText = 'Offline';
                     if(dot) dot.style.display = 'none';
-                    if(elLvl) { elLvl.innerText = '--%'; elLvl.style.color = 'var(--text-sec)'; }
+                    if(elLvl) { const _u = await ultimaSalva(item); elLvl.innerText = _u>0?`${_u}%`:'...'; elLvl.style.color = 'var(--text-sec)'; }
                     if(elBg) { elBg.style.height = `0%`; elBg.style.background = ''; }
                 }
             }
         } catch(e) {}
-    }));
+    };
+    // 2.16: no maximo 6 requisicoes simultaneas (antes eram 42 de uma vez -> timeouts)
+    for (let i = 0; i < allItems.length; i += 6) {
+        await Promise.all(allItems.slice(i, i + 6).map(processarItem));
+    }
 
     isUpdatingDashboard = false;
 }
@@ -2833,6 +2880,60 @@ function checkAutoThemeDash(forcar) {
 }
 setInterval(() => { try { checkAutoThemeDash(false); } catch(e){} }, 60000);
 
+/* 2.15: AUTO-PAUSA por inatividade. No celular, se ninguem tocar a tela por alguns
+   minutos, o painel PARA de consultar o Firebase (zera a taxa de download). Um toque
+   reconecta. Evita gasto com a tela esquecida aberta. */
+let inatividadeTimer = null;
+const INATIVIDADE_MS = 120000;   // 2 min sem toque -> pausa
+function criarOverlayPausa() {
+    if (document.getElementById('pausa-overlay')) return;
+    const ov = document.createElement('div');
+    ov.id = 'pausa-overlay';
+    ov.style.cssText = 'display:none; position:fixed; inset:0; z-index:3000; background:rgba(8,15,30,0.92); color:#fff; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; cursor:pointer; backdrop-filter:blur(4px);';
+    ov.innerHTML = '<div style="font-size:3rem; margin-bottom:14px;">\u23f8\ufe0f</div><div style="font-size:1.6rem; font-weight:700; letter-spacing:1px;">Pausado</div>';
+    ov.addEventListener('click', retomarPainel);
+    document.body.appendChild(ov);
+}
+function pausarPainel() {
+    if (dashboardInterval) { clearInterval(dashboardInterval); dashboardInterval = null; }
+    if (dashboardWarmup) { clearInterval(dashboardWarmup); dashboardWarmup = null; }
+    const ov = document.getElementById('pausa-overlay');
+    if (ov) ov.style.display = 'flex';
+}
+function retomarPainel() {
+    const ov = document.getElementById('pausa-overlay');
+    if (ov) ov.style.display = 'none';
+    updateDashboardData();
+    if (dashboardInterval) clearInterval(dashboardInterval);
+    dashboardInterval = setInterval(updateDashboardData, 1500);
+    iniciarWarmupDashboard();
+    resetInatividade();
+}
+function resetInatividade() {
+    if (inatividadeTimer) clearTimeout(inatividadeTimer);
+    inatividadeTimer = setTimeout(pausarPainel, INATIVIDADE_MS);
+}
+const VERSAO_PAINEL = '2.17';
+function mostrarVersao() {
+    if (document.getElementById('tag-versao')) return;
+    const t = document.createElement('div');
+    t.id = 'tag-versao';
+    t.textContent = 'v' + VERSAO_PAINEL;
+    t.style.cssText = 'position:fixed; right:6px; top:6px; z-index:2500; font-size:10px; opacity:0.45; color:var(--text-sec); pointer-events:none; font-family:monospace;';
+    document.body.appendChild(t);
+}
+
+function iniciarAutoPausa() {
+    criarOverlayPausa();
+    mostrarVersao();
+    ['click','touchstart','scroll','keydown','pointerdown'].forEach(ev =>
+        document.addEventListener(ev, () => {
+            const ov = document.getElementById('pausa-overlay');
+            if (!ov || ov.style.display === 'none') resetInatividade();
+        }, { passive: true }));
+    resetInatividade();
+}
+
 window.onload = () => {
     checkAutoThemeDash(true);
     renderGrid('grid-pp', listPP, 'fas fa-road'); 
@@ -2840,6 +2941,7 @@ window.onload = () => {
     updateDashboardData();
     dashboardInterval = setInterval(updateDashboardData, 1500); 
     iniciarWarmupDashboard();
+    iniciarAutoPausa();   // 2.15
 };
 </script>
 </body>
