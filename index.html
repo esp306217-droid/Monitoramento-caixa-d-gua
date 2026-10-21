@@ -728,7 +728,7 @@ let watchdogInterval = null;
 let warmupInterval = null;
 let appOnline = false;
 let ultimoUpdateEmMs = 0;
-const UPDATE_MS = 30000;   // 2.8: 30s (economia de download)
+const UPDATE_MS = 700;
 let lastSavedValidTime = 0; 
 let lastSavedLevel = -1;
 
@@ -737,6 +737,7 @@ let lastUptime = null;
 let lastRealTime = 0;
 let isFirstLoad = true;
 let backupCacheNivel = 0;
+try { const _ls = (window.parent && window.parent.localStorage) ? window.parent.localStorage : localStorage; const _v = Number(_ls.getItem('lvl_' + currentAppId)); if (_v > 0) backupCacheNivel = _v; } catch(e){}  /* 2.12: pinta o desenho na hora */
 
 // Filtro Fantasma
 let slewLast = null, slewPend = 0;
@@ -1952,7 +1953,8 @@ function renderNivel(nivelPct, isOfflineStatus = false) {
     nivelAtual = nivelPct; 
     const elTexto = document.getElementById("status-level");
     if (elTexto) {
-        elTexto.innerText = `${Math.round(nivelPct)}%`;
+        const _r = Math.round(nivelPct);
+        elTexto.innerText = (_r > 0) ? `${_r}%` : '--%';   // 2.14: nunca mostra 0%
         if (isOfflineStatus) elTexto.style.color = 'var(--level-offline)'; 
         else if (nivelPct > 60) elTexto.style.color = 'var(--level-ok)';
         else if (nivelPct > nivelAlertaConfigurado) elTexto.style.color = 'var(--level-warn)';
@@ -2163,8 +2165,8 @@ async function loopDeAtualizacaoReal() {
 function iniciarWatchdog() {
   if (watchdogInterval) clearInterval(watchdogInterval);
   watchdogInterval = setInterval(() => {
-    if (Date.now() - ultimoUpdateEmMs > (UPDATE_MS + 15000)) { loopDeAtualizacao(); }
-  }, 20000);   // 2.8: alinhado ao UPDATE_MS para nao poluir o download
+    if (Date.now() - ultimoUpdateEmMs > 4000) { loopDeAtualizacao(); }
+  }, 3000);
 }
 
 /* Warm-up: logo apos abrir, consulta o Firebase mais rapido (1s) para reconhecer
@@ -2433,8 +2435,8 @@ function iniciarWarmupDashboard() {
     dashboardWarmup = setInterval(() => {
         tentativas++;
         updateDashboardData();
-        if (tentativas >= 6) { clearInterval(dashboardWarmup); dashboardWarmup = null; }   // 2.11: ~9s de aquecimento
-    }, 1500);
+        if (tentativas >= 10) { clearInterval(dashboardWarmup); dashboardWarmup = null; }
+    }, 2000);
 }
 
 function prepararAbertura(id) {
@@ -2492,7 +2494,7 @@ function fecharApp() {
     iframe.srcdoc = "";
     overlay.classList.remove('active');
     updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 60000); 
+    dashboardInterval = setInterval(updateDashboardData, 1500); 
     iniciarWarmupDashboard();
 }
 
@@ -2633,7 +2635,7 @@ async function updateDashboardData() {
                 if(statusTxt) statusTxt.innerText = 'Em manutenção';
                 if(dot) dot.style.display = 'none';
                 
-                if(elLvl) { elLvl.innerText = '0%'; elLvl.style.color = 'var(--text-sec)'; }
+                if(elLvl) { elLvl.innerText = '--%'; elLvl.style.color = 'var(--text-sec)'; }
                 if(elBg) elBg.style.height = `0%`;
             }
             return; 
@@ -2668,6 +2670,8 @@ async function updateDashboardData() {
             //      (ex.: cota do Firebase estourou). Le uma vez por sessao.
             if (!state.seeded) {
                 state.seeded = true;
+                // 2.12: pinta imediatamente com a ultima leitura guardada no navegador
+                try { const ls = Number(localStorage.getItem('lvl_'+item.id)); if (ls > 0) state.lastValidPct = ls; } catch(e){}
                 try {
                     const urlSeed = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
                     const seed = await safeFetchDashboard(urlSeed);
@@ -2740,15 +2744,20 @@ async function updateDashboardData() {
             // A bolinha (LED) indica comunicacao REAL: verde=comunicando, vermelho=sem comunicacao
             const comunicando = (state.lastRealTime > 0 && (agora - state.lastRealTime < 180000));
             isOffline = false;   // SEM CONFERENCIA: nenhuma caixa fica "sem conexao" (manutencao/AP tratadas antes)
-            // Salva a ultima leitura valida no Firebase sempre que houver leitura real
-            if (rawLvl > 0 && comunicando) {
-                try {
-                    const urlSalvar = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
-                    fetch(urlSalvar + '&print=silent', { method: 'PUT', body: JSON.stringify({ nivel: Math.round(rawLvl), timestamp: agora }), keepalive: true });
-                } catch(e) {}
+            // 2.12: STICKY. Toda leitura > 0 vira a "ultima leitura" e e guardada no navegador.
+            //       O card NUNCA regride para 0%/offline: se a leitura falhar (cota negada),
+            //       mantem o ultimo valor e SO o LED vai para vermelho. Fim do flicker 0% -> offline.
+            if (rawLvl > 0) {
+                state.lastValidPct = rawLvl;
+                try { localStorage.setItem('lvl_'+item.id, String(Math.round(rawLvl))); } catch(e){}
+                if (comunicando) {
+                    try {
+                        const urlSalvar = cleanFirebaseUrl(DB_BASE, `${item.firebaseConfigPath}/ultima_leitura_valida.json`);
+                        fetch(urlSalvar + '&print=silent', { method: 'PUT', body: JSON.stringify({ nivel: Math.round(rawLvl), timestamp: agora }), keepalive: true });
+                    } catch(e) {}
+                }
             }
-            
-            let lvl = (rawLvl > 0) ? rawLvl : state.lastValidPct;
+            let lvl = state.lastValidPct > 0 ? state.lastValidPct : 0;
             
             if (lvl > 0 || !isOffline) {   // mostra online mesmo com nivel 0 (so PP06 cai no else)
                 item.active = true;
@@ -2829,22 +2838,8 @@ window.onload = () => {
     renderGrid('grid-pp', listPP, 'fas fa-road'); 
     renderGrid('grid-sau', listSAU, 'fas fa-home'); 
     updateDashboardData();
-    dashboardInterval = setInterval(updateDashboardData, 60000); 
+    dashboardInterval = setInterval(updateDashboardData, 1500); 
     iniciarWarmupDashboard();
-
-    // 2.8: pausa o painel quando a aba fica oculta (aba esquecida nao gasta download)
-    document.addEventListener('visibilitychange', () => {
-        const ov = document.getElementById('app-overlay');
-        const appAberto = ov && ov.classList.contains('active');
-        if (document.hidden) {
-            if (dashboardInterval) { clearInterval(dashboardInterval); dashboardInterval = null; }
-            if (dashboardWarmup) { clearInterval(dashboardWarmup); dashboardWarmup = null; }
-        } else if (!appAberto) {
-            updateDashboardData();
-            if (dashboardInterval) clearInterval(dashboardInterval);
-            dashboardInterval = setInterval(updateDashboardData, 60000);
-        }
-    });
 };
 </script>
 </body>
