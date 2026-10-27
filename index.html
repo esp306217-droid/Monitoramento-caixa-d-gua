@@ -1836,23 +1836,48 @@ async function salvarAbastecimento(litros) {
 }
 
 /* --- STREAMING_CHUNK:Configurações e Auxiliares --- */
-async function salvarConfig(endpoint, valor) { try { await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json`, { method: 'PUT', body: JSON.stringify(valor) }); } catch(e) {} }
+async function salvarConfig(endpoint, valor) {
+    try {
+        const resp = await fetch(`${PATH_CONFIG_BASE}/${endpoint}.json?print=silent`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(valor) });
+        return resp.ok;
+    } catch(e) { return false; }
+}
+function mostrarStatusConfig(idStatus, ok) {
+    const st = document.getElementById(idStatus);
+    if (!st) return;
+    st.innerText = ok ? '✅ Salvo!' : '❌ Erro ao salvar';
+    st.style.color = ok ? 'var(--level-ok)' : 'var(--level-danger)';
+    setTimeout(() => { st.innerText = ''; }, 2800);
+}
 async function salvarCapacidade(valor) {
-    if(!valor || valor <= 0) return;
-    await salvarConfig('capacidade', valor);
+    if(!valor || valor <= 0) { mostrarStatusConfig('status-capacidade', false); return; }
+    const ok = await salvarConfig('capacidade', valor);
     capacidadeTotal = valor;
     animarBotaoSucesso('btn-salvar-capacidade');
+    mostrarStatusConfig('status-capacidade', ok);
+    // Recalcula o volume (litros) na hora com a nova capacidade
+    try { renderNivel(nivelAtual, false); } catch(e){}
     if (typeof loopDeAtualizacao === 'function') loopDeAtualizacao();
 }
 async function salvarAltura(valor) {
-    if(!valor || valor <= 0) return;
-    await salvarConfig('altura', valor);
+    if(!valor || valor <= 0) { mostrarStatusConfig('status-altura', false); return; }
+    const ok = await salvarConfig('altura', valor);
     alturaCaixa = valor;
     animarBotaoSucesso('btn-salvar-altura');
+    mostrarStatusConfig('status-altura', ok);
+    // Reseta o filtro anti-fantasma: senao ele bloqueia a nova % (mudanca brusca)
+    slewLast = null; slewPend = 0;
+    try { buffPiorIf = []; } catch(e){}
     // Força leitura imediata do Firebase pra recalcular o % com a altura nova
     if (typeof loopDeAtualizacao === 'function') loopDeAtualizacao();
 }
-async function salvarNivelAlerta(valor) { if(!valor || valor <= 0 || valor >= 100) return; await salvarConfig('nivel_alerta', valor); nivelAlertaConfigurado = parseInt(valor); animarBotaoSucesso('btn-salvar-nivel-alerta'); }
+async function salvarNivelAlerta(valor) {
+    if(!valor || valor <= 0 || valor >= 100) { mostrarStatusConfig('status-alerta', false); return; }
+    const ok = await salvarConfig('nivel_alerta', valor);
+    nivelAlertaConfigurado = parseInt(valor);
+    animarBotaoSucesso('btn-salvar-nivel-alerta');
+    mostrarStatusConfig('status-alerta', ok);
+}
 
 async function carregarConfiguracoesGerais() { 
     try { 
