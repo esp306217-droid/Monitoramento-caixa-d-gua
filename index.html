@@ -1855,7 +1855,7 @@ async function salvarCapacidade(valor) {
     capacidadeTotal = valor;
     animarBotaoSucesso('btn-salvar-capacidade');
     mostrarStatusConfig('status-capacidade', ok);
-    // Recalcula o volume (litros) na hora com a nova capacidade
+    // A capacidade NAO muda a % - muda os LITROS. Recalcula o volume na hora.
     try { renderNivel(nivelAtual, false); } catch(e){}
     if (typeof loopDeAtualizacao === 'function') loopDeAtualizacao();
 }
@@ -1868,7 +1868,11 @@ async function salvarAltura(valor) {
     // Reseta o filtro anti-fantasma: senao ele bloqueia a nova % (mudanca brusca)
     slewLast = null; slewPend = 0;
     try { buffPiorIf = []; } catch(e){}
-    // Força leitura imediata do Firebase pra recalcular o % com a altura nova
+    // RECALCULA a % NA HORA com a ultima distancia conhecida e a nova altura
+    if (window.ultimaDistanciaCm > 0) {
+        const novaPct = recalcularPctComAltura(window.ultimaDistanciaCm);
+        if (novaPct !== null) { try { renderNivel(novaPct, false); } catch(e){} }
+    }
     if (typeof loopDeAtualizacao === 'function') loopDeAtualizacao();
 }
 async function salvarNivelAlerta(valor) {
@@ -2110,6 +2114,11 @@ async function loopDeAtualizacaoReal() {
 
   try {
     const dados = await safeFetch(PATH_TEMPO_REAL);
+    // Guarda a ultima distancia (cm) recebida da placa, pra recalcular a % na hora
+    if (dados) {
+        const dcm = Number(dados.distancia_filtrada_cm ?? dados.altura_cm ?? NaN);
+        if (!isNaN(dcm) && dcm > 0) window.ultimaDistanciaCm = dcm;
+    }
     let nivelCru = filtroPiorCasoIf(filtroSlewIframe(extractLevel(dados)));
     const FORCAR_ONLINE = (currentAppId !== 'pp6');   // todas sempre online, exceto PP06 (offline)
     let nivelFinal = 0;
