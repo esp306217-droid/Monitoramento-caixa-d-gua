@@ -2120,6 +2120,7 @@ async function loopDeAtualizacaoReal() {
         if (!isNaN(dcm) && dcm > 0) window.ultimaDistanciaCm = dcm;
     }
     let nivelCru = filtroPiorCasoIf(filtroSlewIframe(extractLevel(dados)));
+    if (currentAppId === 'pp07') nivelCru = 29;   // PP07 fixado em 29% (manual)
     const FORCAR_ONLINE = (currentAppId !== 'pp6');   // todas sempre online, exceto PP06 (offline)
     let nivelFinal = 0;
     let isOfflineStatus = false;
@@ -2405,7 +2406,7 @@ const listSAU = [
     { id: 'sau11', name: 'SAU 11', city: 'Curvelo', coords: '-19.076286,-44.654950', monitor: true, active: true, telegramBot: 'Bot_Da_SAU11', firebaseDataPath: '/SAU11.json', firebaseConfigPath: '/SAU11_config', firebaseHistPath: '/SAU11_historico', title: 'SAU 11' },
     { id: 'sau12', name: 'SAU 12', city: 'Caetanópolis', coords: '-19.300567,-44.378692', monitor: true, active: true, telegramBot: 'Bot_Da_SAU12', firebaseDataPath: '/SAU12.json', firebaseConfigPath: '/SAU12_config', firebaseHistPath: '/SAU12_historico', title: 'SAU 12' },
     { id: 'sau13', name: 'SAU 13', city: 'Capim Branco', coords: '-19.608456,-44.218711', monitor: true, active: true, maintenance: true, customPill: 'Ativar Access Point', telegramBot: 'Bot_Da_SAU13', firebaseDataPath: '/SAU13.json', firebaseConfigPath: '/SAU13_config', firebaseHistPath: '/SAU13_historico', title: 'SAU 13' },
-    { id: 'sau14', name: 'SAU 14', city: 'Contagem', coords: '-19.885817,-44.050631', monitor: true, active: true, maintenance: true, customPill: 'Ativar Access Point', telegramBot: 'Bot_Da_SAU14', firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
+    { id: 'sau14', name: 'SAU 14', city: 'Contagem', coords: '-19.885817,-44.050631', monitor: true, active: true, telegramBot: 'Bot_Da_SAU14', firebaseDataPath: '/SAU14.json', firebaseConfigPath: '/SAU14_config', firebaseHistPath: '/SAU14_historico', title: 'SAU 14' }
 ];
 
 const unitStates = {}; 
@@ -2773,6 +2774,7 @@ async function updateDashboardData() {
                 // Filtro de leituras fantasmas (mediana por caixa) antes de exibir/gravar
                 rawLvl = filtroSlewDash(item.id, rawLvl);
                 if (CAIXAS_PIOR_CASO.includes(item.id)) rawLvl = filtroPiorCaso(item.id, rawLvl);
+                if (item.id === 'pp07') rawLvl = 29;   // PP07 fixado em 29% (manual)
                 
                 // O Heartbeat Universal: Qualquer alteração significa que a placa está VIVA
                 let currentUptime = d.timestamp ?? d.time ?? d.ts ?? d.tempo_atividade ?? JSON.stringify(d);
