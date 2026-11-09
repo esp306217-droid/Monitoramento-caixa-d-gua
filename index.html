@@ -2120,7 +2120,6 @@ async function loopDeAtualizacaoReal() {
         if (!isNaN(dcm) && dcm > 0) window.ultimaDistanciaCm = dcm;
     }
     let nivelCru = filtroPiorCasoIf(filtroSlewIframe(extractLevel(dados)));
-    if (currentAppId === 'pp07') nivelCru = 29;   // PP07 fixado em 29% (manual)
     const FORCAR_ONLINE = (currentAppId !== 'pp6');   // todas sempre online, exceto PP06 (offline)
     let nivelFinal = 0;
     let isOfflineStatus = false;
@@ -2774,7 +2773,6 @@ async function updateDashboardData() {
                 // Filtro de leituras fantasmas (mediana por caixa) antes de exibir/gravar
                 rawLvl = filtroSlewDash(item.id, rawLvl);
                 if (CAIXAS_PIOR_CASO.includes(item.id)) rawLvl = filtroPiorCaso(item.id, rawLvl);
-                if (item.id === 'pp07') rawLvl = 29;   // PP07 fixado em 29% (manual)
                 
                 // O Heartbeat Universal: Qualquer alteração significa que a placa está VIVA
                 let currentUptime = d.timestamp ?? d.time ?? d.ts ?? d.tempo_atividade ?? JSON.stringify(d);
